@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
+import { startOfWeek, startOfMonth, endOfMonth, differenceInDays, isSameDay } from 'date-fns';
+
 
 // Helper para mapear snake_case a camelCase para HabitTask
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
@@ -14,6 +16,52 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     frequencyDays: dbData.frequency_days,
     weight: dbData.weight,
 });
+
+const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[]): number => {
+    if (!habit.startDate || !habit.frequency) return 0;
+
+    const startDate = new Date(habit.startDate);
+    const today = new Date();
+    const logsForHabit = logs.filter(log => log.habit_task_id === habit.id);
+
+    let totalCompletions = 0;
+    let expectedCompletions = 0;
+
+    switch (habit.frequency) {
+        case 'daily':
+            expectedCompletions = differenceInDays(today, startDate) + 1;
+            totalCompletions = logsForHabit.length;
+            break;
+        case 'weekly':
+            const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 }); // Lunes
+            const completionsThisWeek = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisWeek).length;
+            return completionsThisWeek > 0 ? 100 : 0; // Simple check for this week
+        case 'monthly':
+            const startOfThisMonth = startOfMonth(today);
+            const completionsThisMonth = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisMonth).length;
+            return completionsThisMonth > 0 ? 100 : 0; // Simple check for this month
+        case 'specific_days':
+            if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
+            const dayMapping: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+            const targetDays = habit.frequencyDays.map(d => dayMapping[d]);
+            
+            let currentDate = new Date(startDate);
+            while (currentDate <= today) {
+                if (targetDays.includes(currentDate.getDay())) {
+                    expectedCompletions++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            totalCompletions = logsForHabit.length;
+            break;
+        default:
+            return 0;
+    }
+    
+    if (expectedCompletions === 0) return 0;
+    return Math.min((totalCompletions / expectedCompletions) * 100, 100);
+}
+
 
 export async function getDashboardData() {
     const supabase = createClient();
@@ -55,10 +103,32 @@ export async function getDashboardData() {
 
     // 5. Calcular progreso para cada nivel
 
-    // 5a. Calcular progreso para PRK de Área
-    const areaPrks: AreaPrk[] = await Promise.all(areaPrksData.map(async (ap) => {
-        const { data, error } = await supabase.rpc('fn_calculate_area_prk_progress', { p_area_prk_id: ap.id });
-        if (error) console.error(`Error calculating progress for Area PRK ${ap.id}:`, error.message);
+    // 5a. Calcular progreso para Hábitos y Tareas
+    const habitTasks: HabitTask[] = habitTasksData.map((ht) => {
+        let progress = 0;
+        const mappedHt = mapHabitTaskFromDb(ht);
+
+        if (mappedHt.type === 'task') {
+             const completed = progressLogsData.some(log => log.habit_task_id === mappedHt.id);
+             progress = completed ? 100 : 0;
+        } else {
+             progress = calculateHabitProgress(mappedHt, progressLogsData);
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const completedToday = progressLogsData.some(log => log.habit_task_id === ht.id && log.completion_date === todayStr);
+
+        return { ...mappedHt, progress, completedToday };
+    });
+
+    // 5b. Calcular progreso para PRK de Área
+    const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
+        const relevantHabitTasks = habitTasks.filter(ht => ht.areaPrkId === ap.id);
+        let progress = 0;
+        if (relevantHabitTasks.length > 0) {
+            const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + (ht.progress ?? 0), 0);
+            progress = totalProgress / relevantHabitTasks.length;
+        }
         return { 
             id: ap.id,
             lifePrkId: ap.life_prk_id,
@@ -68,11 +138,11 @@ export async function getDashboardData() {
             unit: ap.unit,
             created_at: ap.created_at,
             archived: ap.archived,
-            progress: data ?? 0
+            progress: progress
         };
-    }));
+    });
 
-    // 5b. Calcular progreso para PRK de Vida (basado en el promedio de sus PRK de Área)
+    // 5c. Calcular progreso para PRK de Vida (basado en el promedio de sus PRK de Área)
      const lifePrks: LifePrk[] = lifePrksData.map(lp => {
         const relevantAreaPrks = areaPrks.filter(ap => ap.lifePrkId === lp.id);
         let progress = 0;
@@ -82,25 +152,6 @@ export async function getDashboardData() {
         }
         return { ...lp, archived: lp.archived || false, progress };
     });
-
-    // 5c. Calcular progreso para Hábitos y Tareas
-    const habitTasks: HabitTask[] = await Promise.all(habitTasksData.map(async (ht) => {
-        let progress = 0;
-        if (ht.type === 'task') {
-            const { data, error } = await supabase.rpc('fn_calculate_task_progress', { p_task_id: ht.id });
-            if (error) console.error(`Error calculating progress for Task ${ht.id}:`, error.message);
-            progress = data ?? 0;
-        } else {
-            const { data, error } = await supabase.rpc('fn_calculate_habit_progress', { p_habit_id: ht.id });
-            if (error) console.error(`Error calculating progress for Habit ${ht.id}:`, error.message);
-            progress = data ?? 0;
-        }
-
-        const today = new Date().toISOString().split('T')[0];
-        const completedToday = progressLogsData.some(log => log.habit_task_id === ht.id && log.completion_date === today);
-
-        return { ...mapHabitTaskFromDb(ht), progress, completedToday };
-    }));
     
 
     return { lifePrks, areaPrks, habitTasks };
