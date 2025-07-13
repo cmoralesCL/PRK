@@ -1,7 +1,9 @@
 'use client';
 
+import * as React from 'react';
 import { Target, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { AreaPrkCard } from './area-prk-card';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 
@@ -24,21 +26,44 @@ export function LifePrkSection({
   onToggleHabitTask,
   onGetAiSuggestions,
 }: LifePrkSectionProps) {
+
+  const lifePrkProgress = React.useMemo(() => {
+    if (areaPrks.length === 0) {
+      return 0;
+    }
+    const totalProgress = areaPrks.reduce((acc, prk) => {
+      const progress = prk.targetValue > 0 ? (prk.currentValue / prk.targetValue) * 100 : 0;
+      return acc + progress;
+    }, 0);
+    return totalProgress / areaPrks.length;
+  }, [areaPrks]);
+
   return (
     <section className="py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div className="mb-4 sm:mb-0">
-          <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-            <Target className="h-8 w-8 text-primary" />
-            {lifePrk.title}
-          </h2>
-          <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div className="mb-4 sm:mb-0">
+                <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
+                    <Target className="h-8 w-8 text-primary" />
+                    {lifePrk.title}
+                </h2>
+                <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+            </div>
+            <Button variant="outline" onClick={() => onAddAreaPrk(lifePrk.id)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar PRK de Área
+            </Button>
         </div>
-        <Button variant="outline" onClick={() => onAddAreaPrk(lifePrk.id)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar PRK de Área
-        </Button>
+
+        <div className="space-y-2">
+            <div className="flex justify-between text-sm font-medium text-muted-foreground">
+                <span>Progreso General</span>
+                <span>{lifePrkProgress.toFixed(0)}%</span>
+            </div>
+            <Progress value={lifePrkProgress} className="h-2" />
+        </div>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {areaPrks.map((kp) => (
           <AreaPrkCard
