@@ -53,13 +53,9 @@ export async function getDashboardData() {
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
 
 
-    // 5. Calcular progreso para cada nivel usando las funciones de PostgreSQL
-    const lifePrks: LifePrk[] = await Promise.all(lifePrksData.map(async (lp) => {
-        const { data, error } = await supabase.rpc('fn_calculate_life_prk_progress', { p_life_prk_id: lp.id });
-        if (error) console.error(`Error calculating progress for Life PRK ${lp.id}:`, error.message);
-        return { ...lp, archived: lp.archived || false, progress: data ?? 0 };
-    }));
+    // 5. Calcular progreso para cada nivel
 
+    // 5a. Calcular progreso para PRK de Área
     const areaPrks: AreaPrk[] = await Promise.all(areaPrksData.map(async (ap) => {
         const { data, error } = await supabase.rpc('fn_calculate_area_prk_progress', { p_area_prk_id: ap.id });
         if (error) console.error(`Error calculating progress for Area PRK ${ap.id}:`, error.message);
@@ -76,6 +72,18 @@ export async function getDashboardData() {
         };
     }));
 
+    // 5b. Calcular progreso para PRK de Vida (basado en el promedio de sus PRK de Área)
+     const lifePrks: LifePrk[] = lifePrksData.map(lp => {
+        const relevantAreaPrks = areaPrks.filter(ap => ap.lifePrkId === lp.id);
+        let progress = 0;
+        if (relevantAreaPrks.length > 0) {
+            const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
+            progress = totalProgress / relevantAreaPrks.length;
+        }
+        return { ...lp, archived: lp.archived || false, progress };
+    });
+
+    // 5c. Calcular progreso para Hábitos y Tareas
     const habitTasks: HabitTask[] = await Promise.all(habitTasksData.map(async (ht) => {
         let progress = 0;
         if (ht.type === 'task') {
