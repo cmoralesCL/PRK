@@ -8,9 +8,9 @@ export default async function Home() {
 
   return (
     <Dashboard
-      initialLifePrks={lifePrks}
-      initialAreaPrks={areaPrks}
-      initialHabitTasks={habitTasks}
+      lifePrks={lifePrks}
+      areaPrks={areaPrks}
+      habitTasks={habitTasks}
     />
   );
 }

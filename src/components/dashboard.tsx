@@ -23,22 +23,18 @@ import {
 import { Button } from './ui/button';
 
 interface DashboardProps {
-  initialLifePrks: LifePrk[];
-  initialAreaPrks: AreaPrk[];
-  initialHabitTasks: HabitTask[];
+  lifePrks: LifePrk[];
+  areaPrks: AreaPrk[];
+  habitTasks: HabitTask[];
 }
 
 export function Dashboard({
-  initialLifePrks,
-  initialAreaPrks,
-  initialHabitTasks,
+  lifePrks,
+  areaPrks,
+  habitTasks,
 }: DashboardProps) {
-  const [lifePrks, setLifePrks] = useState<LifePrk[]>(initialLifePrks);
-  const [areaPrks, setAreaPrks] = useState<AreaPrk[]>(initialAreaPrks);
-  const [habitTasks, setHabitTasks] = useState<HabitTask[]>(initialHabitTasks);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
@@ -49,52 +45,52 @@ export function Dashboard({
   const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
 
-  const handleAddLifePrk = async (values: { title: string; description?: string }) => {
-    try {
-      const newLifePrk = await addLifePrk(values);
-      setLifePrks(prev => [...prev, { ...newLifePrk, progress: 0 }]);
-      toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Vida.' });
-    }
+  const handleAddLifePrk = (values: { title: string; description?: string }) => {
+    startTransition(async () => {
+        try {
+          await addLifePrk(values);
+          toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Vida.' });
+        }
+    });
   };
   
-  const handleAddAreaPrk = async (values: { title: string; unit: string }) => {
+  const handleAddAreaPrk = (values: { title: string; unit: string }) => {
     if (!activeLifePrkId) return;
-    try {
-      const newAreaPrk = await addAreaPrk({ ...values, lifePrkId: activeLifePrkId });
-      setAreaPrks(prev => [...prev, { ...newAreaPrk, progress: 0 }]);
-      toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Área.' });
-    }
+     startTransition(async () => {
+        try {
+          await addAreaPrk({ ...values, lifePrkId: activeLifePrkId });
+          toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Área.' });
+        }
+    });
   };
 
-  const handleAddHabitTask = async (values: HabitTaskFormValues) => {
+  const handleAddHabitTask = (values: HabitTaskFormValues) => {
     if (!activeAreaPrkId) return;
-    try {
-      const habitTaskData: Partial<HabitTask> = {
-          areaPrkId: activeAreaPrkId,
-          title: values.title,
-          type: values.type,
-          startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-          frequency: values.frequency,
-          frequencyDays: values.frequencyDays
-      };
-      const newHabitTask = await addHabitTask(habitTaskData);
-      setHabitTasks(prev => [...prev, { ...newHabitTask, progress: 0, completedToday: false }]);
-      toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la acción.' });
-    }
+    startTransition(async () => {
+        try {
+          const habitTaskData: Partial<HabitTask> = {
+              areaPrkId: activeAreaPrkId,
+              title: values.title,
+              type: values.type,
+              startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+              frequency: values.frequency,
+              frequencyDays: values.frequencyDays
+          };
+          await addHabitTask(habitTaskData);
+          toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la acción.' });
+        }
+    });
   };
   
-  const handleToggleHabitTask = async (id: string, completed: boolean) => {
+  const handleToggleHabitTask = (id: string, completed: boolean) => {
     const task = habitTasks.find(ht => ht.id === id);
     if (!task) return;
-
-    // Optimistic UI update for checkbox state only
-    setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: completed } : ht));
 
     startTransition(async () => {
       try {
@@ -108,66 +104,59 @@ export function Dashboard({
         } else {
           await removeHabitTaskCompletion(id, task.type);
         }
-        // Server action revalidates path, no manual refresh needed.
-        // The new data will flow down after revalidation.
       } catch (error) {
-        // Revert UI on error by flipping the completedToday state back
-        setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: !completed } : ht));
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
       }
     });
   };
 
-  const handleAddSuggestedTask = async (areaPrkId: string, title: string) => {
-     try {
-      const newHabitTask = await addHabitTask({ 
-          areaPrkId, 
-          title, 
-          type: 'task', 
-      });
-      setHabitTasks(prev => [...prev, { ...newHabitTask, progress: 0, completedToday: false }]);
-      toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la tarea sugerida.' });
-    }
+  const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
+     startTransition(async () => {
+        try {
+            await addHabitTask({ 
+                areaPrkId, 
+                title, 
+                type: 'task', 
+            });
+            toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la tarea sugerida.' });
+        }
+    });
   };
   
-  const handleArchiveLifePrk = async (id: string) => {
-    const originalLifePrks = [...lifePrks];
-    setLifePrks(prev => prev.filter(lp => lp.id !== id));
-    try {
-      await archiveLifePrk(id);
-      toast({ title: 'PRK de Vida Archivado' });
-    } catch (error) {
-      setLifePrks(originalLifePrks);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Vida.' });
-    }
+  const handleArchiveLifePrk = (id: string) => {
+    startTransition(async () => {
+        try {
+          await archiveLifePrk(id);
+          toast({ title: 'PRK de Vida Archivado' });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Vida.' });
+        }
+    });
   };
 
-  const handleArchiveAreaPrk = async (id: string) => {
-    const originalAreaPrks = [...areaPrks];
-    setAreaPrks(prev => prev.filter(ap => ap.id !== id));
-    try {
-      await archiveAreaPrk(id);
-      toast({ title: 'PRK de Área Archivado' });
-    } catch (error) {
-      setAreaPrks(originalAreaPrks);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Área.' });
-    }
+  const handleArchiveAreaPrk = (id: string) => {
+    startTransition(async () => {
+        try {
+          await archiveAreaPrk(id);
+          toast({ title: 'PRK de Área Archivado' });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Área.' });
+        }
+    });
   };
 
-  const handleArchiveHabitTask = async (id: string) => {
-    const originalHabitTasks = [...habitTasks];
-    setHabitTasks(prev => prev.filter(ht => ht.id !== id));
-    try {
-      await archiveHabitTask(id);
-      toast({ title: 'Hábito/Tarea Archivado' });
-    } catch (error) {
-      setHabitTasks(originalHabitTasks);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
-    }
+  const handleArchiveHabitTask = (id: string) => {
+    startTransition(async () => {
+        try {
+          await archiveHabitTask(id);
+          toast({ title: 'Hábito/Tarea Archivado' });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+        }
+    });
   };
-
 
   return (
     <>
