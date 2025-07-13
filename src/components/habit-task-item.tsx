@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckSquare, Repeat, Archive } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -12,9 +12,10 @@ interface HabitTaskItemProps {
   item: HabitTask;
   onToggle: (id: string, completed: boolean) => void;
   onArchive: (id: string) => void;
+  onEdit: (habitTask: HabitTask) => void;
 }
 
-export function HabitTaskItem({ item, onToggle, onArchive }: HabitTaskItemProps) {
+export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskItemProps) {
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
   const isCompleted = item.type === 'task' ? (item.progress ?? 0) === 100 : item.completedToday ?? false;
 
@@ -37,14 +38,24 @@ export function HabitTaskItem({ item, onToggle, onArchive }: HabitTaskItemProps)
             >
                 {item.title}
             </Label>
-            <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => onArchive(item.id)}
-            >
-                <Archive className="h-4 w-4 text-muted-foreground" />
-            </Button>
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onEdit(item)}
+                >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onArchive(item.id)}
+                >
+                    <Archive className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            </div>
         </div>
         {(item.type === 'habit' || item.type === 'task') && (
             <div className='flex items-center gap-2 pl-8 pt-1'>

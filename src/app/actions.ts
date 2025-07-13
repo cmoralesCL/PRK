@@ -73,6 +73,26 @@ export async function addHabitTask(values: Partial<HabitTask>) {
     return data as HabitTask;
 }
 
+export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('habit_tasks')
+      .update({
+        title: values.title,
+        type: values.type,
+        start_date: values.startDate,
+        frequency: values.frequency,
+        frequency_days: values.frequencyDays,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+  
+    if (error) throw error;
+    revalidatePath('/');
+    return data as HabitTask;
+}
+
 export async function logHabitTaskCompletion(habitTaskId: string) {
     const supabase = createClient();
     const { error } = await supabase.from('progress_logs').insert([{

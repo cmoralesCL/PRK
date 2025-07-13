@@ -19,6 +19,7 @@ interface LifePrkSectionProps {
   habitTasks: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
   onAddHabitTask: (areaPrkId: string) => void;
+  onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
@@ -32,6 +33,7 @@ export function LifePrkSection({
   habitTasks,
   onAddAreaPrk,
   onAddHabitTask,
+  onEditHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
   onArchive,
@@ -90,6 +92,7 @@ export function LifePrkSection({
                 areaPrk={kp}
                 habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
                 onAddHabitTask={onAddHabitTask}
+                onEditHabitTask={onEditHabitTask}
                 onToggleHabitTask={onToggleHabitTask}
                 onGetAiSuggestions={onGetAiSuggestions}
                 onArchive={onArchiveAreaPrk}

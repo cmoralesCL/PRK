@@ -19,6 +19,7 @@ interface AreaPrkCardProps {
   areaPrk: AreaPrk;
   habitTasks: HabitTask[];
   onAddHabitTask: (areaPrkId: string) => void;
+  onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
@@ -29,6 +30,7 @@ export function AreaPrkCard({
   areaPrk,
   habitTasks,
   onAddHabitTask,
+  onEditHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
   onArchive,
@@ -77,7 +79,7 @@ export function AreaPrkCard({
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
-              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} />
+              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} />
             ))}
           </div>
         ) : (

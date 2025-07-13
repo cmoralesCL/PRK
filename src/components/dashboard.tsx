@@ -7,13 +7,14 @@ import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog } from './add-area-prk-dialog';
-import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
+import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
     addAreaPrk, 
     addHabitTask, 
+    updateHabitTask,
     addLifePrk, 
     logHabitTaskCompletion,
     removeHabitTaskCompletion,
@@ -40,26 +41,21 @@ export function Dashboard({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  // Initialize state to null to prevent hydration mismatch
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  // Set the date on the client-side after mount
   useEffect(() => {
-    // The initialSelectedDate string is in 'YYYY-MM-DD' format.
-    // Appending 'T00:00:00' ensures it's parsed in the local timezone,
-    // preventing off-by-one day errors.
     setSelectedDate(new Date(`${initialSelectedDate}T00:00:00`));
   }, [initialSelectedDate]);
 
-
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
-  const [isAddHabitTaskOpen, setAddHabitTaskOpen] = useState(false);
+  const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
 
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   
   const handleDateChange = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
@@ -90,22 +86,37 @@ export function Dashboard({
     });
   };
 
-  const handleAddHabitTask = (values: HabitTaskFormValues) => {
-    if (!activeAreaPrkId) return;
+  const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
+    setActiveAreaPrkId(areaPrkId);
+    setEditingHabitTask(null);
+    setHabitTaskDialogOpen(true);
+  };
+
+  const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
+    setEditingHabitTask(habitTask);
+    setHabitTaskDialogOpen(true);
+  };
+
+  const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-          const habitTaskData: Partial<HabitTask> = {
-              areaPrkId: activeAreaPrkId,
-              title: values.title,
-              type: values.type,
-              startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-              frequency: values.frequency,
-              frequencyDays: values.frequencyDays
-          };
-          await addHabitTask(habitTaskData);
-          toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+            const habitTaskData: Partial<HabitTask> = {
+                title: values.title,
+                type: values.type,
+                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+                frequency: values.frequency,
+                frequencyDays: values.frequencyDays
+            };
+            
+            if (editingHabitTask) {
+                await updateHabitTask(editingHabitTask.id, habitTaskData);
+                toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
+            } else if(activeAreaPrkId) {
+                await addHabitTask({ ...habitTaskData, areaPrkId: activeAreaPrkId });
+                toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+            }
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la acción.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
         }
     });
   };
@@ -181,8 +192,7 @@ export function Dashboard({
   };
 
   if (!selectedDate) {
-    // Render a loader or null while waiting for the client-side date to be set
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
@@ -207,7 +217,8 @@ export function Dashboard({
               areaPrks={areaPrks.filter(kp => kp.lifePrkId === lp.id)}
               habitTasks={habitTasks}
               onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
-              onAddHabitTask={(id) => { setActiveAreaPrkId(id); setAddHabitTaskOpen(true); }}
+              onAddHabitTask={handleOpenAddHabitTaskDialog}
+              onEditHabitTask={handleOpenEditHabitTaskDialog}
               onToggleHabitTask={handleToggleHabitTask}
               onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
               onArchive={handleArchiveLifePrk}
@@ -221,7 +232,12 @@ export function Dashboard({
 
       <AddLifePrkDialog isOpen={isAddLifePrkOpen} onOpenChange={setAddLifePrkOpen} onAdd={handleAddLifePrk} />
       <AddAreaPrkDialog isOpen={isAddAreaPrkOpen} onOpenChange={setAddAreaPrkOpen} onAdd={handleAddAreaPrk} />
-      <AddHabitTaskDialog isOpen={isAddHabitTaskOpen} onOpenChange={setAddHabitTaskOpen} onAdd={handleAddHabitTask} />
+      <HabitTaskDialog 
+        isOpen={isHabitTaskDialogOpen} 
+        onOpenChange={setHabitTaskDialogOpen} 
+        onSave={handleSaveHabitTask}
+        habitTask={editingHabitTask}
+       />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 
         onOpenChange={setAiSuggestOpen} 
