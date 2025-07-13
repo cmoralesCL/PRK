@@ -28,7 +28,7 @@ interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  initialSelectedDate: string;
+  initialSelectedDate?: string;
 }
 
 export function Dashboard({
@@ -44,8 +44,11 @@ export function Dashboard({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   useEffect(() => {
-    setSelectedDate(new Date(`${initialSelectedDate}T00:00:00`));
+    // Inicializar la fecha en el cliente para evitar errores de hidratación
+    const dateStr = initialSelectedDate || new Date().toISOString().split('T')[0];
+    setSelectedDate(new Date(`${dateStr}T00:00:00Z`)); // Use Z para UTC
   }, [initialSelectedDate]);
+
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
@@ -60,7 +63,10 @@ export function Dashboard({
   const handleDateChange = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
     setSelectedDate(date);
-    router.push(`/?date=${dateString}`);
+    // startTransition para no bloquear la UI mientras navega
+    startTransition(() => {
+      router.push(`/?date=${dateString}`);
+    });
   }
 
   const handleAddLifePrk = (values: { title: string; description?: string }) => {
@@ -121,21 +127,23 @@ export function Dashboard({
     });
   };
   
-  const handleToggleHabitTask = (id: string, completed: boolean) => {
+  const handleToggleHabitTask = (id: string, completed: boolean, date: Date) => {
     const task = habitTasks.find(ht => ht.id === id);
     if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
 
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id);
+          await logHabitTaskCompletion(id, completionDate);
           if (task.type === 'task') {
               toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
           }
         } else {
-          await removeHabitTaskCompletion(id, task.type);
+          await removeHabitTaskCompletion(id, task.type, completionDate);
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
@@ -192,7 +200,12 @@ export function Dashboard({
   };
 
   if (!selectedDate) {
-    return null;
+    // Muestra un estado de carga o skeleton mientras la fecha se inicializa en el cliente
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="text-2xl font-headline">Cargando...</div>
+        </div>
+    );
   }
 
   return (
@@ -203,14 +216,19 @@ export function Dashboard({
         onDateChange={handleDateChange} 
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {lifePrks.length === 0 && (
+        {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
                 <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
                 <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
                 <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Crear un PRK de Vida</Button>
             </div>
         )}
-        {lifePrks.map((lp, index) => (
+        {isPending && (
+            <div className="text-center py-24">
+                 <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
+            </div>
+        )}
+        {!isPending && lifePrks.map((lp, index) => (
           <div key={lp.id}>
             <LifePrkSection
               lifePrk={lp}
@@ -224,6 +242,7 @@ export function Dashboard({
               onArchive={handleArchiveLifePrk}
               onArchiveAreaPrk={handleArchiveAreaPrk}
               onArchiveHabitTask={handleArchiveHabitTask}
+              selectedDate={selectedDate}
             />
             {index < lifePrks.length - 1 && <Separator className="my-0" />}
           </div>

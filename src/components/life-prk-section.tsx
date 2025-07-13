@@ -20,11 +20,12 @@ interface LifePrkSectionProps {
   onAddAreaPrk: (lifePrkId: string) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onToggleHabitTask: (id: string, completed: boolean) => void;
+  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onArchiveAreaPrk: (id: string) => void;
   onArchiveHabitTask: (id: string) => void;
+  selectedDate: Date;
 }
 
 export function LifePrkSection({
@@ -39,6 +40,7 @@ export function LifePrkSection({
   onArchive,
   onArchiveAreaPrk,
   onArchiveHabitTask,
+  selectedDate
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
@@ -97,6 +99,7 @@ export function LifePrkSection({
                 onGetAiSuggestions={onGetAiSuggestions}
                 onArchive={onArchiveAreaPrk}
                 onArchiveHabitTask={onArchiveHabitTask}
+                selectedDate={selectedDate}
             />
             ))}
         </div>

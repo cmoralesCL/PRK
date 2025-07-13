@@ -17,7 +17,10 @@ interface HabitTaskItemProps {
 
 export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskItemProps) {
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
-  const isCompleted = item.type === 'task' ? (item.progress ?? 0) === 100 : item.completedToday ?? false;
+  const isCompleted = item.completedToday ?? false;
+
+  const isDisabled = new Date(item.startDate || '1970-01-01') > new Date();
+
 
   return (
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
@@ -28,12 +31,14 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
                 id={item.id}
                 checked={isCompleted}
                 onCheckedChange={(checked) => onToggle(item.id, !!checked)}
+                disabled={isDisabled}
             />
             <Label
                 htmlFor={item.id}
                 className={cn(
                 'text-sm font-medium leading-none cursor-pointer flex-grow',
-                isCompleted && 'line-through text-muted-foreground'
+                isCompleted && 'line-through text-muted-foreground',
+                isDisabled && 'text-muted-foreground opacity-70'
                 )}
             >
                 {item.title}
@@ -57,7 +62,7 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
                 </Button>
             </div>
         </div>
-        {(item.type === 'habit' || item.type === 'task') && (
+        {item.type === 'habit' && (
             <div className='flex items-center gap-2 pl-8 pt-1'>
                 <Progress value={item.progress ?? 0} className='h-1.5 w-full' />
                 <span className='text-xs text-muted-foreground font-mono w-12 text-right'>

@@ -20,10 +20,11 @@ interface AreaPrkCardProps {
   habitTasks: HabitTask[];
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onToggleHabitTask: (id: string, completed: boolean) => void;
+  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onArchiveHabitTask: (id: string) => void;
+  selectedDate: Date;
 }
 
 export function AreaPrkCard({
@@ -35,6 +36,7 @@ export function AreaPrkCard({
   onGetAiSuggestions,
   onArchive,
   onArchiveHabitTask,
+  selectedDate,
 }: AreaPrkCardProps) {
   const progress = areaPrk.progress ?? 0;
 
@@ -79,7 +81,7 @@ export function AreaPrkCard({
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
-              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} />
+              <HabitTaskItem key={item.id} item={item} onToggle={(id, completed) => onToggleHabitTask(id, completed, selectedDate)} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} />
             ))}
           </div>
         ) : (

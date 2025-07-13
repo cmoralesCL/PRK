@@ -93,18 +93,18 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
     return data as HabitTask;
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string) {
+export async function logHabitTaskCompletion(habitTaskId: string, completionDate: string) {
     const supabase = createClient();
     const { error } = await supabase.from('progress_logs').insert([{
         habit_task_id: habitTaskId,
-        completion_date: new Date().toISOString().split('T')[0]
+        completion_date: completionDate
     }]);
 
     if(error) throw error;
     revalidatePath('/');
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task') {
+export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
 
     if (type === 'task') {
@@ -116,28 +116,17 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
         if (error) throw error;
     } else {
-        // For a habit, find the most recent log and delete only that one
-        const { data: latestLog, error: findError } = await supabase
+        // For a habit, delete the log for the specific completion date
+        const { error } = await supabase
             .from('progress_logs')
-            .select('id')
+            .delete()
             .eq('habit_task_id', habitTaskId)
-            .order('completion_date', { ascending: false })
-            .limit(1)
-            .single();
+            .eq('completion_date', completionDate);
 
-        if (findError) {
-            // This can happen if there are no logs, which is a valid state.
+        if (error) {
+            // This can happen if there are no logs for that date, which is a valid state.
             // We can just log it for debugging but not throw an error.
-            console.warn(`Could not find a log to delete for habit ${habitTaskId}:`, findError.message);
-        }
-
-        if (latestLog) {
-            const { error: deleteError } = await supabase
-                .from('progress_logs')
-                .delete()
-                .eq('id', latestLog.id);
-            
-            if (deleteError) throw deleteError;
+            console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
         }
     }
 
