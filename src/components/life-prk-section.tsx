@@ -82,26 +82,27 @@ export function LifePrkSection({
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {areaPrks.map((kp) => (
-          <AreaPrkCard
-            key={kp.id}
-            areaPrk={kp}
-            habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
-            onAddHabitTask={onAddHabitTask}
-            onToggleHabitTask={onToggleHabitTask}
-            onGetAiSuggestions={onGetAiSuggestions}
-            onArchive={onArchiveAreaPrk}
-            onArchiveHabitTask={onArchiveHabitTask}
-          />
-        ))}
-        {areaPrks.length === 0 && (
+      {areaPrks.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {areaPrks.map((kp) => (
+            <AreaPrkCard
+                key={kp.id}
+                areaPrk={kp}
+                habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
+                onAddHabitTask={onAddHabitTask}
+                onToggleHabitTask={onToggleHabitTask}
+                onGetAiSuggestions={onGetAiSuggestions}
+                onArchive={onArchiveAreaPrk}
+                onArchiveHabitTask={onArchiveHabitTask}
+            />
+            ))}
+        </div>
+        ) : (
            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 bg-card rounded-lg border border-dashed">
                 <p className="text-muted-foreground">Aún no hay PRK de Área para esta visión.</p>
                 <Button variant="link" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
             </div>
         )}
-      </div>
     </section>
   );
 }

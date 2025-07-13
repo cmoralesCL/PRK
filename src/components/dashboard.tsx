@@ -27,19 +27,20 @@ interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  selectedDate: string;
+  initialSelectedDate: string;
 }
 
 export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
-  selectedDate,
+  initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  const [selectedDate, setSelectedDate] = useState(new Date(initialSelectedDate));
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
   const [isAddHabitTaskOpen, setAddHabitTaskOpen] = useState(false);
@@ -51,6 +52,7 @@ export function Dashboard({
   
   const handleDateChange = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
+    setSelectedDate(date);
     router.push(`/?date=${dateString}`);
   }
 
@@ -171,10 +173,17 @@ export function Dashboard({
     <>
       <Header 
         onAddLifePrk={() => setAddLifePrkOpen(true)}
-        selectedDate={new Date(selectedDate)}
+        selectedDate={selectedDate}
         onDateChange={handleDateChange} 
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {lifePrks.length === 0 && (
+            <div className="text-center py-24">
+                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Crear un PRK de Vida</Button>
+            </div>
+        )}
         {lifePrks.map((lp, index) => (
           <div key={lp.id}>
             <LifePrkSection
@@ -189,16 +198,9 @@ export function Dashboard({
               onArchiveAreaPrk={handleArchiveAreaPrk}
               onArchiveHabitTask={handleArchiveHabitTask}
             />
-            {index < lifePrks.length - 1 && <Separator />}
+            {index < lifePrks.length - 1 && <Separator className="my-0" />}
           </div>
         ))}
-        {lifePrks.length === 0 && (
-            <div className="text-center py-24">
-                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
-                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Crear un PRK de Vida</Button>
-            </div>
-        )}
       </main>
 
       <AddLifePrkDialog isOpen={isAddLifePrkOpen} onOpenChange={setAddLifePrkOpen} onAdd={handleAddLifePrk} />
