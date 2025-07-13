@@ -7,7 +7,6 @@ import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog } from './add-area-prk-dialog';
 import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
-import { UpdateAreaPrkDialog } from './update-area-prk-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +30,6 @@ export function Dashboard({
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
   const [isAddHabitTaskOpen, setAddHabitTaskOpen] = useState(false);
-  const [isUpdatePrkOpen, setUpdatePrkOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
 
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
@@ -69,20 +67,50 @@ export function Dashboard({
       ...values,
     };
     setHabitTasks([...habitTasks, newHabitTask]);
+    
+    // Si la nueva tarea está completada, actualizamos el PRK de Área
+    if(newHabitTask.completed) {
+        setAreaPrks(areaPrks.map(kp => 
+            kp.id === activeAreaPrkId ? { ...kp, currentValue: kp.currentValue + newHabitTask.value } : kp
+        ));
+    }
+
     toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean) => {
-    setHabitTasks(habitTasks.map(ht => (ht.id === id ? { ...ht, completed } : ht)));
+    let toggledTask: HabitTask | undefined;
+
+    setHabitTasks(prevHabitTasks => {
+        const newHabitTasks = prevHabitTasks.map(ht => {
+            if (ht.id === id) {
+                toggledTask = { ...ht, completed };
+                return toggledTask;
+            }
+            return ht;
+        });
+
+        if (toggledTask) {
+            const task = toggledTask;
+            const valueChange = completed ? task.value : -task.value;
+
+            setAreaPrks(prevAreaPrks => 
+                prevAreaPrks.map(kp => {
+                    if (kp.id === task.areaPrkId) {
+                        const newCurrentValue = Math.max(0, kp.currentValue + valueChange);
+                        return { ...kp, currentValue: newCurrentValue };
+                    }
+                    return kp;
+                })
+            );
+        }
+        
+        return newHabitTasks;
+    });
+
     if (completed) {
         toast({ title: '¡Excelente trabajo!', description: 'Un paso más cerca de tu meta.' });
     }
-  };
-  
-  const handleUpdateAreaPrk = (values: { currentValue: number }) => {
-    if (!activeAreaPrk) return;
-    setAreaPrks(areaPrks.map(kp => (kp.id === activeAreaPrk.id ? { ...kp, ...values } : kp)));
-    toast({ title: '¡Progreso Registrado!', description: `Progreso para "${activeAreaPrk.title}" actualizado.` });
   };
 
   const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
@@ -92,6 +120,7 @@ export function Dashboard({
       title,
       type: 'task',
       completed: false,
+      value: 1, // Las sugerencias de IA aportan 1 por defecto
     };
     setHabitTasks(prev => [...prev, newHabitTask]);
   };
@@ -107,11 +136,9 @@ export function Dashboard({
               areaPrks={areaPrks.filter(kp => kp.lifePrkId === lp.id)}
               habitTasks={habitTasks}
               onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
-              onUpdateProgress={(kp) => { setActiveAreaPrk(kp); setUpdatePrkOpen(true); }}
               onAddHabitTask={(id) => { setActiveAreaPrkId(id); setAddHabitTaskOpen(true); }}
               onToggleHabitTask={handleToggleHabitTask}
               onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-              onAddSuggestedTask={handleAddSuggestedTask}
             />
             {index < lifePrks.length - 1 && <Separator />}
           </div>
@@ -128,7 +155,6 @@ export function Dashboard({
       <AddLifePrkDialog isOpen={isAddLifePrkOpen} onOpenChange={setAddLifePrkOpen} onAdd={handleAddLifePrk} />
       <AddAreaPrkDialog isOpen={isAddAreaPrkOpen} onOpenChange={setAddAreaPrkOpen} onAdd={handleAddAreaPrk} />
       <AddHabitTaskDialog isOpen={isAddHabitTaskOpen} onOpenChange={setAddHabitTaskOpen} onAdd={handleAddHabitTask} />
-      <UpdateAreaPrkDialog isOpen={isUpdatePrkOpen} onOpenChange={setUpdatePrkOpen} onUpdate={handleUpdateAreaPrk} areaPrk={activeAreaPrk} />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 
         onOpenChange={setAiSuggestOpen} 

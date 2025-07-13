@@ -32,6 +32,7 @@ import {
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
+  value: z.coerce.number().min(0, { message: "El valor no puede ser negativo."})
 });
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
@@ -48,8 +49,11 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
     defaultValues: {
       title: '',
       type: 'task',
+      value: 1,
     },
   });
+
+  const type = form.watch("type");
 
   const onSubmit = (values: HabitTaskFormValues) => {
     onAdd(values);
@@ -63,7 +67,7 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
         <DialogHeader>
           <DialogTitle className="font-headline">Crear un Hábito o Tarea</DialogTitle>
           <DialogDescription>
-            Esta es una acción concreta que apoya tu PRK Clave.
+            Esta es una acción concreta que apoya tu PRK de Área.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -75,33 +79,48 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Ir al gimnasio 3 veces por semana" {...field} />
+                    <Input placeholder="Ej: Correr 5km" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="task">Tarea (aporta al progreso)</SelectItem>
+                        <SelectItem value="habit">Hábito (no aporta valor directo)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor que aporta</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un tipo" />
-                      </SelectTrigger>
+                      <Input type="number" {...field} disabled={type === 'habit'} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="task">Tarea Única</SelectItem>
-                      <SelectItem value="habit">Hábito Recurrente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter>
               <Button type="submit">Agregar Acción</Button>
             </DialogFooter>

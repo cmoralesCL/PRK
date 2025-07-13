@@ -19,4 +19,5 @@ export interface HabitTask {
   title: string;
   type: 'habit' | 'task';
   completed: boolean;
+  value: number; // Valor que aporta al PRK de Área
 }

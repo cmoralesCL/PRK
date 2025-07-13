@@ -10,11 +10,9 @@ interface LifePrkSectionProps {
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
-  onUpdateProgress: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
-  onAddSuggestedTask: (areaPrkId: string, title: string) => void;
 }
 
 export function LifePrkSection({
@@ -22,7 +20,6 @@ export function LifePrkSection({
   areaPrks,
   habitTasks,
   onAddAreaPrk,
-  onUpdateProgress,
   onAddHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
@@ -42,18 +39,23 @@ export function LifePrkSection({
           Agregar PRK de Área
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {areaPrks.map((kp) => (
           <AreaPrkCard
             key={kp.id}
             areaPrk={kp}
             habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
-            onUpdateProgress={onUpdateProgress}
             onAddHabitTask={onAddHabitTask}
             onToggleHabitTask={onToggleHabitTask}
             onGetAiSuggestions={onGetAiSuggestions}
           />
         ))}
+        {areaPrks.length === 0 && (
+           <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 bg-card rounded-lg border border-dashed">
+                <p className="text-muted-foreground">Aún no hay PRK de Área para esta visión.</p>
+                <Button variant="link" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
+            </div>
+        )}
       </div>
     </section>
   );
