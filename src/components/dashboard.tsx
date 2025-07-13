@@ -10,7 +10,15 @@ import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-d
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { addAreaPrk, addHabitTask, addLifePrk, toggleHabitTask } from '@/app/actions';
+import { 
+    addAreaPrk, 
+    addHabitTask, 
+    addLifePrk, 
+    toggleHabitTask,
+    archiveLifePrk,
+    archiveAreaPrk,
+    archiveHabitTask
+} from '@/app/actions';
 import { Button } from './ui/button';
 
 interface DashboardProps {
@@ -110,6 +118,43 @@ export function Dashboard({
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la tarea sugerida.' });
     }
   };
+  
+  const handleArchiveLifePrk = async (id: string) => {
+    const originalLifePrks = [...lifePrks];
+    setLifePrks(prev => prev.filter(lp => lp.id !== id));
+    try {
+      await archiveLifePrk(id);
+      toast({ title: 'PRK de Vida Archivado' });
+    } catch (error) {
+      setLifePrks(originalLifePrks);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Vida.' });
+    }
+  };
+
+  const handleArchiveAreaPrk = async (id: string) => {
+    const originalAreaPrks = [...areaPrks];
+    setAreaPrks(prev => prev.filter(ap => ap.id !== id));
+    try {
+      await archiveAreaPrk(id);
+      toast({ title: 'PRK de Área Archivado' });
+    } catch (error) {
+      setAreaPrks(originalAreaPrks);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Área.' });
+    }
+  };
+
+  const handleArchiveHabitTask = async (id: string) => {
+    const originalHabitTasks = [...habitTasks];
+    setHabitTasks(prev => prev.filter(ht => ht.id !== id));
+    try {
+      await archiveHabitTask(id);
+      toast({ title: 'Hábito/Tarea Archivado' });
+    } catch (error) {
+      setHabitTasks(originalHabitTasks);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+    }
+  };
+
 
   return (
     <>
@@ -125,6 +170,9 @@ export function Dashboard({
               onAddHabitTask={(id) => { setActiveAreaPrkId(id); setAddHabitTaskOpen(true); }}
               onToggleHabitTask={handleToggleHabitTask}
               onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+              onArchive={handleArchiveLifePrk}
+              onArchiveAreaPrk={handleArchiveAreaPrk}
+              onArchiveHabitTask={handleArchiveHabitTask}
             />
             {index < lifePrks.length - 1 && <Separator />}
           </div>

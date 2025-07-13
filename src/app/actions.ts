@@ -92,3 +92,24 @@ export async function toggleHabitTask(id: string, completed: boolean, areaPrkId:
 
     revalidatePath('/');
 }
+
+export async function archiveLifePrk(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+}
+
+export async function archiveAreaPrk(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+}
+
+export async function archiveHabitTask(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+}

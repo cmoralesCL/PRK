@@ -11,6 +11,7 @@ const mapAreaPrkFromDb = (dbData: any): AreaPrk => ({
     currentValue: dbData.current_value,
     unit: dbData.unit,
     created_at: dbData.created_at,
+    archived: dbData.archived
 });
 
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
@@ -21,6 +22,7 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     completed: dbData.completed,
     value: dbData.value,
     created_at: dbData.created_at,
+    archived: dbData.archived
 });
 
 export async function getDashboardData() {
@@ -29,17 +31,20 @@ export async function getDashboardData() {
     const { data: lifePrksData, error: lifePrksError } = await supabase
         .from('life_prks')
         .select('*')
+        .eq('archived', false)
         .order('created_at', { ascending: true });
 
     if (lifePrksError) {
         console.error("Error fetching Life PRKs:", lifePrksError.message);
         throw new Error("Could not fetch Life PRKs.");
     }
-    const lifePrks: LifePrk[] = lifePrksData || [];
+    const lifePrks: LifePrk[] = (lifePrksData || []).map(lp => ({ ...lp, archived: lp.archived || false }));
+
 
     const { data: areaPrksData, error: areaPrksError } = await supabase
         .from('area_prks')
         .select('*')
+        .eq('archived', false)
         .order('created_at', { ascending: true });
 
     if (areaPrksError) {
@@ -52,6 +57,7 @@ export async function getDashboardData() {
     const { data: habitTasksData, error: habitTasksError } = await supabase
         .from('habit_tasks')
         .select('*')
+        .eq('archived', false)
         .order('created_at', { ascending: true });
 
     if (habitTasksError) {

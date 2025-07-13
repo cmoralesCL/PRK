@@ -3,6 +3,7 @@ export interface LifePrk {
   title: string;
   description: string;
   created_at?: string;
+  archived: boolean;
 }
 
 export interface AreaPrk {
@@ -13,6 +14,7 @@ export interface AreaPrk {
   currentValue: number; // Corresponds to current_value
   unit: string;
   created_at?: string;
+  archived: boolean;
 }
 
 export interface HabitTask {
@@ -23,4 +25,5 @@ export interface HabitTask {
   completed: boolean;
   value: number;
   created_at?: string;
+  archived: boolean;
 }

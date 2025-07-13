@@ -1,11 +1,19 @@
 'use client';
 
-import { Gauge, Plus, Sparkles } from 'lucide-react';
+import { Gauge, Plus, Sparkles, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskItem } from './habit-task-item';
 import type { AreaPrk, HabitTask } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreVertical } from "lucide-react"
+
 
 interface AreaPrkCardProps {
   areaPrk: AreaPrk;
@@ -13,6 +21,8 @@ interface AreaPrkCardProps {
   onAddHabitTask: (areaPrkId: string) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
+  onArchive: (id: string) => void;
+  onArchiveHabitTask: (id: string) => void;
 }
 
 export function AreaPrkCard({
@@ -21,6 +31,8 @@ export function AreaPrkCard({
   onAddHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
+  onArchive,
+  onArchiveHabitTask,
 }: AreaPrkCardProps) {
   const progress = areaPrk.targetValue > 0 ? (areaPrk.currentValue / areaPrk.targetValue) * 100 : 0;
 
@@ -41,6 +53,19 @@ export function AreaPrkCard({
                     Objetivo: {formatValue(areaPrk.targetValue)} {areaPrk.unit}
                 </CardDescription>
             </div>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archivar PRK de Área
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
         
         <div className="pt-2">
@@ -56,7 +81,7 @@ export function AreaPrkCard({
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
-              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} />
+              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} />
             ))}
           </div>
         ) : (
