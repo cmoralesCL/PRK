@@ -11,6 +11,7 @@ import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addAreaPrk, addHabitTask, addLifePrk, toggleHabitTask } from '@/app/actions';
+import { Button } from './ui/button';
 
 interface DashboardProps {
   initialLifePrks: LifePrk[];
