@@ -2,12 +2,12 @@ import { Dashboard } from '@/components/dashboard';
 import { getInitialData } from '@/lib/data';
 
 export default function Home() {
-  const { lifePrks, keyPrks, habitTasks } = getInitialData();
+  const { lifePrks, areaPrks, habitTasks } = getInitialData();
 
   return (
     <Dashboard
       initialLifePrks={lifePrks}
-      initialKeyPrks={keyPrks}
+      initialAreaPrks={areaPrks}
       initialHabitTasks={habitTasks}
     />
   );

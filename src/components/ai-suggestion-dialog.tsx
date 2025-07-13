@@ -12,26 +12,26 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getAiSuggestions } from '@/app/actions';
-import type { KeyPrk } from '@/lib/types';
+import type { AreaPrk } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AiSuggestionDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onAddSuggestion: (title: string) => void;
-  keyPrk: KeyPrk | null;
+  areaPrk: AreaPrk | null;
 }
 
-export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyPrk }: AiSuggestionDialogProps) {
+export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, areaPrk }: AiSuggestionDialogProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isOpen && keyPrk && suggestions.length === 0) {
+    if (isOpen && areaPrk && suggestions.length === 0) {
       startTransition(async () => {
         try {
-          const result = await getAiSuggestions({ keyPrk: keyPrk.title });
+          const result = await getAiSuggestions({ keyPrk: areaPrk.title });
           setSuggestions(result);
         } catch (error) {
             toast({
@@ -44,7 +44,7 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
     } else if (!isOpen) {
       setSuggestions([]);
     }
-  }, [isOpen, keyPrk, toast]);
+  }, [isOpen, areaPrk, toast]);
 
   const handleAdd = (suggestion: string) => {
     onAddSuggestion(suggestion);
@@ -55,7 +55,7 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
     })
   };
 
-  if (!keyPrk) return null;
+  if (!areaPrk) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -66,7 +66,7 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
             Sugerencias de IA
           </DialogTitle>
           <DialogDescription>
-            Aquí tienes algunas sugerencias de la IA para ayudarte a lograr "{keyPrk.title}".
+            Aquí tienes algunas sugerencias de la IA para ayudarte a lograr "{areaPrk.title}".
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-64 pr-4">

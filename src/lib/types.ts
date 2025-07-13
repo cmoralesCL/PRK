@@ -4,7 +4,7 @@ export interface LifePrk {
   description: string;
 }
 
-export interface KeyPrk {
+export interface AreaPrk {
   id: string;
   lifePrkId: string;
   title: string;
@@ -15,7 +15,7 @@ export interface KeyPrk {
 
 export interface HabitTask {
   id: string;
-  keyPrkId: string;
+  areaPrkId: string;
   title: string;
   type: 'habit' | 'task';
   completed: boolean;

@@ -8,7 +8,7 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
     const result = await suggestRelatedHabitsTasks(input);
     return result.suggestions || [];
   } catch (error) {
-    console.error("Error getting AI suggestions:", error);
+    console.error("Error al obtener sugerencias de la IA:", error);
     return [];
   }
 }

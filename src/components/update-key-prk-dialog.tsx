@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { KeyPrk } from '@/lib/types';
+import type { AreaPrk } from '@/lib/types';
 
 const formSchema = z.object({
   currentValue: z.coerce.number(),
@@ -31,23 +31,23 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface UpdateKeyPrkDialogProps {
+interface UpdateAreaPrkDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onUpdate: (values: FormValues) => void;
-  keyPrk: KeyPrk | null;
+  areaPrk: AreaPrk | null;
 }
 
-export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: UpdateKeyPrkDialogProps) {
+export function UpdateAreaPrkDialog({ isOpen, onOpenChange, onUpdate, areaPrk }: UpdateAreaPrkDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
 
   useEffect(() => {
-    if (keyPrk) {
-      form.reset({ currentValue: keyPrk.currentValue });
+    if (areaPrk) {
+      form.reset({ currentValue: areaPrk.currentValue });
     }
-  }, [keyPrk, form]);
+  }, [areaPrk, form]);
 
 
   const onSubmit = (values: FormValues) => {
@@ -55,7 +55,7 @@ export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: U
     onOpenChange(false);
   };
 
-  if (!keyPrk) return null;
+  if (!areaPrk) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -63,7 +63,7 @@ export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: U
         <DialogHeader>
           <DialogTitle className="font-headline">Registrar Progreso</DialogTitle>
           <DialogDescription>
-            Actualiza tu progreso actual para "{keyPrk.title}". Tu objetivo es {keyPrk.targetValue} {keyPrk.unit}.
+            Actualiza tu progreso actual para "{areaPrk.title}". Tu objetivo es {areaPrk.targetValue} {areaPrk.unit}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

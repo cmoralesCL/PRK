@@ -5,27 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskItem } from './habit-task-item';
-import type { KeyPrk, HabitTask } from '@/lib/types';
+import type { AreaPrk, HabitTask } from '@/lib/types';
 
-interface KeyPrkCardProps {
-  keyPrk: KeyPrk;
+interface AreaPrkCardProps {
+  areaPrk: AreaPrk;
   habitTasks: HabitTask[];
-  onUpdateProgress: (keyPrk: KeyPrk) => void;
-  onAddHabitTask: (keyPrkId: string) => void;
+  onUpdateProgress: (areaPrk: AreaPrk) => void;
+  onAddHabitTask: (areaPrkId: string) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
-  onGetAiSuggestions: (keyPrk: KeyPrk) => void;
-  onAddSuggestedTask: (keyPrkId: string, title: string) => void;
+  onGetAiSuggestions: (areaPrk: AreaPrk) => void;
 }
 
-export function KeyPrkCard({
-  keyPrk,
+export function AreaPrkCard({
+  areaPrk,
   habitTasks,
   onUpdateProgress,
   onAddHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
-}: KeyPrkCardProps) {
-  const progress = keyPrk.targetValue > 0 ? (keyPrk.currentValue / keyPrk.targetValue) * 100 : 0;
+}: AreaPrkCardProps) {
+  const progress = areaPrk.targetValue > 0 ? (areaPrk.currentValue / areaPrk.targetValue) * 100 : 0;
 
   const formatValue = (value: number) => {
     return new Intl.NumberFormat('es-US').format(value);
@@ -38,13 +37,13 @@ export function KeyPrkCard({
             <div>
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                     <Gauge className="h-5 w-5 text-accent" />
-                    {keyPrk.title}
+                    {areaPrk.title}
                 </CardTitle>
                 <CardDescription>
-                    Objetivo: {formatValue(keyPrk.targetValue)} {keyPrk.unit}
+                    Objetivo: {formatValue(areaPrk.targetValue)} {areaPrk.unit}
                 </CardDescription>
             </div>
-             <Button variant="outline" size="sm" onClick={() => onUpdateProgress(keyPrk)}>
+             <Button variant="outline" size="sm" onClick={() => onUpdateProgress(areaPrk)}>
                 Registrar Progreso
              </Button>
         </div>
@@ -52,7 +51,7 @@ export function KeyPrkCard({
         <div className="pt-2">
           <div className="flex justify-between text-sm text-muted-foreground mb-1">
             <span>Progreso</span>
-            <span>{formatValue(keyPrk.currentValue)} / {formatValue(keyPrk.targetValue)}</span>
+            <span>{formatValue(areaPrk.currentValue)} / {formatValue(areaPrk.targetValue)}</span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
@@ -70,11 +69,11 @@ export function KeyPrkCard({
         )}
       </CardContent>
       <CardFooter className="flex justify-between gap-2">
-        <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(keyPrk)}>
+        <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(areaPrk)}>
           <Sparkles className="mr-2 h-4 w-4" />
           Obtener Sugerencias
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(keyPrk.id)}>
+        <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)}>
           <Plus className="mr-2 h-4 w-4" />
           Agregar Hábito/Tarea
         </Button>

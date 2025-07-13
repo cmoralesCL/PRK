@@ -33,13 +33,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddKeyPrkDialogProps {
+interface AddAreaPrkDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onAdd: (values: FormValues) => void;
 }
 
-export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialogProps) {
+export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,7 +59,7 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Establecer un PRK Clave</DialogTitle>
+          <DialogTitle className="font-headline">Establecer un PRK de Área</DialogTitle>
           <DialogDescription>
             Este es un resultado medible que contribuye a tu PRK de Vida.
           </DialogDescription>
@@ -108,7 +108,7 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
               />
             </div>
             <DialogFooter>
-              <Button type="submit">Agregar PRK Clave</Button>
+              <Button type="submit">Agregar PRK de Área</Button>
             </DialogFooter>
           </form>
         </Form>

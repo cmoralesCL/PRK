@@ -2,31 +2,30 @@
 
 import { Target, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { KeyPrkCard } from './key-prk-card';
-import type { LifePrk, KeyPrk, HabitTask } from '@/lib/types';
+import { AreaPrkCard } from './area-prk-card';
+import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
-  keyPrks: KeyPrk[];
+  areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  onAddKeyPrk: (lifePrkId: string) => void;
-  onUpdateProgress: (keyPrk: KeyPrk) => void;
-  onAddHabitTask: (keyPrkId: string) => void;
+  onAddAreaPrk: (lifePrkId: string) => void;
+  onUpdateProgress: (areaPrk: AreaPrk) => void;
+  onAddHabitTask: (areaPrkId: string) => void;
   onToggleHabitTask: (id: string, completed: boolean) => void;
-  onGetAiSuggestions: (keyPrk: KeyPrk) => void;
-  onAddSuggestedTask: (keyPrkId: string, title: string) => void;
+  onGetAiSuggestions: (areaPrk: AreaPrk) => void;
+  onAddSuggestedTask: (areaPrkId: string, title: string) => void;
 }
 
 export function LifePrkSection({
   lifePrk,
-  keyPrks,
+  areaPrks,
   habitTasks,
-  onAddKeyPrk,
+  onAddAreaPrk,
   onUpdateProgress,
   onAddHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
-  onAddSuggestedTask,
 }: LifePrkSectionProps) {
   return (
     <section className="py-8">
@@ -38,22 +37,21 @@ export function LifePrkSection({
           </h2>
           <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
         </div>
-        <Button variant="outline" onClick={() => onAddKeyPrk(lifePrk.id)}>
+        <Button variant="outline" onClick={() => onAddAreaPrk(lifePrk.id)}>
           <Plus className="mr-2 h-4 w-4" />
-          Agregar PRK Clave
+          Agregar PRK de Área
         </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {keyPrks.map((kp) => (
-          <KeyPrkCard
+        {areaPrks.map((kp) => (
+          <AreaPrkCard
             key={kp.id}
-            keyPrk={kp}
-            habitTasks={habitTasks.filter((ht) => ht.keyPrkId === kp.id)}
+            areaPrk={kp}
+            habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
             onUpdateProgress={onUpdateProgress}
             onAddHabitTask={onAddHabitTask}
             onToggleHabitTask={onToggleHabitTask}
             onGetAiSuggestions={onGetAiSuggestions}
-            onAddSuggestedTask={onAddSuggestedTask}
           />
         ))}
       </div>
