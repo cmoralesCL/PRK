@@ -83,14 +83,25 @@ export async function logHabitTaskCompletion(habitTaskId: string) {
     revalidatePath('/');
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string) {
+export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task') {
     const supabase = createClient();
-    const { error } = await supabase.from('progress_logs')
-      .delete()
-      .eq('habit_task_id', habitTaskId)
-      .eq('completion_date', new Date().toISOString().split('T')[0]);
-    
-    if (error) throw error;
+
+    if (type === 'task') {
+        const { error } = await supabase
+            .from('progress_logs')
+            .delete()
+            .eq('habit_task_id', habitTaskId);
+
+        if (error) throw error;
+    } else {
+        const { error } = await supabase.from('progress_logs')
+          .delete()
+          .eq('habit_task_id', habitTaskId)
+          .eq('completion_date', new Date().toISOString().split('T')[0]);
+        
+        if (error) throw error;
+    }
+
     revalidatePath('/');
 }
 

@@ -103,7 +103,7 @@ export function Dashboard({
             toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
          }
       } else {
-        await removeHabitTaskCompletion(id);
+        await removeHabitTaskCompletion(id, task.type);
       }
       // No need to revalidate manually, server action does it.
     } catch (error) {
