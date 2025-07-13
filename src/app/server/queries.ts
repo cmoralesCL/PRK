@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { startOfWeek, startOfMonth, endOfMonth, differenceInDays, isSameDay, isAfter } from 'date-fns';
+import { startOfWeek, startOfMonth, differenceInDays, isAfter } from 'date-fns';
 
 
 // Helper para mapear snake_case a camelCase para HabitTask
@@ -21,9 +21,17 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     if (!habit.startDate || !habit.frequency) return 0;
 
     const startDate = new Date(habit.startDate);
+    const today = new Date();
+    
+    // Un hábito no puede tener progreso si su fecha de inicio es futura.
+    if (isAfter(startDate, today)) {
+        return 0;
+    }
     
     // Si la fecha de inicio del hábito es posterior a la fecha seleccionada, el progreso es 0.
-    if (startDate > selectedDate) return 0;
+    if (isAfter(startDate, selectedDate)) {
+        return 0;
+    }
 
     const logsForHabit = logs.filter(log => log.habit_task_id === habit.id && new Date(log.completion_date) <= selectedDate);
 
@@ -32,7 +40,9 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
     switch (habit.frequency) {
         case 'daily':
-            expectedCompletions = differenceInDays(selectedDate, startDate) + 1;
+            // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
+            const effectiveDate = isAfter(selectedDate, today) ? today : selectedDate;
+            expectedCompletions = differenceInDays(effectiveDate, startDate) + 1;
             totalCompletions = logsForHabit.length;
             break;
         case 'weekly':
@@ -49,7 +59,9 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             const targetDays = habit.frequencyDays.map(d => dayMapping[d]);
             
             let currentDate = new Date(startDate);
-            while (currentDate <= selectedDate) {
+            // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
+            const effectiveEndDate = isAfter(selectedDate, today) ? today : selectedDate;
+            while (currentDate <= effectiveEndDate) {
                 if (targetDays.includes(currentDate.getDay())) {
                     expectedCompletions++;
                 }
