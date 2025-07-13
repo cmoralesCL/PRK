@@ -41,6 +41,6 @@ export interface HabitTask {
 
 export interface ProgressLog {
   id: string;
-  habit_task_id: string;
+  habitTaskId: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
 }
