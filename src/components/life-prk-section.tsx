@@ -40,7 +40,7 @@ export function LifePrkSection({
         </div>
         <Button variant="outline" onClick={() => onAddKeyPrk(lifePrk.id)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Key PRK
+          Agregar PRK Clave
         </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -45,7 +45,7 @@ export function Dashboard({
       description: values.description || '',
     };
     setLifePrks([...lifePrks, newLifePrk]);
-    toast({ title: 'Life PRK Added!', description: `"${values.title}" is now your guiding star.` });
+    toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
   };
   
   const handleAddKeyPrk = (values: { title: string; targetValue: number; unit: string }) => {
@@ -57,7 +57,7 @@ export function Dashboard({
       ...values,
     };
     setKeyPrks([...keyPrks, newKeyPrk]);
-    toast({ title: 'Key PRK Established!', description: `You are now tracking "${values.title}".` });
+    toast({ title: '¡PRK Clave Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
   };
 
   const handleAddHabitTask = (values: HabitTaskFormValues) => {
@@ -69,20 +69,20 @@ export function Dashboard({
       ...values,
     };
     setHabitTasks([...habitTasks, newHabitTask]);
-    toast({ title: 'Action Added!', description: `"${values.title}" has been added.` });
+    toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean) => {
     setHabitTasks(habitTasks.map(ht => (ht.id === id ? { ...ht, completed } : ht)));
     if (completed) {
-        toast({ title: 'Great job!', description: 'One step closer to your goal.' });
+        toast({ title: '¡Excelente trabajo!', description: 'Un paso más cerca de tu meta.' });
     }
   };
   
   const handleUpdateKeyPrk = (values: { currentValue: number }) => {
     if (!activeKeyPrk) return;
     setKeyPrks(keyPrks.map(kp => (kp.id === activeKeyPrk.id ? { ...kp, ...values } : kp)));
-    toast({ title: 'Progress Logged!', description: `Progress for "${activeKeyPrk.title}" updated.` });
+    toast({ title: '¡Progreso Registrado!', description: `Progreso para "${activeKeyPrk.title}" actualizado.` });
   };
 
   const handleAddSuggestedTask = (keyPrkId: string, title: string) => {
@@ -118,9 +118,9 @@ export function Dashboard({
         ))}
         {lifePrks.length === 0 && (
             <div className="text-center py-24">
-                <h2 className="text-2xl font-headline font-semibold">Welcome to Your Compass</h2>
-                <p className="mt-2 text-muted-foreground">Define your first Life PRK to get started on your journey.</p>
-                <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Create a Life PRK</Button>
+                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Crear un PRK de Vida</Button>
             </div>
         )}
       </main>

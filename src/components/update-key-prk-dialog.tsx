@@ -61,9 +61,9 @@ export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: U
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Log Progress</DialogTitle>
+          <DialogTitle className="font-headline">Registrar Progreso</DialogTitle>
           <DialogDescription>
-            Update your current progress for "{keyPrk.title}". Your target is {keyPrk.targetValue} {keyPrk.unit}.
+            Actualiza tu progreso actual para "{keyPrk.title}". Tu objetivo es {keyPrk.targetValue} {keyPrk.unit}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -73,7 +73,7 @@ export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: U
               name="currentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Value</FormLabel>
+                  <FormLabel>Valor Actual</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -82,7 +82,7 @@ export function UpdateKeyPrkDialog({ isOpen, onOpenChange, onUpdate, keyPrk }: U
               )}
             />
             <DialogFooter>
-              <Button type="submit">Update Progress</Button>
+              <Button type="submit">Actualizar Progreso</Button>
             </DialogFooter>
           </form>
         </Form>

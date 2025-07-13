@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
   title: z.string().min(3, {
-    message: 'Title must be at least 3 characters.',
+    message: 'El título debe tener al menos 3 caracteres.',
   }),
   description: z.string().optional(),
 });
@@ -58,9 +58,9 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Define a New Life PRK</DialogTitle>
+          <DialogTitle className="font-headline">Define un Nuevo PRK de Vida</DialogTitle>
           <DialogDescription>
-            This is a long-term life vision, your guiding star. What do you want to achieve?
+            Esta es una visión de vida a largo plazo, tu estrella guía. ¿Qué quieres lograr?
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -70,9 +70,9 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Achieve Financial Independence" {...field} />
+                    <Input placeholder="Ej: Alcanzar la Independencia Financiera" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -83,10 +83,10 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe what this looks like when achieved."
+                      placeholder="Describe cómo se ve esto cuando lo hayas logrado."
                       className="resize-none"
                       {...field}
                     />
@@ -96,7 +96,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
               )}
             />
             <DialogFooter>
-              <Button type="submit">Add PRK</Button>
+              <Button type="submit">Agregar PRK</Button>
             </DialogFooter>
           </form>
         </Form>

@@ -36,8 +36,8 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
         } catch (error) {
             toast({
                 variant: "destructive",
-                title: "AI Suggestion Failed",
-                description: "Could not fetch suggestions. Please try again later.",
+                title: "Error en la Sugerencia de IA",
+                description: "No se pudieron obtener las sugerencias. Por favor, inténtalo más tarde.",
             });
         }
       });
@@ -50,8 +50,8 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
     onAddSuggestion(suggestion);
     setSuggestions(current => current.filter(s => s !== suggestion));
     toast({
-        title: "Added!",
-        description: `"${suggestion}" has been added to your tasks.`,
+        title: "¡Agregado!",
+        description: `"${suggestion}" ha sido añadido a tus tareas.`,
     })
   };
 
@@ -63,10 +63,10 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
         <DialogHeader>
           <DialogTitle className="font-headline flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            AI Suggestions
+            Sugerencias de IA
           </DialogTitle>
           <DialogDescription>
-            Here are some AI-powered suggestions to help you achieve "{keyPrk.title}".
+            Aquí tienes algunas sugerencias de la IA para ayudarte a lograr "{keyPrk.title}".
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-64 pr-4">
@@ -84,7 +84,7 @@ export function AiSuggestionDialog({ isOpen, onOpenChange, onAddSuggestion, keyP
                         </Button>
                     </div>
                     )) : (
-                        <p className="text-sm text-muted-foreground text-center py-8">No suggestions found. Try again later.</p>
+                        <p className="text-sm text-muted-foreground text-center py-8">No se encontraron sugerencias. Inténtalo de nuevo más tarde.</p>
                     )}
                 </div>
             )}

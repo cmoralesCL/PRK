@@ -25,10 +25,10 @@ import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
   title: z.string().min(3, {
-    message: 'Title must be at least 3 characters.',
+    message: 'El título debe tener al menos 3 caracteres.',
   }),
-  targetValue: z.coerce.number().positive({ message: 'Target must be positive.' }),
-  unit: z.string().min(1, { message: 'Unit is required.' }),
+  targetValue: z.coerce.number().positive({ message: 'El objetivo debe ser positivo.' }),
+  unit: z.string().min(1, { message: 'La unidad es requerida.' }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -59,9 +59,9 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Establish a Key PRK</DialogTitle>
+          <DialogTitle className="font-headline">Establecer un PRK Clave</DialogTitle>
           <DialogDescription>
-            This is a measurable outcome that contributes to your Life PRK.
+            Este es un resultado medible que contribuye a tu PRK de Vida.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -71,9 +71,9 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Investment Portfolio Value" {...field} />
+                    <Input placeholder="Ej: Valor del Portafolio de Inversión" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,7 +85,7 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
                 name="targetValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Value</FormLabel>
+                    <FormLabel>Valor Objetivo</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="1000000" {...field} />
                     </FormControl>
@@ -98,9 +98,9 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
                 name="unit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unit</FormLabel>
+                    <FormLabel>Unidad</FormLabel>
                     <FormControl>
-                      <Input placeholder="USD, kg, books" {...field} />
+                      <Input placeholder="USD, kg, libros" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -108,7 +108,7 @@ export function AddKeyPrkDialog({ isOpen, onOpenChange, onAdd }: AddKeyPrkDialog
               />
             </div>
             <DialogFooter>
-              <Button type="submit">Add Key PRK</Button>
+              <Button type="submit">Agregar PRK Clave</Button>
             </DialogFooter>
           </form>
         </Form>

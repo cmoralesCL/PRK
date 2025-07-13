@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 
 const formSchema = z.object({
-  title: z.string().min(3, { message: 'Title must be at least 3 characters.' }),
+  title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
 });
 
@@ -61,9 +61,9 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Create a Habit or Task</DialogTitle>
+          <DialogTitle className="font-headline">Crear un Hábito o Tarea</DialogTitle>
           <DialogDescription>
-            This is a concrete action that supports your Key PRK.
+            Esta es una acción concreta que apoya tu PRK Clave.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -73,9 +73,9 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Go to the gym 3x a week" {...field} />
+                    <Input placeholder="Ej: Ir al gimnasio 3 veces por semana" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -86,16 +86,16 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>Tipo</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a type" />
+                        <SelectValue placeholder="Selecciona un tipo" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="task">One-time Task</SelectItem>
-                      <SelectItem value="habit">Recurring Habit</SelectItem>
+                      <SelectItem value="task">Tarea Única</SelectItem>
+                      <SelectItem value="habit">Hábito Recurrente</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -103,7 +103,7 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
               )}
             />
             <DialogFooter>
-              <Button type="submit">Add Action</Button>
+              <Button type="submit">Agregar Acción</Button>
             </DialogFooter>
           </form>
         </Form>

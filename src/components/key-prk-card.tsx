@@ -28,7 +28,7 @@ export function KeyPrkCard({
   const progress = keyPrk.targetValue > 0 ? (keyPrk.currentValue / keyPrk.targetValue) * 100 : 0;
 
   const formatValue = (value: number) => {
-    return new Intl.NumberFormat('en-US').format(value);
+    return new Intl.NumberFormat('es-US').format(value);
   };
 
   return (
@@ -41,24 +41,24 @@ export function KeyPrkCard({
                     {keyPrk.title}
                 </CardTitle>
                 <CardDescription>
-                    Target: {formatValue(keyPrk.targetValue)} {keyPrk.unit}
+                    Objetivo: {formatValue(keyPrk.targetValue)} {keyPrk.unit}
                 </CardDescription>
             </div>
              <Button variant="outline" size="sm" onClick={() => onUpdateProgress(keyPrk)}>
-                Log Progress
+                Registrar Progreso
              </Button>
         </div>
         
         <div className="pt-2">
           <div className="flex justify-between text-sm text-muted-foreground mb-1">
-            <span>Progress</span>
+            <span>Progreso</span>
             <span>{formatValue(keyPrk.currentValue)} / {formatValue(keyPrk.targetValue)}</span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <h4 className="text-sm font-semibold text-muted-foreground">Habits & Tasks</h4>
+        <h4 className="text-sm font-semibold text-muted-foreground">Hábitos y Tareas</h4>
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
@@ -66,17 +66,17 @@ export function KeyPrkCard({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No habits or tasks yet. Add one to get started!</p>
+          <p className="text-sm text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
         )}
       </CardContent>
       <CardFooter className="flex justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(keyPrk)}>
           <Sparkles className="mr-2 h-4 w-4" />
-          Get Suggestions
+          Obtener Sugerencias
         </Button>
         <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(keyPrk.id)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Habit/Task
+          Agregar Hábito/Tarea
         </Button>
       </CardFooter>
     </Card>

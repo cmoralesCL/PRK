@@ -15,12 +15,12 @@ export function Header({ onAddLifePrk }: HeaderProps) {
           <div className="flex items-center space-x-3">
             <Compass className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold font-headline text-foreground">
-              Personal Results Compass
+              Brújula de Resultados Personales
             </h1>
           </div>
           <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
             <Plus className="mr-2 h-4 w-4" />
-            Add Life PRK
+            Agregar PRK de Vida
           </Button>
         </div>
       </div>
