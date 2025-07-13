@@ -64,7 +64,8 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         type: values.type,
         start_date: values.startDate || new Date().toISOString().split('T')[0],
         frequency: values.frequency,
-        frequency_days: values.frequencyDays
+        frequency_days: values.frequencyDays,
+        weight: values.weight || 1
     }]).select().single();
 
     if(error) throw error;
@@ -87,7 +88,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
     const supabase = createClient();
 
     if (type === 'task') {
-        // Para una tarea, eliminar TODOS los registros de progreso para "descompletarla"
+        // For a task, delete ALL progress logs to "uncomplete" it
         const { error } = await supabase
             .from('progress_logs')
             .delete()
@@ -95,13 +96,29 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
         if (error) throw error;
     } else {
-        // Para un hábito, eliminar solo el registro del día actual
-        const { error } = await supabase.from('progress_logs')
-          .delete()
-          .eq('habit_task_id', habitTaskId)
-          .eq('completion_date', new Date().toISOString().split('T')[0]);
-        
-        if (error) throw error;
+        // For a habit, find the most recent log and delete only that one
+        const { data: latestLog, error: findError } = await supabase
+            .from('progress_logs')
+            .select('id')
+            .eq('habit_task_id', habitTaskId)
+            .order('completion_date', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (findError) {
+            // This can happen if there are no logs, which is a valid state.
+            // We can just log it for debugging but not throw an error.
+            console.warn(`Could not find a log to delete for habit ${habitTaskId}:`, findError.message);
+        }
+
+        if (latestLog) {
+            const { error: deleteError } = await supabase
+                .from('progress_logs')
+                .delete()
+                .eq('id', latestLog.id);
+            
+            if (deleteError) throw deleteError;
+        }
     }
 
     revalidatePath('/');
