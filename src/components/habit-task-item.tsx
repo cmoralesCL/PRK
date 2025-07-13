@@ -48,7 +48,7 @@ export function HabitTaskItem({ item, onToggle, onArchive }: HabitTaskItemProps)
                 <Archive className="h-4 w-4 text-muted-foreground" />
             </Button>
         </div>
-        {item.type === 'habit' && (
+        {(item.type === 'habit' || item.type === 'task') && (
             <div className='flex items-center gap-2 pl-8 pt-1'>
                 <Progress value={item.progress ?? 0} className='h-1.5 w-full' />
                 <span className='text-xs text-muted-foreground font-mono w-12 text-right'>
