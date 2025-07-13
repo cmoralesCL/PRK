@@ -53,8 +53,6 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
     },
   });
 
-  const type = form.watch("type");
-
   const onSubmit = (values: HabitTaskFormValues) => {
     onAdd(values);
     form.reset();
@@ -99,8 +97,8 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="task">Tarea (aporta al progreso)</SelectItem>
-                        <SelectItem value="habit">Hábito (no aporta valor directo)</SelectItem>
+                        <SelectItem value="task">Tarea (Hito único)</SelectItem>
+                        <SelectItem value="habit">Hábito (Acción repetible)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -114,7 +112,7 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
                   <FormItem>
                     <FormLabel>Valor que aporta</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} disabled={type === 'habit'} />
+                      <Input type="number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
