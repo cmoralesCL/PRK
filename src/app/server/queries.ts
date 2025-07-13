@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { startOfWeek, startOfMonth, endOfMonth, differenceInDays, isSameDay } from 'date-fns';
+import { startOfWeek, startOfMonth, endOfMonth, differenceInDays, isSameDay, isAfter } from 'date-fns';
 
 
 // Helper para mapear snake_case a camelCase para HabitTask
@@ -68,7 +68,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
 export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
-    const selectedDate = new Date(selectedDateStr);
+    const selectedDate = new Date(`${selectedDateStr}T00:00:00`);
 
     // 1. Obtener los PRK de Vida no archivados
     const { data: lifePrksData, error: lifePrksError } = await supabase
@@ -116,8 +116,16 @@ export async function getDashboardData(selectedDateStr: string) {
     );
 
     const visibleHabitTasksData = habitTasksData.filter(ht => {
-        if (ht.type === 'task') {
-            return !completedTaskIds.has(ht.id);
+        // Ocultar tareas ya completadas
+        if (ht.type === 'task' && completedTaskIds.has(ht.id)) {
+            return false;
+        }
+        // Ocultar hábitos cuya fecha de inicio es futura
+        if (ht.type === 'habit' && ht.start_date) {
+             const startDate = new Date(`${ht.start_date}T00:00:00`);
+             if (isAfter(startDate, selectedDate)) {
+                 return false;
+             }
         }
         return true;
     });
@@ -125,7 +133,7 @@ export async function getDashboardData(selectedDateStr: string) {
 
     // 5. Calcular progreso para cada nivel
 
-    // 5a. Calcular progreso para Hábitos y Tareas
+    // 5a. Calcular progreso para Hábitos y Tareas visibles
     const habitTasks: HabitTask[] = visibleHabitTasksData.map((ht) => {
         let progress = 0;
         const mappedHt = mapHabitTaskFromDb(ht);
@@ -144,7 +152,7 @@ export async function getDashboardData(selectedDateStr: string) {
 
     // 5b. Calcular progreso para PRK de Área
     const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
-        const relevantHabitTasks = habitTasksData
+        const relevantHabitTasks = habitTasksData // Usar todos para el cálculo, no solo los visibles
             .filter(ht => ht.area_prk_id === ap.id)
             .map(ht => {
                 let progress = 0;
@@ -187,6 +195,6 @@ export async function getDashboardData(selectedDateStr: string) {
         return { ...lp, archived: lp.archived || false, progress };
     });
     
-
+    // Devolvemos solo los habitTasks que deben ser visibles en la UI
     return { lifePrks, areaPrks, habitTasks };
 }
