@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
@@ -37,6 +37,8 @@ export function Dashboard({
   const [areaPrks, setAreaPrks] = useState<AreaPrk[]>(initialAreaPrks);
   const [habitTasks, setHabitTasks] = useState<HabitTask[]>(initialHabitTasks);
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
@@ -91,36 +93,29 @@ export function Dashboard({
     const task = habitTasks.find(ht => ht.id === id);
     if (!task) return;
 
-    const originalTaskState = { ...task };
+    // Optimistic UI update for checkbox state only
+    setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: completed } : ht));
 
-    // Optimistic UI update
-    setHabitTasks(prev => prev.map(ht => {
-        if (ht.id === id) {
-            const newProgress = completed
-                ? (ht.type === 'task' ? 100 : ht.progress) // Preserve habit progress for now
-                : 0; // Set to 0 when unchecking
-            return { ...ht, completedToday: completed, progress: newProgress };
+    startTransition(async () => {
+      try {
+        if (completed) {
+          await logHabitTaskCompletion(id);
+          if (task.type === 'task') {
+              toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
+          } else {
+              toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
+          }
+        } else {
+          await removeHabitTaskCompletion(id, task.type);
         }
-        return ht;
-    }));
-
-    try {
-      if (completed) {
-        await logHabitTaskCompletion(id);
-         if (task.type === 'task') {
-            toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
-         } else {
-            toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
-         }
-      } else {
-        await removeHabitTaskCompletion(id, task.type);
+        // Server action revalidates path, no manual refresh needed.
+        // The new data will flow down after revalidation.
+      } catch (error) {
+        // Revert UI on error by flipping the completedToday state back
+        setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: !completed } : ht));
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
       }
-      // No need to revalidate manually, server action does it.
-    } catch (error) {
-      // Revert on error
-      setHabitTasks(prev => prev.map(ht => ht.id === id ? originalTaskState : ht));
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
-    }
+    });
   };
 
   const handleAddSuggestedTask = async (areaPrkId: string, title: string) => {
