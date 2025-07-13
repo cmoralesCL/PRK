@@ -106,11 +106,27 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
 
+    const completedTaskIds = new Set(
+        progressLogsData
+            .map(log => {
+                const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
+                return task?.type === 'task' ? task.id : null;
+            })
+            .filter(id => id !== null)
+    );
+
+    const visibleHabitTasksData = habitTasksData.filter(ht => {
+        if (ht.type === 'task') {
+            return !completedTaskIds.has(ht.id);
+        }
+        return true;
+    });
+
 
     // 5. Calcular progreso para cada nivel
 
     // 5a. Calcular progreso para Hábitos y Tareas
-    const habitTasks: HabitTask[] = habitTasksData.map((ht) => {
+    const habitTasks: HabitTask[] = visibleHabitTasksData.map((ht) => {
         let progress = 0;
         const mappedHt = mapHabitTaskFromDb(ht);
 
@@ -128,7 +144,20 @@ export async function getDashboardData(selectedDateStr: string) {
 
     // 5b. Calcular progreso para PRK de Área
     const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
-        const relevantHabitTasks = habitTasks.filter(ht => ht.areaPrkId === ap.id);
+        const relevantHabitTasks = habitTasksData
+            .filter(ht => ht.area_prk_id === ap.id)
+            .map(ht => {
+                let progress = 0;
+                const mappedHt = mapHabitTaskFromDb(ht);
+                 if (mappedHt.type === 'task') {
+                    const completed = progressLogsData.some(log => log.habit_task_id === mappedHt.id);
+                    progress = completed ? 100 : 0;
+                } else {
+                    progress = calculateHabitProgress(mappedHt, progressLogsData, selectedDate);
+                }
+                return {...mappedHt, progress};
+            });
+
         let progress = 0;
         if (relevantHabitTasks.length > 0) {
             const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + (ht.progress ?? 0), 0);
