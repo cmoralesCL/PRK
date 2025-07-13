@@ -92,7 +92,7 @@ export function Dashboard({
     if (!task) return;
 
     // Optimistic UI update
-    setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: completed } : ht));
+    setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: completed, progress: completed && task.type === 'task' ? 100 : ht.progress } : ht));
 
     try {
       if (completed) {
@@ -108,7 +108,7 @@ export function Dashboard({
       // No need to revalidate manually, server action does it.
     } catch (error) {
       // Revert on error
-      setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: !completed } : ht));
+      setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completedToday: !completed, progress: !completed && task.type === 'task' ? 0 : ht.progress } : ht));
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
     }
   };

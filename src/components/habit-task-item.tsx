@@ -27,14 +27,12 @@ export function HabitTaskItem({ item, onToggle, onArchive }: HabitTaskItemProps)
                 id={item.id}
                 checked={isCompleted}
                 onCheckedChange={(checked) => onToggle(item.id, !!checked)}
-                // Las tareas completadas no se pueden desmarcar desde aquí
-                disabled={item.type === 'task' && isCompleted}
             />
             <Label
                 htmlFor={item.id}
                 className={cn(
                 'text-sm font-medium leading-none cursor-pointer flex-grow',
-                isCompleted && item.type === 'task' && 'line-through text-muted-foreground'
+                isCompleted && 'line-through text-muted-foreground'
                 )}
             >
                 {item.title}
