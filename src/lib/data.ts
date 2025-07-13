@@ -6,18 +6,13 @@ const lifePrks: LifePrk[] = [
     title: 'Alcanzar la Independencia Financiera',
     description: 'Construir suficiente riqueza para vivir de inversiones y flujos de ingresos pasivos, proporcionando libertad y seguridad.',
   },
-  {
-    id: 'life-2',
-    title: 'Cultivar un Estilo de Vida Saludable y Activo',
-    description: 'Priorizar el bienestar físico y mental para vivir una vida larga, enérgica y plena.',
-  },
 ];
 
 const areaPrks: AreaPrk[] = [
   {
     id: 'area-1',
     lifePrkId: 'life-1',
-    title: 'Valor del Portafolio de Inversión',
+    title: 'Incrementar Valor del Portafolio',
     currentValue: 250000,
     targetValue: 1000000,
     unit: 'USD',
@@ -25,37 +20,28 @@ const areaPrks: AreaPrk[] = [
   {
     id: 'area-2',
     lifePrkId: 'life-1',
-    title: 'Ingreso Pasivo Anual',
+    title: 'Generar Ingreso Pasivo Anual',
     currentValue: 5000,
     targetValue: 40000,
     unit: 'USD',
   },
   {
     id: 'area-3',
-    lifePrkId: 'life-2',
-    title: 'Mantener un Peso Corporal Saludable',
-    currentValue: 80,
-    targetValue: 75,
-    unit: 'kg',
-  },
-  {
-    id: 'area-4',
-    lifePrkId: 'life-2',
-    title: 'Leer Libros',
-    currentValue: 5,
-    targetValue: 24,
-    unit: 'libros',
+    lifePrkId: 'life-1',
+    title: 'Reducir Deudas de Consumo',
+    currentValue: 15000,
+    targetValue: 0,
+    unit: 'USD',
   },
 ];
 
 const habitTasks: HabitTask[] = [
-  { id: 'task-1', areaPrkId: 'area-1', title: 'Invertir $1000 en fondos indexados', type: 'habit', completed: false },
+  { id: 'task-1', areaPrkId: 'area-1', title: 'Invertir $1,000 mensuales en fondos indexados', type: 'habit', completed: false },
   { id: 'task-2', areaPrkId: 'area-1', title: 'Revisar el rendimiento trimestral de la inversión', type: 'task', completed: false },
-  { id: 'task-3', areaPrkId: 'area-2', title: 'Desarrollar un nuevo proyecto paralelo', type: 'task', completed: true },
-  { id: 'task-4', areaPrkId: 'area-3', title: 'Ir al gimnasio 3 veces por semana', type: 'habit', completed: false },
-  { id: 'task-5', areaPrkId: 'area-3', title: 'Preparar la comida de la semana', type: 'habit', completed: true },
-  { id: 'task-6', areaPrkId: 'area-4', title: 'Leer 30 minutos antes de dormir', type: 'habit', completed: false },
-  { id: 'task-7', areaPrkId: 'area-4', title: 'Terminar "La Psicología del Dinero"', type: 'task', completed: false },
+  { id: 'task-3', areaPrkId: 'area-2', title: 'Desarrollar y lanzar un nuevo producto digital', type: 'task', completed: false },
+  { id: 'task-4', areaPrkId: 'area-2', title: 'Escribir un artículo de blog semanal sobre finanzas', type: 'habit', completed: true },
+  { id: 'task-5', areaPrkId: 'area-3', title: 'Realizar un pago extra de $200 a la tarjeta de crédito', type: 'habit', completed: false },
+  { id: 'task-6', areaPrkId: 'area-3', title: 'Crear un presupuesto mensual y adherirse a él', type: 'task', completed: true },
 ];
 
 export const getInitialData = () => ({
