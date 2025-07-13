@@ -39,16 +39,7 @@ export function LifePrkSection({
   onArchiveHabitTask,
 }: LifePrkSectionProps) {
 
-  const lifePrkProgress = React.useMemo(() => {
-    if (areaPrks.length === 0) {
-      return 0;
-    }
-    const totalProgress = areaPrks.reduce((acc, prk) => {
-      const progress = prk.targetValue > 0 ? (prk.currentValue / prk.targetValue) * 100 : 0;
-      return acc + progress;
-    }, 0);
-    return totalProgress / areaPrks.length;
-  }, [areaPrks]);
+  const lifePrkProgress = lifePrk.progress ?? 0;
 
   return (
     <section className="py-8">

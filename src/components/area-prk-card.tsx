@@ -34,11 +34,7 @@ export function AreaPrkCard({
   onArchive,
   onArchiveHabitTask,
 }: AreaPrkCardProps) {
-  const progress = areaPrk.targetValue > 0 ? (areaPrk.currentValue / areaPrk.targetValue) * 100 : 0;
-
-  const formatValue = (value: number) => {
-    return new Intl.NumberFormat('es-US').format(value);
-  };
+  const progress = areaPrk.progress ?? 0;
 
   return (
     <Card className="bg-card/70 shadow-md transition-shadow hover:shadow-lg flex flex-col">
@@ -50,7 +46,7 @@ export function AreaPrkCard({
                     {areaPrk.title}
                 </CardTitle>
                 <CardDescription>
-                    Objetivo: {formatValue(areaPrk.targetValue)} {areaPrk.unit}
+                    Progreso General
                 </CardDescription>
             </div>
              <DropdownMenu>
@@ -71,13 +67,13 @@ export function AreaPrkCard({
         <div className="pt-2">
           <div className="flex justify-between text-sm text-muted-foreground mb-1">
             <span>Progreso</span>
-            <span>{formatValue(areaPrk.currentValue)} / {formatValue(areaPrk.targetValue)}</span>
+            <span>{progress.toFixed(0)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
       </CardHeader>
       <CardContent className="space-y-2 flex-grow">
-        <h4 className="text-sm font-semibold text-muted-foreground">Hitos y Tareas</h4>
+        <h4 className="text-sm font-semibold text-muted-foreground">Hábitos y Tareas</h4>
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
@@ -85,7 +81,7 @@ export function AreaPrkCard({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">Aún no hay hitos o tareas. ¡Agrega uno para empezar!</p>
+          <p className="text-sm text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
         )}
       </CardContent>
       <CardFooter className="flex justify-between gap-2">
@@ -95,7 +91,7 @@ export function AreaPrkCard({
         </Button>
         <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)}>
           <Plus className="mr-2 h-4 w-4" />
-          Agregar Hito/Tarea
+          Agregar Hábito/Tarea
         </Button>
       </CardFooter>
     </Card>

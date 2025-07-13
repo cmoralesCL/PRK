@@ -28,13 +28,13 @@ export async function addLifePrk(values: { title: string; description?: string }
     return data as LifePrk;
 }
 
-export async function addAreaPrk(values: { title: string; targetValue: number; unit: string; lifePrkId: string }) {
+export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
     const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
-        target_value: values.targetValue,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
+        target_value: 100, // No se usa para el cálculo pero se mantiene por estructura
         current_value: 0
      }]).select().single();
 
@@ -43,17 +43,28 @@ export async function addAreaPrk(values: { title: string; targetValue: number; u
         throw error;
     }
     revalidatePath('/');
-    return data as AreaPrk;
+    const typedData: AreaPrk = {
+      id: data.id,
+      lifePrkId: data.life_prk_id,
+      title: data.title,
+      targetValue: data.target_value,
+      currentValue: data.current_value,
+      unit: data.unit,
+      created_at: data.created_at,
+      archived: data.archived
+    }
+    return typedData;
 }
 
-export async function addHabitTask(values: { title: string; type: 'habit' | 'task'; value: number; areaPrkId: string }) {
+export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
     const { data, error } = await supabase.from('habit_tasks').insert([{ 
+        area_prk_id: values.areaPrkId,
         title: values.title,
         type: values.type,
-        value: values.value,
-        area_prk_id: values.areaPrkId,
-        completed: false 
+        start_date: values.startDate || new Date().toISOString().split('T')[0],
+        frequency: values.frequency,
+        frequency_days: values.frequencyDays
     }]).select().single();
 
     if(error) throw error;
@@ -61,37 +72,28 @@ export async function addHabitTask(values: { title: string; type: 'habit' | 'tas
     return data as HabitTask;
 }
 
-export async function toggleHabitTask(id: string, completed: boolean, areaPrkId: string, value: number) {
+export async function logHabitTaskCompletion(habitTaskId: string) {
     const supabase = createClient();
-    
-    const { error: updateError } = await supabase
-        .from('habit_tasks')
-        .update({ completed })
-        .eq('id', id);
+    const { error } = await supabase.from('progress_logs').insert([{
+        habit_task_id: habitTaskId,
+        completion_date: new Date().toISOString().split('T')[0]
+    }]);
 
-    if (updateError) throw updateError;
-
-    // Actualizar el valor actual del PRK de Área
-    const { data: areaPrk, error: fetchError } = await supabase
-        .from('area_prks')
-        .select('current_value')
-        .eq('id', areaPrkId)
-        .single();
-    
-    if (fetchError) throw fetchError;
-
-    const valueChange = completed ? value : -value;
-    const newCurrentValue = Math.max(0, (areaPrk.current_value || 0) + valueChange);
-
-    const { error: areaUpdateError } = await supabase
-        .from('area_prks')
-        .update({ current_value: newCurrentValue })
-        .eq('id', areaPrkId);
-
-    if (areaUpdateError) throw areaUpdateError;
-
+    if(error) throw error;
     revalidatePath('/');
 }
+
+export async function removeHabitTaskCompletion(habitTaskId: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from('progress_logs')
+      .delete()
+      .eq('habit_task_id', habitTaskId)
+      .eq('completion_date', new Date().toISOString().split('T')[0]);
+    
+    if (error) throw error;
+    revalidatePath('/');
+}
+
 
 export async function archiveLifePrk(id: string) {
     const supabase = createClient();

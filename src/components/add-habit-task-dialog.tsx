@@ -28,12 +28,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from './ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from './ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
-  value: z.coerce.number().min(0, { message: "El valor no puede ser negativo."})
-});
+  startDate: z.date().optional(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
+  frequencyDays: z.array(z.string()).optional(),
+}).refine(data => {
+    if (data.type === 'habit' && !data.startDate) {
+        return false;
+    }
+    return true;
+}, { message: "La fecha de inicio es requerida para los hábitos", path: ['startDate'] })
+.refine(data => {
+    if (data.type === 'habit' && !data.frequency) {
+        return false;
+    }
+    return true;
+}, { message: "La frecuencia es requerida para los hábitos", path: ['frequency'] })
+.refine(data => {
+    if (data.frequency === 'specific_days' && (!data.frequencyDays || data.frequencyDays.length === 0)) {
+        return false;
+    }
+    return true;
+}, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequencyDays'] });
+
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
 
@@ -43,13 +69,23 @@ interface AddHabitTaskDialogProps {
   onAdd: (values: HabitTaskFormValues) => void;
 }
 
+const daysOfWeek = [
+    { id: 'mon', label: 'Lunes' },
+    { id: 'tue', label: 'Martes' },
+    { id: 'wed', label: 'Miércoles' },
+    { id: 'thu', label: 'Jueves' },
+    { id: 'fri', label: 'Viernes' },
+    { id: 'sat', label: 'Sábado' },
+    { id: 'sun', label: 'Domingo' },
+]
+
 export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTaskDialogProps) {
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       type: 'task',
-      value: 1,
+      frequencyDays: []
     },
   });
 
@@ -59,9 +95,12 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
     onOpenChange(false);
   };
 
+  const type = form.watch('type');
+  const frequency = form.watch('frequency');
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Crear un Hábito o Tarea</DialogTitle>
           <DialogDescription>
@@ -83,42 +122,148 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onAdd }: AddHabitTask
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="task">Tarea (Hito único)</SelectItem>
-                        <SelectItem value="habit">Hábito (Acción repetible)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor que aporta</FormLabel>
+            
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      <SelectItem value="task">Tarea (Hito único)</SelectItem>
+                      <SelectItem value="habit">Hábito (Acción recurrente)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {type === 'habit' && (
+                <>
+                 <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de Inicio</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP")
+                                ) : (
+                                    <span>Elige una fecha</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                  <FormField
+                    control={form.control}
+                    name="frequency"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Frecuencia</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Selecciona una frecuencia" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="daily">Diaria</SelectItem>
+                                <SelectItem value="weekly">Semanal</SelectItem>
+                                <SelectItem value="monthly">Mensual</SelectItem>
+                                <SelectItem value="specific_days">Días Específicos</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+
+                    {frequency === 'specific_days' && (
+                        <FormField
+                            control={form.control}
+                            name="frequencyDays"
+                            render={() => (
+                                <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">Días de la Semana</FormLabel>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                    {daysOfWeek.map((item) => (
+                                        <FormField
+                                        key={item.id}
+                                        control={form.control}
+                                        name="frequencyDays"
+                                        render={({ field }) => {
+                                            return (
+                                            <FormItem
+                                                key={item.id}
+                                                className="flex flex-row items-start space-x-3 space-y-0"
+                                            >
+                                                <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value || []), item.id])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                            (value) => value !== item.id
+                                                            )
+                                                        )
+                                                    }}
+                                                />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                {item.label}
+                                                </FormLabel>
+                                            </FormItem>
+                                            )
+                                        }}
+                                        />
+                                    ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </>
+            )}
+
             <DialogFooter>
               <Button type="submit">Agregar Acción</Button>
             </DialogFooter>

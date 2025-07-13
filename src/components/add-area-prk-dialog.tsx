@@ -27,7 +27,6 @@ const formSchema = z.object({
   title: z.string().min(3, {
     message: 'El título debe tener al menos 3 caracteres.',
   }),
-  targetValue: z.coerce.number().positive({ message: 'El objetivo debe ser positivo.' }),
   unit: z.string().min(1, { message: 'La unidad es requerida.' }),
 });
 
@@ -44,8 +43,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
-      targetValue: 100,
-      unit: '',
+      unit: '%',
     },
   });
 
@@ -61,7 +59,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
         <DialogHeader>
           <DialogTitle className="font-headline">Establecer un PRK de Área</DialogTitle>
           <DialogDescription>
-            Este es un resultado medible que contribuye a tu PRK de Vida.
+            Este es un resultado medible que contribuye a tu PRK de Vida. Su progreso se calculará automáticamente.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -73,40 +71,25 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Valor del Portafolio de Inversión" {...field} />
+                    <Input placeholder="Ej: Mejorar mi salud cardiovascular" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="targetValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor Objetivo</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="1000000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="unit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unidad</FormLabel>
-                    <FormControl>
-                      <Input placeholder="USD, kg, libros" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="unit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unidad de Progreso</FormLabel>
+                  <FormControl>
+                    <Input placeholder="%" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="submit">Agregar PRK de Área</Button>
             </DialogFooter>
