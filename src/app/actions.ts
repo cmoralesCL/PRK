@@ -31,18 +31,30 @@ export async function addLifePrk(values: { title: string; description?: string }
 export async function addAreaPrk(values: { title: string; targetValue: number; unit: string; lifePrkId: string }) {
     const supabase = createClient();
     const { data, error } = await supabase.from('area_prks').insert([{ 
-        ...values,
+        title: values.title,
+        target_value: values.targetValue,
+        unit: values.unit,
+        life_prk_id: values.lifePrkId,
         current_value: 0
      }]).select().single();
 
-    if(error) throw error;
+    if(error) {
+        console.error('Supabase error adding Area PRK:', error);
+        throw error;
+    }
     revalidatePath('/');
     return data as AreaPrk;
 }
 
 export async function addHabitTask(values: { title: string; type: 'habit' | 'task'; value: number; areaPrkId: string }) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('habit_tasks').insert([{ ...values, completed: false }]).select().single();
+    const { data, error } = await supabase.from('habit_tasks').insert([{ 
+        title: values.title,
+        type: values.type,
+        value: values.value,
+        area_prk_id: values.areaPrkId,
+        completed: false 
+    }]).select().single();
 
     if(error) throw error;
     revalidatePath('/');
