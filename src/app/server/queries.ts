@@ -17,27 +17,30 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     weight: dbData.weight,
 });
 
-const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[]): number => {
+const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedDate: Date): number => {
     if (!habit.startDate || !habit.frequency) return 0;
 
     const startDate = new Date(habit.startDate);
-    const today = new Date();
-    const logsForHabit = logs.filter(log => log.habit_task_id === habit.id);
+    
+    // Si la fecha de inicio del hábito es posterior a la fecha seleccionada, el progreso es 0.
+    if (startDate > selectedDate) return 0;
+
+    const logsForHabit = logs.filter(log => log.habit_task_id === habit.id && new Date(log.completion_date) <= selectedDate);
 
     let totalCompletions = 0;
     let expectedCompletions = 0;
 
     switch (habit.frequency) {
         case 'daily':
-            expectedCompletions = differenceInDays(today, startDate) + 1;
+            expectedCompletions = differenceInDays(selectedDate, startDate) + 1;
             totalCompletions = logsForHabit.length;
             break;
         case 'weekly':
-            const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 }); // Lunes
+            const startOfThisWeek = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
             const completionsThisWeek = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisWeek).length;
             return completionsThisWeek > 0 ? 100 : 0; // Simple check for this week
         case 'monthly':
-            const startOfThisMonth = startOfMonth(today);
+            const startOfThisMonth = startOfMonth(selectedDate);
             const completionsThisMonth = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisMonth).length;
             return completionsThisMonth > 0 ? 100 : 0; // Simple check for this month
         case 'specific_days':
@@ -46,7 +49,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[]): number =
             const targetDays = habit.frequencyDays.map(d => dayMapping[d]);
             
             let currentDate = new Date(startDate);
-            while (currentDate <= today) {
+            while (currentDate <= selectedDate) {
                 if (targetDays.includes(currentDate.getDay())) {
                     expectedCompletions++;
                 }
@@ -63,8 +66,9 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[]): number =
 }
 
 
-export async function getDashboardData() {
+export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
+    const selectedDate = new Date(selectedDateStr);
 
     // 1. Obtener los PRK de Vida no archivados
     const { data: lifePrksData, error: lifePrksError } = await supabase
@@ -93,10 +97,12 @@ export async function getDashboardData() {
 
     if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
     
-    // 4. Obtener todos los registros de progreso
+    // 4. Obtener todos los registros de progreso hasta la fecha seleccionada
     const { data: progressLogsData, error: progressLogsError } = await supabase
         .from('progress_logs')
-        .select('*');
+        .select('*')
+        .lte('completion_date', selectedDateStr);
+
 
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
 
@@ -112,11 +118,10 @@ export async function getDashboardData() {
              const completed = progressLogsData.some(log => log.habit_task_id === mappedHt.id);
              progress = completed ? 100 : 0;
         } else {
-             progress = calculateHabitProgress(mappedHt, progressLogsData);
+             progress = calculateHabitProgress(mappedHt, progressLogsData, selectedDate);
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const completedToday = progressLogsData.some(log => log.habit_task_id === ht.id && log.completion_date === todayStr);
+        const completedToday = progressLogsData.some(log => log.habit_task_id === ht.id && log.completion_date === selectedDateStr);
 
         return { ...mappedHt, progress, completedToday };
     });

@@ -1,13 +1,25 @@
 'use client';
 
-import { Compass, Plus } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+
 
 interface HeaderProps {
   onAddLifePrk: () => void;
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
 }
 
-export function Header({ onAddLifePrk }: HeaderProps) {
+export function Header({ onAddLifePrk, selectedDate, onDateChange }: HeaderProps) {
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-10 border-b">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,10 +30,34 @@ export function Header({ onAddLifePrk }: HeaderProps) {
               Brújula de Resultados Personales
             </h1>
           </div>
-          <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar PRK de Vida
-          </Button>
+          <div className="flex items-center gap-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={'outline'}
+                  className={cn(
+                    'w-[280px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && onDateChange(date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
+              <Plus className="mr-2 h-4 w-4" />
+              Agregar PRK de Vida
+            </Button>
+          </div>
         </div>
       </div>
     </header>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
@@ -26,15 +27,18 @@ interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
+  selectedDate: string;
 }
 
 export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
+  selectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
@@ -44,6 +48,11 @@ export function Dashboard({
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  
+  const handleDateChange = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    router.push(`/?date=${dateString}`);
+  }
 
   const handleAddLifePrk = (values: { title: string; description?: string }) => {
     startTransition(async () => {
@@ -160,7 +169,11 @@ export function Dashboard({
 
   return (
     <>
-      <Header onAddLifePrk={() => setAddLifePrkOpen(true)} />
+      <Header 
+        onAddLifePrk={() => setAddLifePrkOpen(true)}
+        selectedDate={new Date(selectedDate)}
+        onDateChange={handleDateChange} 
+      />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8">
         {lifePrks.map((lp, index) => (
           <div key={lp.id}>
