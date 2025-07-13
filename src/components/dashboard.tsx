@@ -10,6 +10,7 @@ import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-d
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { addAreaPrk, addHabitTask, addLifePrk, toggleHabitTask } from '@/app/actions';
 
 interface DashboardProps {
   initialLifePrks: LifePrk[];
@@ -22,6 +23,7 @@ export function Dashboard({
   initialAreaPrks,
   initialHabitTasks,
 }: DashboardProps) {
+  // We manage the state optimistically, but the source of truth is the server.
   const [lifePrks, setLifePrks] = useState<LifePrk[]>(initialLifePrks);
   const [areaPrks, setAreaPrks] = useState<AreaPrk[]>(initialAreaPrks);
   const [habitTasks, setHabitTasks] = useState<HabitTask[]>(initialHabitTasks);
@@ -36,93 +38,76 @@ export function Dashboard({
   const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
 
-  const handleAddLifePrk = (values: { title: string; description?: string }) => {
-    const newLifePrk: LifePrk = {
-      id: `life-${Date.now()}`,
-      ...values,
-      description: values.description || '',
-    };
-    setLifePrks([...lifePrks, newLifePrk]);
-    toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+  const handleAddLifePrk = async (values: { title: string; description?: string }) => {
+    try {
+      const newLifePrk = await addLifePrk(values);
+      setLifePrks(prev => [...prev, newLifePrk]);
+      toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Vida.' });
+    }
   };
   
-  const handleAddAreaPrk = (values: { title: string; targetValue: number; unit: string }) => {
+  const handleAddAreaPrk = async (values: { title: string; targetValue: number; unit: string }) => {
     if (!activeLifePrkId) return;
-    const newAreaPrk: AreaPrk = {
-      id: `area-${Date.now()}`,
-      lifePrkId: activeLifePrkId,
-      currentValue: 0,
-      ...values,
-    };
-    setAreaPrks([...areaPrks, newAreaPrk]);
-    toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
+    try {
+      const newAreaPrk = await addAreaPrk({ ...values, lifePrkId: activeLifePrkId });
+      setAreaPrks(prev => [...prev, newAreaPrk]);
+      toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Área.' });
+    }
   };
 
-  const handleAddHabitTask = (values: HabitTaskFormValues) => {
+  const handleAddHabitTask = async (values: HabitTaskFormValues) => {
     if (!activeAreaPrkId) return;
-    const newHabitTask: HabitTask = {
-      id: `task-${Date.now()}`,
-      areaPrkId: activeAreaPrkId,
-      completed: false,
-      ...values,
-    };
-    setHabitTasks([...habitTasks, newHabitTask]);
-    
-    // Si la nueva tarea está completada, actualizamos el PRK de Área
-    if(newHabitTask.completed) {
-        setAreaPrks(areaPrks.map(kp => 
-            kp.id === activeAreaPrkId ? { ...kp, currentValue: kp.currentValue + newHabitTask.value } : kp
-        ));
+    try {
+      const newHabitTask = await addHabitTask({ ...values, areaPrkId: activeAreaPrkId });
+      setHabitTasks(prev => [...prev, newHabitTask]);
+      toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la acción.' });
     }
-
-    toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
   };
   
-  const handleToggleHabitTask = (id: string, completed: boolean) => {
-    let toggledTask: HabitTask | undefined;
+  const handleToggleHabitTask = async (id: string, completed: boolean) => {
+    const task = habitTasks.find(ht => ht.id === id);
+    if (!task) return;
 
-    setHabitTasks(prevHabitTasks => {
-        const newHabitTasks = prevHabitTasks.map(ht => {
-            if (ht.id === id) {
-                toggledTask = { ...ht, completed };
-                return toggledTask;
-            }
-            return ht;
-        });
+    // Optimistic UI update
+    const originalTasks = [...habitTasks];
+    const originalAreaPrks = [...areaPrks];
 
-        if (toggledTask) {
-            const task = toggledTask;
-            const valueChange = completed ? task.value : -task.value;
+    setHabitTasks(prev => prev.map(ht => ht.id === id ? { ...ht, completed } : ht));
+    const valueChange = completed ? task.value : -task.value;
+    setAreaPrks(prev => prev.map(ap => ap.id === task.areaPrkId ? { ...ap, currentValue: Math.max(0, ap.currentValue + valueChange) } : ap));
 
-            setAreaPrks(prevAreaPrks => 
-                prevAreaPrks.map(kp => {
-                    if (kp.id === task.areaPrkId) {
-                        const newCurrentValue = Math.max(0, kp.currentValue + valueChange);
-                        return { ...kp, currentValue: newCurrentValue };
-                    }
-                    return kp;
-                })
-            );
-        }
-        
-        return newHabitTasks;
-    });
-
-    if (completed) {
+    try {
+      await toggleHabitTask(id, completed, task.areaPrkId, task.value);
+      if (completed) {
         toast({ title: '¡Excelente trabajo!', description: 'Un paso más cerca de tu meta.' });
+      }
+    } catch (error) {
+      // Revert on error
+      setHabitTasks(originalTasks);
+      setAreaPrks(originalAreaPrks);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la tarea.' });
     }
   };
 
-  const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
-    const newHabitTask: HabitTask = {
-      id: `task-${Date.now()}`,
-      areaPrkId: areaPrkId,
-      title,
-      type: 'task',
-      completed: false,
-      value: 1, // Las sugerencias de IA aportan 1 por defecto
-    };
-    setHabitTasks(prev => [...prev, newHabitTask]);
+  const handleAddSuggestedTask = async (areaPrkId: string, title: string) => {
+     try {
+      const newHabitTask = await addHabitTask({ 
+          areaPrkId, 
+          title, 
+          type: 'task', 
+          value: 1, // Las sugerencias de IA aportan 1 por defecto
+      });
+      setHabitTasks(prev => [...prev, newHabitTask]);
+      toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la tarea sugerida.' });
+    }
   };
 
   return (

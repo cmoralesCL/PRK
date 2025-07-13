@@ -1,8 +1,8 @@
 import { Dashboard } from '@/components/dashboard';
-import { getInitialData } from '@/lib/data';
+import { getDashboardData } from '@/app/server/queries';
 
-export default function Home() {
-  const { lifePrks, areaPrks, habitTasks } = getInitialData();
+export default async function Home() {
+  const { lifePrks, areaPrks, habitTasks } = await getDashboardData();
 
   return (
     <Dashboard
