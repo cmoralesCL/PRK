@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Header } from './header';
@@ -40,7 +40,18 @@ export function Dashboard({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const [selectedDate, setSelectedDate] = useState(new Date(initialSelectedDate));
+  // Initialize state to null to prevent hydration mismatch
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  
+  // Set the date on the client-side after mount
+  useEffect(() => {
+    // The initialSelectedDate string is in 'YYYY-MM-DD' format.
+    // Appending 'T00:00:00' ensures it's parsed in the local timezone,
+    // preventing off-by-one day errors.
+    setSelectedDate(new Date(`${initialSelectedDate}T00:00:00`));
+  }, [initialSelectedDate]);
+
+
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
   const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
   const [isAddHabitTaskOpen, setAddHabitTaskOpen] = useState(false);
@@ -168,6 +179,11 @@ export function Dashboard({
         }
     });
   };
+
+  if (!selectedDate) {
+    // Render a loader or null while waiting for the client-side date to be set
+    return null; // Or a loading spinner
+  }
 
   return (
     <>
