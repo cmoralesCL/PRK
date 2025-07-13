@@ -87,6 +87,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
     const supabase = createClient();
 
     if (type === 'task') {
+        // Para una tarea, eliminar TODOS los registros de progreso para "descompletarla"
         const { error } = await supabase
             .from('progress_logs')
             .delete()
@@ -94,6 +95,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
         if (error) throw error;
     } else {
+        // Para un hábito, eliminar solo el registro del día actual
         const { error } = await supabase.from('progress_logs')
           .delete()
           .eq('habit_task_id', habitTaskId)
