@@ -19,9 +19,6 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
   const isCompleted = item.completedToday ?? false;
 
-  const isDisabled = new Date(item.startDate || '1970-01-01') > new Date();
-
-
   return (
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
       <div className="flex flex-col flex-grow">
@@ -31,14 +28,12 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
                 id={item.id}
                 checked={isCompleted}
                 onCheckedChange={(checked) => onToggle(item.id, !!checked)}
-                disabled={isDisabled}
             />
             <Label
                 htmlFor={item.id}
                 className={cn(
                 'text-sm font-medium leading-none cursor-pointer flex-grow',
-                isCompleted && 'line-through text-muted-foreground',
-                isDisabled && 'text-muted-foreground opacity-70'
+                isCompleted && 'line-through text-muted-foreground'
                 )}
             >
                 {item.title}

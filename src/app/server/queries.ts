@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { startOfWeek, startOfMonth, differenceInDays, isAfter } from 'date-fns';
+import { startOfWeek, startOfMonth, differenceInDays, isAfter, isToday } from 'date-fns';
 
 
 // Helper para mapear snake_case a camelCase para HabitTask
@@ -23,17 +23,12 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     const startDate = new Date(habit.startDate);
     const today = new Date();
     
-    // Un hábito no puede tener progreso si su fecha de inicio es futura.
+    // Un hábito no puede tener progreso si su fecha de inicio es futura (comparado con la fecha real).
     if (isAfter(startDate, today)) {
         return 0;
     }
     
-    // Si la fecha de inicio del hábito es posterior a la fecha seleccionada, el progreso es 0.
-    if (isAfter(startDate, selectedDate)) {
-        return 0;
-    }
-
-    const logsForHabit = logs.filter(log => log.habit_task_id === habit.id && new Date(log.completion_date) <= selectedDate);
+    const logsForHabit = logs.filter(log => log.habitTaskId === habit.id && new Date(log.completion_date) <= selectedDate);
 
     let totalCompletions = 0;
     let expectedCompletions = 0;
@@ -42,6 +37,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
         case 'daily':
             // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
             const effectiveDate = isAfter(selectedDate, today) ? today : selectedDate;
+            if (isAfter(startDate, effectiveDate)) return 0; // Si el inicio es después del final, no hay esperados.
             expectedCompletions = differenceInDays(effectiveDate, startDate) + 1;
             totalCompletions = logsForHabit.length;
             break;
@@ -61,6 +57,8 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             let currentDate = new Date(startDate);
             // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
             const effectiveEndDate = isAfter(selectedDate, today) ? today : selectedDate;
+            if (isAfter(currentDate, effectiveEndDate)) return 0;
+
             while (currentDate <= effectiveEndDate) {
                 if (targetDays.includes(currentDate.getDay())) {
                     expectedCompletions++;
@@ -112,16 +110,22 @@ export async function getDashboardData(selectedDateStr: string) {
     // 4. Obtener todos los registros de progreso hasta la fecha seleccionada
     const { data: progressLogsData, error: progressLogsError } = await supabase
         .from('progress_logs')
-        .select('*')
+        .select('*, habit_task_id')
         .lte('completion_date', selectedDateStr);
 
 
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
 
+    const mappedProgressLogs = progressLogsData.map(p => ({
+        id: p.id,
+        habitTaskId: p.habit_task_id,
+        completion_date: p.completion_date,
+    }));
+
     const completedTaskIds = new Set(
-        progressLogsData
+        mappedProgressLogs
             .map(log => {
-                const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
+                const task = habitTasksData.find(ht => ht.id === log.habitTaskId);
                 return task?.type === 'task' ? task.id : null;
             })
             .filter(id => id !== null)
@@ -151,13 +155,13 @@ export async function getDashboardData(selectedDateStr: string) {
         const mappedHt = mapHabitTaskFromDb(ht);
 
         if (mappedHt.type === 'task') {
-             const completed = progressLogsData.some(log => log.habit_task_id === mappedHt.id);
+             const completed = mappedProgressLogs.some(log => log.habitTaskId === mappedHt.id);
              progress = completed ? 100 : 0;
         } else {
-             progress = calculateHabitProgress(mappedHt, progressLogsData, selectedDate);
+             progress = calculateHabitProgress(mappedHt, mappedProgressLogs, selectedDate);
         }
 
-        const completedToday = progressLogsData.some(log => log.habit_task_id === ht.id && log.completion_date === selectedDateStr);
+        const completedToday = mappedProgressLogs.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
 
         return { ...mappedHt, progress, completedToday };
     });
@@ -170,10 +174,10 @@ export async function getDashboardData(selectedDateStr: string) {
                 let progress = 0;
                 const mappedHt = mapHabitTaskFromDb(ht);
                  if (mappedHt.type === 'task') {
-                    const completed = progressLogsData.some(log => log.habit_task_id === mappedHt.id);
+                    const completed = mappedProgressLogs.some(log => log.habitTaskId === mappedHt.id);
                     progress = completed ? 100 : 0;
                 } else {
-                    progress = calculateHabitProgress(mappedHt, progressLogsData, selectedDate);
+                    progress = calculateHabitProgress(mappedHt, mappedProgressLogs, selectedDate);
                 }
                 return {...mappedHt, progress};
             });
