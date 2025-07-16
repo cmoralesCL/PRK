@@ -24,7 +24,6 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     const startDate = startOfDay(parseISO(habit.startDate));
     const effectiveEndDate = startOfDay(selectedDate);
     
-    // Si la fecha de inicio del hábito es estrictamente posterior a la fecha de cálculo, no hay progreso.
     if (isAfter(startDate, effectiveEndDate)) {
         return 0;
     }
@@ -32,17 +31,19 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     const logsForHabit = logs.filter(log => log.habitTaskId === habit.id);
     const completedLogsUpToEffectiveDate = logsForHabit.filter(l => !isAfter(startOfDay(parseISO(l.completion_date)), effectiveEndDate));
 
-    let totalCompletions = completedLogsUpToEffectiveDate.length;
-    let expectedCompletions = 0;
-
     switch (habit.frequency) {
-        case 'daily': // Ahora se comporta como semanal, se resetea cada semana
+        case 'daily':
+            // El progreso es 100 si se completó exactamente en el `selectedDate`, 0 si no.
+            const completedOnSelectedDate = logsForHabit.some(log => 
+                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
+            );
+            return completedOnSelectedDate ? 100 : 0;
         case 'weekly':
         case 'monthly':
-            // Para semanales/mensuales/diarios, el progreso es binario: 100 si se hizo al menos una vez en el periodo actual, 0 si no.
+            // Para semanales/mensuales, el progreso es binario: 100 si se hizo al menos una vez en el periodo actual, 0 si no.
             const startOfPeriodFn = (date: Date) => {
                 if (habit.frequency === 'monthly') return startOfMonth(date);
-                // Tanto 'daily' como 'weekly' se agrupan por semana
+                // Semanal
                 return startOfWeek(date, { weekStartsOn: 1 }); // Lunes
             }
             const startOfPeriod = startOfPeriodFn(selectedDate);
@@ -54,18 +55,19 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             return completionsInPeriod ? 100 : 0;
         case 'specific_days':
             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
+            let totalCompletions = completedLogsUpToEffectiveDate.length;
             const dayMapping: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
             const targetDays = habit.frequencyDays.map(d => dayMapping[d]);
             
             let currentDate = new Date(startDate);
-            let daysPassed = 0;
+            let expectedCompletions = 0;
             while (!isAfter(currentDate, effectiveEndDate)) {
                 if (targetDays.includes(currentDate.getDay())) {
-                    daysPassed++;
+                    expectedCompletions++;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            expectedCompletions = daysPassed;
+
             if (expectedCompletions <= 0) return 100; // Si no se esperaba nada, se asume 100%
             return Math.min((totalCompletions / expectedCompletions) * 100, 100);
         default:
@@ -113,10 +115,8 @@ export async function getDashboardData(selectedDateStr: string) {
             // Task contributes 100% if it has been completed on or before the selected date
             progress = completionDate && !isAfter(completionDate, selectedDate) ? 100 : 0;
         } else { // It's a 'habit'
-            // For habits, calculate progress based on logs up to the selected date, but only if it has started
              if (!isAfter(startDate, selectedDate)) {
-                const progressLogsForCalculation = mappedProgressLogs.filter(log => !isAfter(startOfDay(parseISO(log.completion_date)), selectedDate));
-                progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
+                progress = calculateHabitProgress(mappedHt, mappedProgressLogs, selectedDate);
              }
         }
 
@@ -144,6 +144,8 @@ export async function getDashboardData(selectedDateStr: string) {
         if (relevantHabitTasks.length > 0) {
             const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + (ht.progress ?? 0), 0);
             progress = totalProgress / relevantHabitTasks.length;
+        } else {
+             progress = 100; // Si no hay tareas activas, el área se considera 100% completa para ese día.
         }
 
         return { 
