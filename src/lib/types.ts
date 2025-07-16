@@ -37,6 +37,7 @@ export interface HabitTask {
 
   // Nuevo campo para tareas
   dueDate?: string | null; // Corresponds to due_date
+  completionDate?: string | null; // Corresponds to completion_date
 
   // Para saber si ya se completó hoy (solo para la UI)
   completedToday?: boolean;

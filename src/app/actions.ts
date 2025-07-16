@@ -95,14 +95,23 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
     return data as HabitTask;
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, completionDate: string) {
+export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
-    const { error } = await supabase.from('progress_logs').insert([{
-        habit_task_id: habitTaskId,
-        completion_date: completionDate
-    }]);
 
-    if(error) throw error;
+    if (type === 'task') {
+        const { error } = await supabase
+            .from('habit_tasks')
+            .update({ completion_date: completionDate })
+            .eq('id', habitTaskId);
+        if (error) throw error;
+    } else {
+        const { error } = await supabase.from('progress_logs').insert([{
+            habit_task_id: habitTaskId,
+            completion_date: completionDate
+        }]);
+        if (error) throw error;
+    }
+
     revalidatePath('/');
 }
 
@@ -110,15 +119,12 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
     const supabase = createClient();
 
     if (type === 'task') {
-        // For a task, delete ALL progress logs to "uncomplete" it
         const { error } = await supabase
-            .from('progress_logs')
-            .delete()
-            .eq('habit_task_id', habitTaskId);
-
+            .from('habit_tasks')
+            .update({ completion_date: null })
+            .eq('id', habitTaskId);
         if (error) throw error;
     } else {
-        // For a habit, delete the log for the specific completion date
         const { error } = await supabase
             .from('progress_logs')
             .delete()
@@ -126,8 +132,6 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
             .eq('completion_date', completionDate);
 
         if (error) {
-            // This can happen if there are no logs for that date, which is a valid state.
-            // We can just log it for debugging but not throw an error.
             console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
         }
     }

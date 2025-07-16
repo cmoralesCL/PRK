@@ -138,7 +138,7 @@ export function Dashboard({
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id, completionDate);
+          await logHabitTaskCompletion(id, task.type, completionDate);
           if (task.type === 'task') {
               toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
           } else {

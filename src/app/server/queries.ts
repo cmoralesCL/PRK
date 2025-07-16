@@ -13,6 +13,7 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     archived: dbData.archived,
     startDate: dbData.start_date,
     dueDate: dbData.due_date,
+    completionDate: dbData.completion_date,
     frequency: dbData.frequency,
     frequencyDays: dbData.frequency_days,
     weight: dbData.weight,
@@ -120,31 +121,15 @@ export async function getDashboardData(selectedDateStr: string) {
         completion_date: p.completion_date,
     }));
 
-    // Mapa para almacenar la fecha de completado de cada tarea.
-    const completedTasksMap = new Map<string, string>();
-    mappedProgressLogs.forEach(log => {
-        const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
-        if (task?.type === 'task') {
-            if (!completedTasksMap.has(log.habitTaskId) || log.completion_date > completedTasksMap.get(log.habitTaskId)!) {
-                completedTasksMap.set(log.habitTaskId, log.completion_date);
-            }
-        }
-    });
-    
-    // Logs de progreso filtrados HASTA la fecha seleccionada para el cálculo de progreso
-    const progressLogsForCalculation = mappedProgressLogs.filter(log => log.completion_date <= selectedDateStr);
-
     const visibleHabitTasksData = habitTasksData.filter(ht => {
-        // Regla de inicio: Ocultar tareas y hábitos cuya fecha de inicio es futura.
+        // Regla de inicio: Ocultar si la fecha de inicio es futura.
         if (ht.start_date && ht.start_date > selectedDateStr) {
             return false;
         }
 
-        // Regla de finalización para tareas: Ocultar tareas ya completadas si estamos viendo un día POSTERIOR a su finalización.
-        if (ht.type === 'task' && completedTasksMap.has(ht.id)) {
-            const completionDate = completedTasksMap.get(ht.id)!;
-            // Si la fecha seleccionada es ESTRICTAMENTE posterior a la fecha de finalización, no mostrar la tarea.
-            if (selectedDateStr > completionDate) {
+        // Regla de finalización para tareas: Ocultar si la tarea está completada y estamos viendo un día POSTERIOR a su finalización.
+        if (ht.type === 'task' && ht.completion_date) {
+            if (selectedDateStr > ht.completion_date) {
                 return false;
             }
         }
@@ -152,35 +137,39 @@ export async function getDashboardData(selectedDateStr: string) {
         return true;
     });
 
+    // Logs de progreso filtrados HASTA la fecha seleccionada para el cálculo de progreso
+    const progressLogsForCalculation = mappedProgressLogs.filter(log => log.completion_date <= selectedDateStr);
+
     const habitTasks: HabitTask[] = visibleHabitTasksData.map((ht) => {
         let progress = 0;
         const mappedHt = mapHabitTaskFromDb(ht);
 
         if (mappedHt.type === 'task') {
-             // El progreso de la tarea para la UI del día se basa en los logs hasta ese día
-             const completed = progressLogsForCalculation.some(log => log.habitTaskId === mappedHt.id);
-             progress = completed ? 100 : 0;
-        } else {
+             // El progreso se basa en si tiene fecha de finalización o no.
+             progress = mappedHt.completionDate ? 100 : 0;
+        } else { // es 'habit'
              progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
         }
 
-        const completedToday = progressLogsForCalculation.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
+        let completedToday = false;
+        if (mappedHt.type === 'task') {
+            completedToday = !!mappedHt.completionDate && mappedHt.completionDate === selectedDateStr;
+        } else {
+            completedToday = progressLogsForCalculation.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
+        }
 
         return { ...mappedHt, progress, completedToday };
     });
 
     const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
-        // Para el cálculo de progreso de área, usamos TODOS los hábitos/tareas asociados, no solo los visibles.
-        // La visibilidad es un tema de UI, el progreso es un cálculo global.
         const relevantHabitTasks = habitTasksData
             .filter(ht => ht.area_prk_id === ap.id)
             .map(ht => {
                 let progress = 0;
                 const mappedHt = mapHabitTaskFromDb(ht);
                  if (mappedHt.type === 'task') {
-                    // Una tarea o está completa (100) o no (0). Usamos el mapa de tareas completas para saber su estado final.
-                    const completed = completedTasksMap.has(mappedHt.id);
-                    progress = completed ? 100 : 0;
+                    // Una tarea o está completa (100) o no (0).
+                    progress = mappedHt.completionDate ? 100 : 0;
                 } else {
                     // El progreso del hábito SÍ depende de la fecha seleccionada.
                     progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
