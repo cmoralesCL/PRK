@@ -1,12 +1,28 @@
+'use client';
+
 import { getJournalData } from '@/app/server/queries';
 import { JournalView } from '@/components/journal-view';
 import { Header } from '@/components/header';
-import { parseISO } from 'date-fns';
+import { useEffect, useState } from 'react';
+import type { JournalEntry } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+export default function JournalPage() {
+  const [journalData, setJournalData] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function JournalPage() {
-  const data = await getJournalData();
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await getJournalData();
+        setJournalData(data);
+      } catch (error) {
+        console.error("Failed to fetch journal data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   return (
     <>
@@ -25,7 +41,13 @@ export default async function JournalPage() {
               Un registro cronológico de tu progreso y logros.
             </p>
           </div>
-          <JournalView journalData={data} />
+          {loading ? (
+            <div className="text-center py-24">
+              <h2 className="text-2xl font-headline font-semibold">Cargando diario...</h2>
+            </div>
+          ) : (
+            <JournalView journalData={journalData} />
+          )}
         </div>
       </main>
     </>
