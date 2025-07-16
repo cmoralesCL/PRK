@@ -6,7 +6,7 @@ import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tas
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk, JournalEntry, LifePrkProgressPoint } from "@/lib/types";
 import { getDashboardData } from "./server/queries";
-import { subDays, format } from "date-fns";
+import { subDays, format, eachDayOfInterval, startOfDay } from "date-fns";
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -238,22 +238,25 @@ export async function getJournalData(): Promise<JournalEntry[]> {
 }
 
 
-export async function getLifePrkProgressData(): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
+export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date }): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
   const today = new Date();
-  const dateRange = Array.from({ length: 30 }).map((_, i) => {
-    return format(subDays(today, 29 - i), 'yyyy-MM-dd');
-  });
+  const range = dateRange 
+    ? eachDayOfInterval({ start: startOfDay(dateRange.from), end: startOfDay(dateRange.to) })
+    : eachDayOfInterval({ start: subDays(today, 29), end: today });
 
-  const progressPromises = dateRange.map(date => getDashboardData(date));
+  const dateStrings = range.map(date => format(date, 'yyyy-MM-dd'));
+
+  const progressPromises = dateStrings.map(date => getDashboardData(date));
   const dailySnapshots = await Promise.all(progressPromises);
   
-  const lifePrkIds = dailySnapshots[dailySnapshots.length - 1]?.lifePrks.map(lp => lp.id) || [];
-  const lifePrkNames = dailySnapshots[dailySnapshots.length - 1]?.lifePrks.reduce((acc, lp) => {
+  const lastSnapshot = dailySnapshots[dailySnapshots.length - 1];
+  const lifePrkIds = lastSnapshot?.lifePrks.map(lp => lp.id) || [];
+  const lifePrkNames = lastSnapshot?.lifePrks.reduce((acc, lp) => {
     acc[lp.id] = lp.title;
     return acc;
   }, {} as Record<string, string>) || {};
 
-  const chartData = dateRange.map((date, index) => {
+  const chartData = dateStrings.map((date, index) => {
     const snapshot = dailySnapshots[index];
     const dataPoint: LifePrkProgressPoint = {
       date: format(new Date(date), 'MMM d'),
