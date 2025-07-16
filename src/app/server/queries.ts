@@ -23,57 +23,58 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
     const startDate = parseISO(habit.startDate);
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+    today.setHours(0, 0, 0, 0);
 
-    // Un hábito no puede tener progreso si su fecha de inicio es futura (comparado con la fecha real).
-    if (isAfter(startDate, today)) {
+    if (isAfter(startDate, today) && !isToday(startDate)) {
         return 0;
     }
     
-    const logsForHabit = logs.filter(log => log.habitTaskId === habit.id && parseISO(log.completion_date) <= selectedDate);
+    const logsForHabit = logs.filter(log => log.habitTaskId === habit.id);
 
     let totalCompletions = 0;
     let expectedCompletions = 0;
+    
+    // La fecha efectiva para el cálculo de "esperados" no debe superar el día de hoy real.
+    const effectiveEndDate = isAfter(selectedDate, today) ? today : selectedDate;
+
+    // Si la fecha de inicio del hábito está después de la fecha efectiva de fin, no hay nada que calcular.
+    if (isAfter(startDate, effectiveEndDate)) {
+        return 0;
+    }
+
 
     switch (habit.frequency) {
         case 'daily':
-            // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
-            const effectiveDate = isAfter(selectedDate, today) ? today : selectedDate;
-            if (isAfter(startDate, effectiveDate)) return 0; // Si el inicio es después del final, no hay esperados.
-            expectedCompletions = differenceInDays(effectiveDate, startDate) + 1;
-            totalCompletions = logsForHabit.length;
+            expectedCompletions = differenceInDays(effectiveEndDate, startDate) + 1;
+            totalCompletions = logsForHabit.filter(l => parseISO(l.completion_date) <= effectiveEndDate).length;
             break;
         case 'weekly':
             const startOfThisWeek = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
-            const completionsThisWeek = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisWeek).length;
-            return completionsThisWeek > 0 ? 100 : 0; // Simple check for this week
+            const completionsThisWeek = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisWeek && parseISO(log.completion_date) <= selectedDate).length;
+            return completionsThisWeek > 0 ? 100 : 0;
         case 'monthly':
             const startOfThisMonth = startOfMonth(selectedDate);
-            const completionsThisMonth = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisMonth).length;
-            return completionsThisMonth > 0 ? 100 : 0; // Simple check for this month
+            const completionsThisMonth = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisMonth && parseISO(log.completion_date) <= selectedDate).length;
+            return completionsThisMonth > 0 ? 100 : 0;
         case 'specific_days':
             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
             const dayMapping: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
             const targetDays = habit.frequencyDays.map(d => dayMapping[d]);
             
             let currentDate = new Date(startDate);
-            // Considerar solo hasta la fecha real de "hoy" para el cálculo esperado.
-            const effectiveEndDate = isAfter(selectedDate, today) ? today : selectedDate;
-            if (isAfter(currentDate, effectiveEndDate)) return 0;
-
             while (currentDate <= effectiveEndDate) {
                 if (targetDays.includes(currentDate.getDay())) {
                     expectedCompletions++;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            totalCompletions = logsForHabit.length;
+            totalCompletions = logsForHabit.filter(l => parseISO(l.completion_date) <= effectiveEndDate).length;
             break;
         default:
             return 0;
     }
     
-    if (expectedCompletions === 0) return 0;
+    if (expectedCompletions <= 0) return 0; // Se cambió de === 0 a <= 0 para más seguridad.
     return Math.min((totalCompletions / expectedCompletions) * 100, 100);
 }
 
@@ -82,7 +83,6 @@ export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
     const selectedDate = parseISO(selectedDateStr);
 
-    // 1. Obtener los PRK de Vida no archivados
     const { data: lifePrksData, error: lifePrksError } = await supabase
         .from('life_prks')
         .select('*')
@@ -91,7 +91,6 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (lifePrksError) throw new Error("Could not fetch Life PRKs.");
 
-    // 2. Obtener los PRK de Área no archivados
     const { data: areaPrksData, error: areaPrksError } = await supabase
         .from('area_prks')
         .select('*')
@@ -100,7 +99,6 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (areaPrksError) throw new Error("Could not fetch Area PRKs.");
 
-    // 3. Obtener los Hábitos/Tareas no archivados
     const { data: habitTasksData, error: habitTasksError } = await supabase
         .from('habit_tasks')
         .select('*')
@@ -109,37 +107,43 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
     
-    // 4. Obtener todos los registros de progreso hasta la fecha seleccionada
-    const { data: progressLogsData, error: progressLogsError } = await supabase
+    // Obtenemos todos los logs, no solo hasta la fecha seleccionada.
+    // Esto es importante para saber si una tarea se completó en CUALQUIER momento.
+    const { data: allProgressLogsData, error: progressLogsError } = await supabase
         .from('progress_logs')
-        .select('*, habit_task_id')
-        .lte('completion_date', selectedDateStr);
-
+        .select('*, habit_task_id');
 
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
-
-    const mappedProgressLogs = progressLogsData.map(p => ({
+    
+    const mappedProgressLogs = allProgressLogsData.map(p => ({
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
     }));
-
-    const completedTaskIdsOnPreviousDays = new Set(
+    
+    // IDs de tareas que fueron completadas en CUALQUIER fecha.
+    const allCompletedTaskIds = new Set(
         mappedProgressLogs
             .filter(log => {
                 const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
-                // Filtrar solo tareas completadas ANTES de la fecha seleccionada
-                return task?.type === 'task' && log.completion_date < selectedDateStr;
+                return task?.type === 'task';
             })
             .map(log => log.habit_task_id)
     );
 
+    // Logs de progreso filtrados HASTA la fecha seleccionada para el cálculo de progreso
+    const progressLogsForCalculation = mappedProgressLogs.filter(log => log.completion_date <= selectedDateStr);
+
     const visibleHabitTasksData = habitTasksData.filter(ht => {
-        // Ocultar tareas ya completadas en días anteriores
-        if (ht.type === 'task' && completedTaskIdsOnPreviousDays.has(ht.id)) {
-            return false;
+        // Regla 1: Ocultar tareas ya completadas, si estamos viendo un día POSTERIOR a su finalización.
+        if (ht.type === 'task' && allCompletedTaskIds.has(ht.id)) {
+            const completionLog = mappedProgressLogs.find(log => log.habitTaskId === ht.id);
+            if (completionLog && completionLog.completion_date < selectedDateStr) {
+                return false;
+            }
         }
-        // Ocultar hábitos y tareas cuya fecha de inicio es futura
+
+        // Regla 2: Ocultar hábitos y tareas cuya fecha de inicio es futura.
         if (ht.start_date) {
              const startDate = parseISO(ht.start_date);
              if (isAfter(startDate, selectedDate)) {
@@ -149,38 +153,37 @@ export async function getDashboardData(selectedDateStr: string) {
         return true;
     });
 
-
-    // 5. Calcular progreso para cada nivel
-
-    // 5a. Calcular progreso para Hábitos y Tareas visibles
     const habitTasks: HabitTask[] = visibleHabitTasksData.map((ht) => {
         let progress = 0;
         const mappedHt = mapHabitTaskFromDb(ht);
 
         if (mappedHt.type === 'task') {
-             const completed = mappedProgressLogs.some(log => log.habitTaskId === mappedHt.id);
+             const completed = progressLogsForCalculation.some(log => log.habitTaskId === mappedHt.id);
              progress = completed ? 100 : 0;
         } else {
-             progress = calculateHabitProgress(mappedHt, mappedProgressLogs, selectedDate);
+             progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
         }
 
-        const completedToday = mappedProgressLogs.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
+        const completedToday = progressLogsForCalculation.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
 
         return { ...mappedHt, progress, completedToday };
     });
 
-    // 5b. Calcular progreso para PRK de Área
     const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
-        const relevantHabitTasks = habitTasksData // Usar todos para el cálculo, no solo los visibles
+        // Para el cálculo de progreso de área, usamos TODOS los hábitos/tareas asociados, no solo los visibles.
+        // La visibilidad es un tema de UI, el progreso es un cálculo global.
+        const relevantHabitTasks = habitTasksData
             .filter(ht => ht.area_prk_id === ap.id)
             .map(ht => {
                 let progress = 0;
                 const mappedHt = mapHabitTaskFromDb(ht);
                  if (mappedHt.type === 'task') {
+                    // Una tarea o está completa (100) o no (0). Usamos allProgressLogsData para saber su estado final.
                     const completed = mappedProgressLogs.some(log => log.habitTaskId === mappedHt.id);
                     progress = completed ? 100 : 0;
                 } else {
-                    progress = calculateHabitProgress(mappedHt, mappedProgressLogs, selectedDate);
+                    // El progreso del hábito SÍ depende de la fecha seleccionada.
+                    progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
                 }
                 return {...mappedHt, progress};
             });
@@ -203,7 +206,6 @@ export async function getDashboardData(selectedDateStr: string) {
         };
     });
 
-    // 5c. Calcular progreso para PRK de Vida (basado en el promedio de sus PRK de Área)
      const lifePrks: LifePrk[] = lifePrksData.map(lp => {
         const relevantAreaPrks = areaPrks.filter(ap => ap.lifePrkId === lp.id);
         let progress = 0;
@@ -214,6 +216,5 @@ export async function getDashboardData(selectedDateStr: string) {
         return { ...lp, archived: lp.archived || false, progress };
     });
     
-    // Devolvemos solo los habitTasks que deben ser visibles en la UI
     return { lifePrks, areaPrks, habitTasks };
 }
