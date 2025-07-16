@@ -165,20 +165,8 @@ export async function getDashboardData(selectedDateStr: string) {
     });
 
     const areaPrks: AreaPrk[] = areaPrksData.map((ap) => {
-        const relevantHabitTasks = habitTasksData
-            .filter(ht => ht.area_prk_id === ap.id)
-            .map(ht => {
-                let progress = 0;
-                const mappedHt = mapHabitTaskFromDb(ht);
-                 if (mappedHt.type === 'task') {
-                    // Una tarea o está completa (100) o no (0).
-                    progress = mappedHt.completionDate ? 100 : 0;
-                } else {
-                    // El progreso del hábito SÍ depende de la fecha seleccionada.
-                    progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
-                }
-                return {...mappedHt, progress};
-            });
+        const relevantHabitTasks = habitTasks
+            .filter(ht => ht.areaPrkId === ap.id);
 
         let progress = 0;
         if (relevantHabitTasks.length > 0) {
