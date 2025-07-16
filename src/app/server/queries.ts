@@ -12,6 +12,7 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     created_at: dbData.created_at,
     archived: dbData.archived,
     startDate: dbData.start_date,
+    dueDate: dbData.due_date,
     frequency: dbData.frequency,
     frequencyDays: dbData.frequency_days,
     weight: dbData.weight,

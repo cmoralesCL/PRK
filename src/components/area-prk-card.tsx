@@ -81,7 +81,7 @@ export function AreaPrkCard({
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
-              <HabitTaskItem key={item.id} item={item} onToggle={(id, completed) => onToggleHabitTask(id, completed, selectedDate)} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} />
+              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} selectedDate={selectedDate} />
             ))}
           </div>
         ) : (

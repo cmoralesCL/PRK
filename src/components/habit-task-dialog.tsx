@@ -41,6 +41,7 @@ const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
   startDate: z.date().optional(),
+  dueDate: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
 }).refine(data => {
@@ -100,6 +101,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
           title: habitTask.title,
           type: habitTask.type,
           startDate: habitTask.startDate ? new Date(`${habitTask.startDate}T00:00:00`) : undefined,
+          dueDate: habitTask.dueDate ? new Date(`${habitTask.dueDate}T00:00:00`) : undefined,
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
         });
@@ -109,6 +111,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
           type: 'task',
           frequencyDays: [],
           startDate: undefined,
+          dueDate: undefined,
           frequency: undefined,
         });
       }
@@ -174,6 +177,47 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
               )}
             />
 
+            {type === 'task' && (
+                <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Fecha Límite (Opcional)</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP")
+                                ) : (
+                                    <span>Elige una fecha</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
+
             {type === 'habit' && (
                 <>
                  <FormField
@@ -206,9 +250,6 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
                                 initialFocus
                             />
                             </PopoverContent>

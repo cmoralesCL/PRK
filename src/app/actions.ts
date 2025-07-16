@@ -65,6 +65,7 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         start_date: values.startDate || new Date().toISOString().split('T')[0],
         frequency: values.frequency,
         frequency_days: values.frequencyDays,
+        due_date: values.dueDate,
         weight: values.weight || 1
     }]).select().single();
 
@@ -83,6 +84,7 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
         start_date: values.startDate,
         frequency: values.frequency,
         frequency_days: values.frequencyDays,
+        due_date: values.dueDate,
       })
       .eq('id', id)
       .select()

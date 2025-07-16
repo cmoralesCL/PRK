@@ -28,7 +28,7 @@ interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  initialSelectedDate?: string;
+  initialSelectedDate: string;
 }
 
 export function Dashboard({
@@ -41,12 +41,11 @@ export function Dashboard({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   useEffect(() => {
     // Inicializar la fecha en el cliente para evitar errores de hidratación
-    const dateStr = initialSelectedDate || new Date().toISOString().split('T')[0];
-    setSelectedDate(new Date(`${dateStr}T00:00:00Z`)); // Use Z para UTC
+    setSelectedDate(new Date(`${initialSelectedDate}T00:00:00Z`)); // Use Z para UTC
   }, [initialSelectedDate]);
 
 
@@ -109,7 +108,8 @@ export function Dashboard({
             const habitTaskData: Partial<HabitTask> = {
                 title: values.title,
                 type: values.type,
-                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+                startDate: values.type === 'habit' && values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+                dueDate: values.type === 'task' && values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
                 frequencyDays: values.frequencyDays
             };

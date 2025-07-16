@@ -1,21 +1,24 @@
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, Calendar } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { HabitTask } from '@/lib/types';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface HabitTaskItemProps {
   item: HabitTask;
-  onToggle: (id: string, completed: boolean) => void;
+  onToggle: (id: string, completed: boolean, date: Date) => void;
   onArchive: (id: string) => void;
   onEdit: (habitTask: HabitTask) => void;
+  selectedDate: Date;
 }
 
-export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskItemProps) {
+export function HabitTaskItem({ item, onToggle, onArchive, onEdit, selectedDate }: HabitTaskItemProps) {
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
   const isCompleted = item.completedToday ?? false;
 
@@ -27,7 +30,7 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
             <Checkbox
                 id={item.id}
                 checked={isCompleted}
-                onCheckedChange={(checked) => onToggle(item.id, !!checked)}
+                onCheckedChange={(checked) => onToggle(item.id, !!checked, selectedDate)}
             />
             <Label
                 htmlFor={item.id}
@@ -57,6 +60,14 @@ export function HabitTaskItem({ item, onToggle, onArchive, onEdit }: HabitTaskIt
                 </Button>
             </div>
         </div>
+        {item.type === 'task' && item.dueDate && (
+            <div className="pl-8 pt-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                    Vence: {format(parseISO(item.dueDate), 'd MMM yyyy', { locale: es })}
+                </span>
+            </div>
+        )}
         {item.type === 'habit' && (
             <div className='flex items-center gap-2 pl-8 pt-1'>
                 <Progress value={item.progress ?? 0} className='h-1.5 w-full' />

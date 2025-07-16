@@ -35,6 +35,9 @@ export interface HabitTask {
   frequencyDays?: string[] | null; // Corresponds to frequency_days
   weight?: number;
 
+  // Nuevo campo para tareas
+  dueDate?: string | null; // Corresponds to due_date
+
   // Para saber si ya se completó hoy (solo para la UI)
   completedToday?: boolean;
 }
