@@ -1,6 +1,6 @@
 'use client';
 
-import { getJournalData } from '@/app/server/queries';
+import { getJournalData } from '@/app/actions';
 import { JournalView } from '@/components/journal-view';
 import { Header } from '@/components/header';
 import { useEffect, useState } from 'react';

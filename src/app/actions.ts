@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import type { AreaPrk, HabitTask, LifePrk } from "@/lib/types";
+import type { AreaPrk, HabitTask, LifePrk, JournalEntry } from "@/lib/types";
+import { parseISO } from "date-fns";
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
   try {
@@ -159,4 +160,77 @@ export async function archiveHabitTask(id: string) {
     const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
     if(error) throw error;
     revalidatePath('/');
+}
+
+
+export async function getJournalData(): Promise<JournalEntry[]> {
+    const supabase = createClient();
+
+    // Obtener todos los datos necesarios
+    const { data: lifePrksData } = await supabase.from('life_prks').select('*').eq('archived', false);
+    const { data: areaPrksData } = await supabase.from('area_prks').select('*').eq('archived', false);
+    const { data: habitTasksData } = await supabase.from('habit_tasks').select('*').eq('archived', false);
+    const { data: progressLogsData } = await supabase.from('progress_logs').select('*');
+
+    if (!lifePrksData || !areaPrksData || !habitTasksData || !progressLogsData) {
+        return [];
+    }
+
+    // Mapear para fácil acceso por ID
+    const lifePrksMap = new Map(lifePrksData.map(lp => [lp.id, lp]));
+    const areaPrksMap = new Map(areaPrksData.map(ap => [ap.id, ap]));
+    const habitTasksMap = new Map(habitTasksData.map(ht => [ht.id, ht]));
+
+    // Agrupar todas las finalizaciones por fecha
+    const completionsByDate = new Map<string, any[]>();
+
+    // Finalizaciones de tareas
+    habitTasksData.forEach(ht => {
+        if (ht.type === 'task' && ht.completion_date) {
+            const date = ht.completion_date;
+            if (!completionsByDate.has(date)) {
+                completionsByDate.set(date, []);
+            }
+            completionsByDate.get(date)?.push({
+                type: 'task',
+                title: ht.title,
+                areaPrkId: ht.area_prk_id
+            });
+        }
+    });
+
+    // Finalizaciones de hábitos
+    progressLogsData.forEach(log => {
+        const habitTask = habitTasksMap.get(log.habit_task_id);
+        if (habitTask) {
+            const date = log.completion_date;
+            if (!completionsByDate.has(date)) {
+                completionsByDate.set(date, []);
+            }
+            completionsByDate.get(date)?.push({
+                type: 'habit',
+                title: habitTask.title,
+                areaPrkId: habitTask.area_prk_id
+            });
+        }
+    });
+
+    // Formatear los datos para el diario
+    const journalEntries: JournalEntry[] = Array.from(completionsByDate.entries())
+        .map(([date, completions]) => {
+            const items = completions.map(comp => {
+                const areaPrk = areaPrksMap.get(comp.areaPrkId);
+                const lifePrk = areaPrk ? lifePrksMap.get(areaPrk.life_prk_id) : undefined;
+                return {
+                    type: comp.type,
+                    title: comp.title,
+                    areaPrkTitle: areaPrk?.title || 'Área desconocida',
+                    lifePrkTitle: lifePrk?.title || 'Visión desconocida',
+                };
+            });
+            return { date, items };
+        })
+        .sort((a, b) => b.date.localeCompare(a.date)); // Ordenar de más reciente a más antiguo
+
+    return journalEntries;
 }
