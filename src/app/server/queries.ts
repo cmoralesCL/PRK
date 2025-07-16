@@ -51,11 +51,17 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             break;
         case 'weekly':
             const startOfThisWeek = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
-            const completionsThisWeek = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisWeek && parseISO(log.completion_date) <= selectedDate).length;
+            const completionsThisWeek = logsForHabit.filter(log => {
+                const logDate = parseISO(log.completion_date);
+                return logDate >= startOfThisWeek && logDate <= selectedDate;
+            }).length;
             return completionsThisWeek > 0 ? 100 : 0;
         case 'monthly':
             const startOfThisMonth = startOfMonth(selectedDate);
-            const completionsThisMonth = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisMonth && parseISO(log.completion_date) <= selectedDate).length;
+            const completionsThisMonth = logsForHabit.filter(log => {
+                const logDate = parseISO(log.completion_date);
+                return logDate >= startOfThisMonth && logDate <= selectedDate;
+            }).length;
             return completionsThisMonth > 0 ? 100 : 0;
         case 'specific_days':
             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
@@ -152,7 +158,7 @@ export async function getDashboardData(selectedDateStr: string) {
         if (mappedHt.type === 'task') {
             completedToday = !!mappedHt.completionDate && mappedHt.completionDate === selectedDateStr;
         } else {
-            completedToday = progressLogsForCalculation.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
+            completedToday = mappedProgressLogs.some(log => log.habitTaskId === ht.id && log.completion_date === selectedDateStr);
         }
 
         return { ...mappedHt, progress, completedToday };
