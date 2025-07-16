@@ -125,7 +125,6 @@ export async function getDashboardData(selectedDateStr: string) {
     mappedProgressLogs.forEach(log => {
         const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
         if (task?.type === 'task') {
-            // Guardamos la fecha de completado más reciente por si acaso
             if (!completedTasksMap.has(log.habitTaskId) || log.completion_date > completedTasksMap.get(log.habitTaskId)!) {
                 completedTasksMap.set(log.habitTaskId, log.completion_date);
             }
@@ -136,20 +135,20 @@ export async function getDashboardData(selectedDateStr: string) {
     const progressLogsForCalculation = mappedProgressLogs.filter(log => log.completion_date <= selectedDateStr);
 
     const visibleHabitTasksData = habitTasksData.filter(ht => {
-        // Regla 1: Ocultar tareas ya completadas, si estamos viendo un día POSTERIOR a su finalización.
+        // Regla de inicio: Ocultar tareas y hábitos cuya fecha de inicio es futura.
+        if (ht.start_date && ht.start_date > selectedDateStr) {
+            return false;
+        }
+
+        // Regla de finalización para tareas: Ocultar tareas ya completadas si estamos viendo un día POSTERIOR a su finalización.
         if (ht.type === 'task' && completedTasksMap.has(ht.id)) {
             const completionDate = completedTasksMap.get(ht.id)!;
-            // Si la fecha seleccionada es posterior a la fecha de finalización, no mostrar la tarea.
+            // Si la fecha seleccionada es ESTRICTAMENTE posterior a la fecha de finalización, no mostrar la tarea.
             if (selectedDateStr > completionDate) {
                 return false;
             }
         }
     
-        // Regla 2: Ocultar hábitos y tareas cuya fecha de inicio es futura.
-        if (ht.start_date && ht.start_date > selectedDateStr) {
-            return false;
-        }
-        
         return true;
     });
 
