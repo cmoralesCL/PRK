@@ -1,22 +1,24 @@
 'use client';
 
-import { getJournalData } from '@/app/actions';
-import { JournalView } from '@/components/journal-view';
+import { getLifePrkProgressData } from '@/app/actions';
+import { ProgressChart } from '@/components/progress-chart';
 import { Header } from '@/components/header';
 import { useEffect, useState } from 'react';
-import type { JournalEntry } from '@/lib/types';
+import type { LifePrkProgressPoint } from '@/lib/types';
 
 export default function JournalPage() {
-  const [journalData, setJournalData] = useState<JournalEntry[]>([]);
+  const [chartData, setChartData] = useState<LifePrkProgressPoint[]>([]);
+  const [lifePrkNames, setLifePrkNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await getJournalData();
-        setJournalData(data);
+        const { chartData, lifePrkNames } = await getLifePrkProgressData();
+        setChartData(chartData);
+        setLifePrkNames(lifePrkNames);
       } catch (error) {
-        console.error("Failed to fetch journal data:", error);
+        console.error("Failed to fetch chart data:", error);
       } finally {
         setLoading(false);
       }
@@ -38,15 +40,15 @@ export default function JournalPage() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold font-headline">Diario Evolutivo</h1>
             <p className="mt-1 text-muted-foreground">
-              Un registro cronológico de tu progreso y logros.
+              Visualización del progreso de tus PRKs de Vida en los últimos 30 días.
             </p>
           </div>
           {loading ? (
             <div className="text-center py-24">
-              <h2 className="text-2xl font-headline font-semibold">Cargando diario...</h2>
+              <h2 className="text-2xl font-headline font-semibold">Cargando gráfico...</h2>
             </div>
           ) : (
-            <JournalView journalData={journalData} />
+             <ProgressChart chartData={chartData} lifePrkNames={lifePrkNames} />
           )}
         </div>
       </main>

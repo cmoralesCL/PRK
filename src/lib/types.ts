@@ -59,3 +59,9 @@ export interface JournalEntry {
     lifePrkTitle: string;
   }[];
 }
+
+// Para el gráfico de progreso
+export interface LifePrkProgressPoint {
+  date: string;
+  [lifePrkId: string]: number | string; // Allows 'date' and dynamic keys for each Life PRK
+}
