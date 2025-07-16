@@ -25,7 +25,8 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (isAfter(startDate, today) && !isToday(startDate)) {
+    // Si la fecha de inicio del hábito es estrictamente posterior a hoy, no hay progreso.
+    if (isAfter(startDate, today)) {
         return 0;
     }
     
@@ -74,7 +75,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             return 0;
     }
     
-    if (expectedCompletions <= 0) return 0; // Se cambió de === 0 a <= 0 para más seguridad.
+    if (expectedCompletions <= 0) return 0; 
     return Math.min((totalCompletions / expectedCompletions) * 100, 100);
 }
 
@@ -107,8 +108,6 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
     
-    // Obtenemos todos los logs, no solo hasta la fecha seleccionada.
-    // Esto es importante para saber si una tarea se completó en CUALQUIER momento.
     const { data: allProgressLogsData, error: progressLogsError } = await supabase
         .from('progress_logs')
         .select('*, habit_task_id');
@@ -121,24 +120,23 @@ export async function getDashboardData(selectedDateStr: string) {
         completion_date: p.completion_date,
     }));
     
-    // IDs de tareas que fueron completadas en CUALQUIER fecha.
-    const allCompletedTaskIds = new Set(
-        mappedProgressLogs
-            .filter(log => {
-                const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
-                return task?.type === 'task';
-            })
-            .map(log => log.habit_task_id)
-    );
+    // Identifica todas las tareas que han sido completadas en cualquier fecha
+    const completedTaskLogs = mappedProgressLogs.filter(log => {
+        const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
+        return task?.type === 'task';
+    });
+    const completedTaskIds = new Set(completedTaskLogs.map(log => log.habit_task_id));
 
     // Logs de progreso filtrados HASTA la fecha seleccionada para el cálculo de progreso
     const progressLogsForCalculation = mappedProgressLogs.filter(log => log.completion_date <= selectedDateStr);
 
     const visibleHabitTasksData = habitTasksData.filter(ht => {
         // Regla 1: Ocultar tareas ya completadas, si estamos viendo un día POSTERIOR a su finalización.
-        if (ht.type === 'task' && allCompletedTaskIds.has(ht.id)) {
-            const completionLog = mappedProgressLogs.find(log => log.habitTaskId === ht.id);
-            if (completionLog && completionLog.completion_date < selectedDateStr) {
+        if (ht.type === 'task' && completedTaskIds.has(ht.id)) {
+            // Find the log for this completed task
+            const completionLog = completedTaskLogs.find(log => log.habitTaskId === ht.id);
+            // If the selected date is after the completion date, hide it.
+            if (completionLog && selectedDateStr > completionLog.completion_date) {
                 return false;
             }
         }
@@ -146,7 +144,12 @@ export async function getDashboardData(selectedDateStr: string) {
         // Regla 2: Ocultar hábitos y tareas cuya fecha de inicio es futura.
         if (ht.start_date) {
              const startDate = parseISO(ht.start_date);
-             if (isAfter(startDate, selectedDate)) {
+             if (isAfter(selectedDate, startDate)) {
+                // This logic is tricky. isAfter(selectedDate, startDate) means start date is in the past.
+                // We want to hide if start date is in the future.
+                // A better way is: differenceInDays < 0
+             }
+             if (ht.start_date > selectedDateStr) {
                  return false;
              }
         }
@@ -158,6 +161,7 @@ export async function getDashboardData(selectedDateStr: string) {
         const mappedHt = mapHabitTaskFromDb(ht);
 
         if (mappedHt.type === 'task') {
+             // El progreso de la tarea para la UI del día se basa en los logs hasta ese día
              const completed = progressLogsForCalculation.some(log => log.habitTaskId === mappedHt.id);
              progress = completed ? 100 : 0;
         } else {
@@ -178,8 +182,8 @@ export async function getDashboardData(selectedDateStr: string) {
                 let progress = 0;
                 const mappedHt = mapHabitTaskFromDb(ht);
                  if (mappedHt.type === 'task') {
-                    // Una tarea o está completa (100) o no (0). Usamos allProgressLogsData para saber su estado final.
-                    const completed = mappedProgressLogs.some(log => log.habitTaskId === mappedHt.id);
+                    // Una tarea o está completa (100) o no (0). Usamos los logs de tareas completas para saber su estado final.
+                    const completed = completedTaskIds.has(mappedHt.id);
                     progress = completed ? 100 : 0;
                 } else {
                     // El progreso del hábito SÍ depende de la fecha seleccionada.
