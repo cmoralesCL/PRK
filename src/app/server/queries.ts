@@ -69,7 +69,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             return 0;
     }
     
-    if (expectedCompletions <= 0) return 100;
+    if (expectedCompletions <= 0) return 100; // Si no se esperaba nada, se asume 100%
     return Math.min((totalCompletions / expectedCompletions) * 100, 100);
 }
 
@@ -107,19 +107,17 @@ export async function getDashboardData(selectedDateStr: string) {
         let progress = 0;
         
         const startDate = mappedHt.startDate ? startOfDay(parseISO(mappedHt.startDate)) : new Date(0);
-        // Ignore tasks that haven't started yet for calculation
-        if (isAfter(startDate, selectedDate)) {
-             return { ...mappedHt, progress: 0, completedToday: false };
-        }
-
+        
         if (mappedHt.type === 'task') {
             const completionDate = mappedHt.completionDate ? startOfDay(parseISO(mappedHt.completionDate)) : null;
             // Task contributes 100% if it has been completed on or before the selected date
             progress = completionDate && !isAfter(completionDate, selectedDate) ? 100 : 0;
         } else { // It's a 'habit'
-            // For habits, calculate progress based on logs up to the selected date
-            const progressLogsForCalculation = mappedProgressLogs.filter(log => !isAfter(startOfDay(parseISO(log.completion_date)), selectedDate));
-            progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
+            // For habits, calculate progress based on logs up to the selected date, but only if it has started
+             if (!isAfter(startDate, selectedDate)) {
+                const progressLogsForCalculation = mappedProgressLogs.filter(log => !isAfter(startOfDay(parseISO(log.completion_date)), selectedDate));
+                progress = calculateHabitProgress(mappedHt, progressLogsForCalculation, selectedDate);
+             }
         }
 
         let completedToday = false;
@@ -132,9 +130,15 @@ export async function getDashboardData(selectedDateStr: string) {
         return { ...mappedHt, progress, completedToday };
     });
 
-    // --- 3. Calculate Area PRK and Life PRK progress based on ALL their children ---
+    // --- 3. Calculate Area PRK and Life PRK progress based on their children active on the selected date ---
     const areaPrks: AreaPrk[] = areaPrksData.map(ap => {
-        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id);
+        // Filter tasks that are relevant for progress calculation on the selected date
+        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => {
+            if (ht.areaPrkId !== ap.id) return false;
+            const startDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
+            // Include the task in calculation only if its start date is on or before the selected date
+            return !isAfter(startDate, selectedDate);
+        });
         
         let progress = 0;
         if (relevantHabitTasks.length > 0) {
