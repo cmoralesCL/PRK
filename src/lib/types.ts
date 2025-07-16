@@ -48,3 +48,14 @@ export interface ProgressLog {
   habitTaskId: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
 }
+
+// Para el Diario Evolutivo
+export interface JournalEntry {
+  date: string;
+  items: {
+    type: 'habit' | 'task';
+    title: string;
+    areaPrkTitle: string;
+    lifePrkTitle: string;
+  }[];
+}

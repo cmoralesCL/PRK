@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
+import type { LifePrk, AreaPrk, HabitTask, ProgressLog, JournalEntry } from "@/lib/types";
 import { startOfWeek, startOfMonth, differenceInDays, isAfter, isToday, parseISO } from 'date-fns';
 
 
@@ -43,7 +43,6 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     if (isAfter(startDate, effectiveEndDate)) {
         return 0;
     }
-
 
     switch (habit.frequency) {
         case 'daily':
@@ -115,7 +114,7 @@ export async function getDashboardData(selectedDateStr: string) {
 
     if (progressLogsError) throw new Error("Could not fetch progress logs.");
     
-    const mappedProgressLogs = allProgressLogsData.map(p => ({
+    const mappedProgressLogs: ProgressLog[] = allProgressLogsData.map(p => ({
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
@@ -128,10 +127,8 @@ export async function getDashboardData(selectedDateStr: string) {
         }
 
         // Regla de finalización para tareas: Ocultar si la tarea está completada y estamos viendo un día POSTERIOR a su finalización.
-        if (ht.type === 'task' && ht.completion_date) {
-            if (selectedDateStr > ht.completion_date) {
-                return false;
-            }
+        if (ht.type === 'task' && ht.completion_date && selectedDateStr > ht.completion_date) {
+             return false;
         }
     
         return true;
@@ -206,4 +203,76 @@ export async function getDashboardData(selectedDateStr: string) {
     });
     
     return { lifePrks, areaPrks, habitTasks };
+}
+
+export async function getJournalData(): Promise<JournalEntry[]> {
+    const supabase = createClient();
+
+    // Obtener todos los datos necesarios
+    const { data: lifePrksData } = await supabase.from('life_prks').select('*').eq('archived', false);
+    const { data: areaPrksData } = await supabase.from('area_prks').select('*').eq('archived', false);
+    const { data: habitTasksData } = await supabase.from('habit_tasks').select('*').eq('archived', false);
+    const { data: progressLogsData } = await supabase.from('progress_logs').select('*');
+
+    if (!lifePrksData || !areaPrksData || !habitTasksData || !progressLogsData) {
+        return [];
+    }
+
+    // Mapear para fácil acceso por ID
+    const lifePrksMap = new Map(lifePrksData.map(lp => [lp.id, lp]));
+    const areaPrksMap = new Map(areaPrksData.map(ap => [ap.id, ap]));
+    const habitTasksMap = new Map(habitTasksData.map(ht => [ht.id, ht]));
+
+    // Agrupar todas las finalizaciones por fecha
+    const completionsByDate = new Map<string, any[]>();
+
+    // Finalizaciones de tareas
+    habitTasksData.forEach(ht => {
+        if (ht.type === 'task' && ht.completion_date) {
+            const date = ht.completion_date;
+            if (!completionsByDate.has(date)) {
+                completionsByDate.set(date, []);
+            }
+            completionsByDate.get(date)?.push({
+                type: 'task',
+                title: ht.title,
+                areaPrkId: ht.area_prk_id
+            });
+        }
+    });
+
+    // Finalizaciones de hábitos
+    progressLogsData.forEach(log => {
+        const habitTask = habitTasksMap.get(log.habit_task_id);
+        if (habitTask) {
+            const date = log.completion_date;
+            if (!completionsByDate.has(date)) {
+                completionsByDate.set(date, []);
+            }
+            completionsByDate.get(date)?.push({
+                type: 'habit',
+                title: habitTask.title,
+                areaPrkId: habitTask.area_prk_id
+            });
+        }
+    });
+
+    // Formatear los datos para el diario
+    const journalEntries: JournalEntry[] = Array.from(completionsByDate.entries())
+        .map(([date, completions]) => {
+            const items = completions.map(comp => {
+                const areaPrk = areaPrksMap.get(comp.areaPrkId);
+                const lifePrk = areaPrk ? lifePrksMap.get(areaPrk.life_prk_id) : undefined;
+                return {
+                    type: comp.type,
+                    title: comp.title,
+                    areaPrkTitle: areaPrk?.title || 'Área desconocida',
+                    lifePrkTitle: lifePrk?.title || 'Visión desconocida',
+                };
+            });
+            return { date, items };
+        })
+        .sort((a, b) => b.date.localeCompare(a.date)); // Ordenar de más reciente a más antiguo
+
+    return journalEntries;
 }
