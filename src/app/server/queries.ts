@@ -135,24 +135,17 @@ export async function getDashboardData(selectedDateStr: string) {
         if (ht.type === 'task' && completedTaskIds.has(ht.id)) {
             // Find the log for this completed task
             const completionLog = completedTaskLogs.find(log => log.habitTaskId === ht.id);
-            // If the selected date is after the completion date, hide it.
+            // Si la fecha seleccionada es posterior a la fecha de finalización, ocúltala.
             if (completionLog && selectedDateStr > completionLog.completion_date) {
                 return false;
             }
         }
 
         // Regla 2: Ocultar hábitos y tareas cuya fecha de inicio es futura.
-        if (ht.start_date) {
-             const startDate = parseISO(ht.start_date);
-             if (isAfter(selectedDate, startDate)) {
-                // This logic is tricky. isAfter(selectedDate, startDate) means start date is in the past.
-                // We want to hide if start date is in the future.
-                // A better way is: differenceInDays < 0
-             }
-             if (ht.start_date > selectedDateStr) {
-                 return false;
-             }
+        if (ht.start_date && ht.start_date > selectedDateStr) {
+            return false;
         }
+        
         return true;
     });
 
