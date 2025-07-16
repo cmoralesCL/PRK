@@ -23,6 +23,7 @@ import {
     archiveHabitTask
 } from '@/app/actions';
 import { Button } from './ui/button';
+import { parseISO } from 'date-fns';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
@@ -45,7 +46,7 @@ export function Dashboard({
   
   useEffect(() => {
     // Inicializar la fecha en el cliente para evitar errores de hidratación
-    setSelectedDate(new Date(`${initialSelectedDate}T00:00:00Z`)); // Use Z para UTC
+    setSelectedDate(parseISO(initialSelectedDate));
   }, [initialSelectedDate]);
 
 
@@ -59,7 +60,8 @@ export function Dashboard({
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   
-  const handleDateChange = (date: Date) => {
+  const handleDateChange = (date: Date | undefined) => {
+    if (!date) return;
     const dateString = date.toISOString().split('T')[0];
     setSelectedDate(date);
     // startTransition para no bloquear la UI mientras navega
@@ -108,8 +110,8 @@ export function Dashboard({
             const habitTaskData: Partial<HabitTask> = {
                 title: values.title,
                 type: values.type,
-                startDate: values.type === 'habit' && values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-                dueDate: values.type === 'task' && values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
+                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+                dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
                 frequencyDays: values.frequencyDays
             };
@@ -157,7 +159,8 @@ export function Dashboard({
             await addHabitTask({ 
                 areaPrkId, 
                 title, 
-                type: 'task', 
+                type: 'task',
+                startDate: new Date().toISOString().split('T')[0]
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
         } catch (error) {

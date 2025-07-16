@@ -32,7 +32,7 @@ import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { HabitTask } from '@/lib/types';
 import { useEffect } from 'react';
@@ -45,12 +45,6 @@ const formSchema = z.object({
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
 }).refine(data => {
-    if (data.type === 'habit' && !data.startDate) {
-        return false;
-    }
-    return true;
-}, { message: "La fecha de inicio es requerida para los hábitos", path: ['startDate'] })
-.refine(data => {
     if (data.type === 'habit' && !data.frequency) {
         return false;
     }
@@ -90,7 +84,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
     defaultValues: {
       title: '',
       type: 'task',
-      frequencyDays: []
+      frequencyDays: [],
+      startDate: new Date(),
     },
   });
 
@@ -100,8 +95,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
         form.reset({
           title: habitTask.title,
           type: habitTask.type,
-          startDate: habitTask.startDate ? new Date(`${habitTask.startDate}T00:00:00`) : undefined,
-          dueDate: habitTask.dueDate ? new Date(`${habitTask.dueDate}T00:00:00`) : undefined,
+          startDate: habitTask.startDate ? parseISO(habitTask.startDate) : undefined,
+          dueDate: habitTask.dueDate ? parseISO(habitTask.dueDate) : undefined,
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
         });
@@ -110,7 +105,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
           title: '',
           type: 'task',
           frequencyDays: [],
-          startDate: undefined,
+          startDate: new Date(),
           dueDate: undefined,
           frequency: undefined,
         });
@@ -176,6 +171,45 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                 </FormItem>
               )}
             />
+            
+            <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Fecha de Inicio</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP")
+                            ) : (
+                                <span>Elige una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
 
             {type === 'task' && (
                 <FormField
@@ -220,44 +254,6 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
 
             {type === 'habit' && (
                 <>
-                 <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de Inicio</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value ? (
-                                    format(field.value, "PPP")
-                                ) : (
-                                    <span>Elige una fecha</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
                   <FormField
                     control={form.control}
                     name="frequency"

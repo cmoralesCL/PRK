@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { startOfWeek, startOfMonth, differenceInDays, isAfter, isToday } from 'date-fns';
+import { startOfWeek, startOfMonth, differenceInDays, isAfter, isToday, parseISO } from 'date-fns';
 
 
 // Helper para mapear snake_case a camelCase para HabitTask
@@ -21,15 +21,16 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
 const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedDate: Date): number => {
     if (!habit.startDate || !habit.frequency) return 0;
 
-    const startDate = new Date(habit.startDate);
+    const startDate = parseISO(habit.startDate);
     const today = new Date();
-    
+    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+
     // Un hábito no puede tener progreso si su fecha de inicio es futura (comparado con la fecha real).
     if (isAfter(startDate, today)) {
         return 0;
     }
     
-    const logsForHabit = logs.filter(log => log.habitTaskId === habit.id && new Date(log.completion_date) <= selectedDate);
+    const logsForHabit = logs.filter(log => log.habitTaskId === habit.id && parseISO(log.completion_date) <= selectedDate);
 
     let totalCompletions = 0;
     let expectedCompletions = 0;
@@ -44,11 +45,11 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             break;
         case 'weekly':
             const startOfThisWeek = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
-            const completionsThisWeek = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisWeek).length;
+            const completionsThisWeek = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisWeek).length;
             return completionsThisWeek > 0 ? 100 : 0; // Simple check for this week
         case 'monthly':
             const startOfThisMonth = startOfMonth(selectedDate);
-            const completionsThisMonth = logsForHabit.filter(log => new Date(log.completion_date) >= startOfThisMonth).length;
+            const completionsThisMonth = logsForHabit.filter(log => parseISO(log.completion_date) >= startOfThisMonth).length;
             return completionsThisMonth > 0 ? 100 : 0; // Simple check for this month
         case 'specific_days':
             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
@@ -79,7 +80,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
 export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
-    const selectedDate = new Date(`${selectedDateStr}T00:00:00`);
+    const selectedDate = parseISO(selectedDateStr);
 
     // 1. Obtener los PRK de Vida no archivados
     const { data: lifePrksData, error: lifePrksError } = await supabase
@@ -137,9 +138,9 @@ export async function getDashboardData(selectedDateStr: string) {
         if (ht.type === 'task' && completedTaskIds.has(ht.id)) {
             return false;
         }
-        // Ocultar hábitos cuya fecha de inicio es futura
-        if (ht.type === 'habit' && ht.start_date) {
-             const startDate = new Date(`${ht.start_date}T00:00:00`);
+        // Ocultar hábitos y tareas cuya fecha de inicio es futura
+        if (ht.start_date) {
+             const startDate = parseISO(ht.start_date);
              if (isAfter(startDate, selectedDate)) {
                  return false;
              }
