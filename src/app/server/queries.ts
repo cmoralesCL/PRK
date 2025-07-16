@@ -124,18 +124,19 @@ export async function getDashboardData(selectedDateStr: string) {
         completion_date: p.completion_date,
     }));
 
-    const completedTaskIds = new Set(
+    const completedTaskIdsOnPreviousDays = new Set(
         mappedProgressLogs
-            .map(log => {
-                const task = habitTasksData.find(ht => ht.id === log.habitTaskId);
-                return task?.type === 'task' ? task.id : null;
+            .filter(log => {
+                const task = habitTasksData.find(ht => ht.id === log.habit_task_id);
+                // Filtrar solo tareas completadas ANTES de la fecha seleccionada
+                return task?.type === 'task' && log.completion_date < selectedDateStr;
             })
-            .filter(id => id !== null)
+            .map(log => log.habit_task_id)
     );
 
     const visibleHabitTasksData = habitTasksData.filter(ht => {
-        // Ocultar tareas ya completadas
-        if (ht.type === 'task' && completedTaskIds.has(ht.id)) {
+        // Ocultar tareas ya completadas en días anteriores
+        if (ht.type === 'task' && completedTaskIdsOnPreviousDays.has(ht.id)) {
             return false;
         }
         // Ocultar hábitos y tareas cuya fecha de inicio es futura
