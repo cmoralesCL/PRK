@@ -36,15 +36,17 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     let expectedCompletions = 0;
 
     switch (habit.frequency) {
-        case 'daily':
-            expectedCompletions = differenceInDays(effectiveEndDate, startDate) + 1;
-            break;
+        case 'daily': // Ahora se comporta como semanal, se resetea cada semana
         case 'weekly':
         case 'monthly':
-            // Para semanales/mensuales, el progreso es binario: 100 si se hizo al menos una vez en el periodo actual, 0 si no.
-            const startOfPeriod = habit.frequency === 'weekly' 
-                ? startOfWeek(selectedDate, { weekStartsOn: 1 }) // Lunes
-                : startOfMonth(selectedDate);
+            // Para semanales/mensuales/diarios, el progreso es binario: 100 si se hizo al menos una vez en el periodo actual, 0 si no.
+            const startOfPeriodFn = (date: Date) => {
+                if (habit.frequency === 'monthly') return startOfMonth(date);
+                // Tanto 'daily' como 'weekly' se agrupan por semana
+                return startOfWeek(date, { weekStartsOn: 1 }); // Lunes
+            }
+            const startOfPeriod = startOfPeriodFn(selectedDate);
+
             const completionsInPeriod = logsForHabit.some(log => {
                 const logDate = startOfDay(parseISO(log.completion_date));
                 return !isBefore(logDate, startOfPeriod) && !isAfter(logDate, selectedDate);
@@ -64,13 +66,11 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
                 currentDate.setDate(currentDate.getDate() + 1);
             }
             expectedCompletions = daysPassed;
-            break;
+            if (expectedCompletions <= 0) return 100; // Si no se esperaba nada, se asume 100%
+            return Math.min((totalCompletions / expectedCompletions) * 100, 100);
         default:
             return 0;
     }
-    
-    if (expectedCompletions <= 0) return 100; // Si no se esperaba nada, se asume 100%
-    return Math.min((totalCompletions / expectedCompletions) * 100, 100);
 }
 
 
