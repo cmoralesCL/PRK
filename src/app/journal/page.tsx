@@ -13,12 +13,22 @@ export default function JournalPage() {
   const [chartData, setChartData] = useState<LifePrkProgressPoint[]>([]);
   const [lifePrkNames, setLifePrkNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
-    to: new Date(),
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
+    // Set initial date range on the client to avoid hydration mismatch
+    setDateRange({
+      from: subDays(new Date(), 29),
+      to: new Date(),
+    });
+  }, []);
+
+  useEffect(() => {
+    // Don't fetch data until the date range is set
+    if (!dateRange) {
+      return;
+    }
+
     async function fetchData() {
       setLoading(true);
       try {
