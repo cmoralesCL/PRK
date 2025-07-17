@@ -42,7 +42,7 @@ export function Dashboard({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   useEffect(() => {
     // Inicializar la fecha en el cliente para evitar errores de hidratación
