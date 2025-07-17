@@ -196,20 +196,13 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
             const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
             const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 }); // Sunday
             
-            const completionInWeek = logs.find(log => {
+            const completionInWeek = logs.some(log => {
                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                 const logDate = startOfDay(parseISO(log.completion_date));
                 return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
             });
 
-            if (completionInWeek && completionInWeek.completion_date) {
-                const completionDate = startOfDay(parseISO(completionInWeek.completion_date));
-                // Completed if a log exists for the week and selectedDate is on or after the completion date
-                if (!isBefore(selectedDate, completionDate)) {
-                    return 100;
-                }
-            }
-            return 0;
+            return completionInWeek ? 100 : 0;
         }
         case 'monthly': {
             const startOfPeriod = startOfMonth(selectedDate);
