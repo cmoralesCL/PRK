@@ -6,7 +6,7 @@ import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tas
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk, JournalEntry, LifePrkProgressPoint } from "@/lib/types";
 import { getDashboardData } from "./server/queries";
-import { subDays, format, eachDayOfInterval, startOfDay } from "date-fns";
+import { subDays, format, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -138,7 +138,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
             console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
         }
     }
-
+    
     revalidatePath('/');
 }
 
@@ -239,36 +239,35 @@ export async function getJournalData(): Promise<JournalEntry[]> {
 
 
 export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date }): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
+  const supabase = createClient();
   const today = new Date();
-  const range = dateRange 
-    ? eachDayOfInterval({ start: startOfDay(dateRange.from), end: startOfDay(dateRange.to) })
-    : eachDayOfInterval({ start: subDays(today, 29), end: today });
-
-  const dateStrings = range.map(date => format(date, 'yyyy-MM-dd'));
-
-  const progressPromises = dateStrings.map(date => getDashboardData(date));
-  const dailySnapshots = await Promise.all(progressPromises);
   
-  const lastSnapshot = dailySnapshots[dailySnapshots.length - 1];
-  const lifePrkIds = lastSnapshot?.lifePrks.map(lp => lp.id) || [];
-  const lifePrkNames = lastSnapshot?.lifePrks.reduce((acc, lp) => {
+  const fromDate = dateRange?.from ? startOfDay(dateRange.from) : subDays(today, 29);
+  const toDate = dateRange?.to ? startOfDay(dateRange.to) : today;
+  
+  const dateStrings = eachDayOfInterval({ start: fromDate, end: toDate }).map(date => format(date, 'yyyy-MM-dd'));
+  
+  const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('id, title').eq('archived', false);
+  if (lifePrksError) throw lifePrksError;
+  
+  const lifePrkNames = lifePrks.reduce((acc, lp) => {
     acc[lp.id] = lp.title;
     return acc;
-  }, {} as Record<string, string>) || {};
+  }, {} as Record<string, string>);
 
-  const chartData = dateStrings.map((date, index) => {
-    const snapshot = dailySnapshots[index];
+  const chartDataPromises = dateStrings.map(async (dateStr) => {
+    const { lifePrks: dailyLifePrks } = await getDashboardData(dateStr);
     const dataPoint: LifePrkProgressPoint = {
-      date: format(new Date(date), 'MMM d'),
+      date: format(parseISO(dateStr), 'MMM d'),
     };
-    
-    lifePrkIds.forEach(id => {
-      const lifePrk = snapshot.lifePrks.find(lp => lp.id === id);
-      dataPoint[id] = lifePrk?.progress ?? 0;
+    lifePrks.forEach(lp => {
+      const dailyLp = dailyLifePrks.find(dlp => dlp.id === lp.id);
+      dataPoint[lp.id] = dailyLp?.progress ?? 0;
     });
-
     return dataPoint;
   });
+
+  const chartData = await Promise.all(chartDataPromises);
 
   return { chartData, lifePrkNames };
 }
