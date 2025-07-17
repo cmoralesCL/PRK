@@ -63,7 +63,6 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
                 const logDate = startOfDay(parseISO(log.completion_date));
                 return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
             });
-
             return completionInWeek ? 100 : 0;
         }
         case 'monthly': {
@@ -189,7 +188,8 @@ export async function getDashboardData(selectedDateStr: string) {
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
-                return !ht.completionDate;
+                // Show task if it's not completed OR if it was completed on the selected date.
+                return !ht.completionDate || isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
             }
 
             if (ht.frequency === 'specific_days' && ht.frequencyDays) {
@@ -204,7 +204,7 @@ export async function getDashboardData(selectedDateStr: string) {
         .map(ht => {
             let completedToday = false;
             if (ht.type === 'task') {
-                completedToday = !!ht.completionDate;
+                completedToday = !!ht.completionDate && isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
             } else {
                 completedToday = completedHabitIdsToday.has(ht.id);
             }
@@ -230,7 +230,7 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date;
         supabase.from('life_prks').select('id, title').eq('archived', false),
         supabase.from('area_prks').select('id, life_prk_id').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date').gte('completion_date', dateRange.from.toISOString().split('T')[0]).lte('completion_date', dateRange.to.toISOString().split('T')[0])
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date').gte('completion_date', format(dateRange.from, 'yyyy-MM-dd')).lte('completion_date', format(dateRange.to, 'yyyy-MM-dd'))
     ]);
 
     if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
