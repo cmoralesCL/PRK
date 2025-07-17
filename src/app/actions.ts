@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
+import { calculateDailyProgress } from "@/ai/flows/calculate-daily-progress";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk, JournalEntry, LifePrkProgressPoint } from "@/lib/types";
 import { getDashboardData } from "./server/queries";
@@ -27,7 +28,9 @@ export async function addLifePrk(values: { title: string; description?: string }
     }]).select().single();
 
     if(error) throw error;
+    await calculateDailyProgress({ startDate: new Date().toISOString().split('T')[0] });
     revalidatePath('/');
+    revalidatePath('/journal');
     return data as LifePrk;
 }
 
@@ -45,7 +48,9 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
         console.error('Supabase error adding Area PRK:', error);
         throw error;
     }
+    await calculateDailyProgress({ startDate: new Date().toISOString().split('T')[0] });
     revalidatePath('/');
+    revalidatePath('/journal');
     const typedData: AreaPrk = {
       id: data.id,
       lifePrkId: data.life_prk_id,
@@ -61,11 +66,12 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
+    const startDate = values.startDate || new Date().toISOString().split('T')[0];
     const { data, error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
         type: values.type,
-        start_date: values.startDate || new Date().toISOString().split('T')[0],
+        start_date: startDate,
         frequency: values.frequency,
         frequency_days: values.frequencyDays,
         due_date: values.dueDate,
@@ -73,12 +79,15 @@ export async function addHabitTask(values: Partial<HabitTask>) {
     }]).select().single();
 
     if(error) throw error;
+    await calculateDailyProgress({ startDate });
     revalidatePath('/');
+    revalidatePath('/journal');
     return data as HabitTask;
 }
 
 export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
     const supabase = createClient();
+    const startDate = values.startDate || new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
       .from('habit_tasks')
       .update({
@@ -94,7 +103,9 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
       .single();
   
     if (error) throw error;
+    await calculateDailyProgress({ startDate });
     revalidatePath('/');
+    revalidatePath('/journal');
     return data as HabitTask;
 }
 
@@ -114,8 +125,9 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         }]);
         if (error) throw error;
     }
-
+    await calculateDailyProgress({ startDate: completionDate });
     revalidatePath('/');
+    revalidatePath('/journal');
 }
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
@@ -139,7 +151,9 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         }
     }
     
+    await calculateDailyProgress({ startDate: completionDate });
     revalidatePath('/');
+    revalidatePath('/journal');
 }
 
 
@@ -147,21 +161,29 @@ export async function archiveLifePrk(id: string) {
     const supabase = createClient();
     const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
     if(error) throw error;
+    await calculateDailyProgress({ startDate: new Date().toISOString().split('T')[0] });
     revalidatePath('/');
+    revalidatePath('/journal');
 }
 
 export async function archiveAreaPrk(id: string) {
     const supabase = createClient();
     const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
     if(error) throw error;
+    await calculateDailyProgress({ startDate: new Date().toISOString().split('T')[0] });
     revalidatePath('/');
+    revalidatePath('/journal');
 }
 
 export async function archiveHabitTask(id: string) {
     const supabase = createClient();
+    const { data } = await supabase.from('habit_tasks').select('start_date').eq('id', id).single();
+    const startDate = data?.start_date || new Date().toISOString().split('T')[0];
     const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
     if(error) throw error;
+    await calculateDailyProgress({ startDate });
     revalidatePath('/');
+    revalidatePath('/journal');
 }
 
 
@@ -245,8 +267,9 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date 
   const fromDate = dateRange?.from ? startOfDay(dateRange.from) : subDays(today, 29);
   const toDate = dateRange?.to ? startOfDay(dateRange.to) : today;
   
-  const dateStrings = eachDayOfInterval({ start: fromDate, end: toDate }).map(date => format(date, 'yyyy-MM-dd'));
-  
+  const fromDateStr = format(fromDate, 'yyyy-MM-dd');
+  const toDateStr = format(toDate, 'yyyy-MM-dd');
+
   const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('id, title').eq('archived', false);
   if (lifePrksError) throw lifePrksError;
   
@@ -255,19 +278,30 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date 
     return acc;
   }, {} as Record<string, string>);
 
-  const chartDataPromises = dateStrings.map(async (dateStr) => {
-    const { lifePrks: dailyLifePrks } = await getDashboardData(dateStr);
-    const dataPoint: LifePrkProgressPoint = {
-      date: format(parseISO(dateStr), 'MMM d'),
-    };
-    lifePrks.forEach(lp => {
-      const dailyLp = dailyLifePrks.find(dlp => dlp.id === lp.id);
-      dataPoint[lp.id] = dailyLp?.progress ?? 0;
-    });
-    return dataPoint;
+  const { data: snapshotData, error: snapshotError } = await supabase
+    .from('daily_progress_snapshots')
+    .select('snapshot_date, life_prk_id, progress')
+    .is('area_prk_id', null) // Only get life prk progress
+    .gte('snapshot_date', fromDateStr)
+    .lte('snapshot_date', toDateStr)
+    .order('snapshot_date', { ascending: true });
+
+  if (snapshotError) throw snapshotError;
+
+  const chartDataMap = new Map<string, LifePrkProgressPoint>();
+  eachDayOfInterval({ start: fromDate, end: toDate }).forEach(day => {
+      const dateStr = format(day, 'MMM d');
+      const dataPoint: LifePrkProgressPoint = { date: dateStr };
+      lifePrks.forEach(lp => dataPoint[lp.id] = 0); // Initialize with 0
+      chartDataMap.set(format(day, 'yyyy-MM-dd'), dataPoint);
   });
 
-  const chartData = await Promise.all(chartDataPromises);
+  snapshotData.forEach(snapshot => {
+      const point = chartDataMap.get(snapshot.snapshot_date);
+      if (point && snapshot.life_prk_id) {
+          point[snapshot.life_prk_id] = snapshot.progress ?? 0;
+      }
+  });
 
-  return { chartData, lifePrkNames };
+  return { chartData: Array.from(chartDataMap.values()), lifePrkNames };
 }

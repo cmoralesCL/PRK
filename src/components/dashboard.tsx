@@ -20,7 +20,7 @@ import {
     removeHabitTaskCompletion,
     archiveLifePrk,
     archiveAreaPrk,
-    archiveHabitTask
+    archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO } from 'date-fns';
@@ -156,11 +156,12 @@ export function Dashboard({
   const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
      startTransition(async () => {
         try {
+            const startDate = new Date().toISOString().split('T')[0];
             await addHabitTask({ 
                 areaPrkId, 
                 title, 
                 type: 'task',
-                startDate: new Date().toISOString().split('T')[0]
+                startDate
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
         } catch (error) {
