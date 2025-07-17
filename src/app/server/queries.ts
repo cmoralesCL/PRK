@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { startOfDay, parseISO, isEqual, isAfter, format } from 'date-fns';
+import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 
-// Helper to map snake_case to camelCase for HabitTask
+// Helper to map snake_case to camelCase
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     id: dbData.id,
     areaPrkId: dbData.area_prk_id,
@@ -37,61 +37,141 @@ const mapLifePrkFromDb = (dbData: any): LifePrk => ({
     archived: dbData.archived,
 });
 
+const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedDate: Date): number => {
+    if (!habit.startDate || !habit.frequency) return 0;
+
+    const startDate = startOfDay(parseISO(habit.startDate));
+    if (isAfter(startDate, selectedDate)) return 0;
+    
+    switch (habit.frequency) {
+        case 'daily': {
+            const completedOnSelectedDate = logs.some(log => 
+                log.habitTaskId === habit.id && 
+                log.completion_date && 
+                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
+            );
+            return completedOnSelectedDate ? 100 : 0;
+        }
+        case 'weekly': {
+            const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+            
+            const completionInWeek = logs.some(log => {
+                if (!log.completion_date || log.habitTaskId !== habit.id) return false;
+                const logDate = startOfDay(parseISO(log.completion_date));
+                return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
+            });
+
+            return completionInWeek ? 100 : 0;
+        }
+        case 'monthly': {
+             const monthStart = startOfMonth(selectedDate);
+             const completionInMonth = logs.some(log => {
+                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
+                 const logDate = startOfDay(parseISO(log.completion_date));
+                 return !isBefore(logDate, monthStart) && !isAfter(logDate, selectedDate);
+             });
+             return completionInMonth ? 100 : 0;
+        }
+        case 'specific_days': {
+             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
+             const completedOnDay = logs.some(log => 
+                log.habitTaskId === habit.id && 
+                log.completion_date && 
+                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
+            );
+             return completedOnDay ? 100 : 0;
+        }
+        default:
+            return 0;
+    }
+}
 
 export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
     const selectedDate = startOfDay(parseISO(selectedDateStr));
-    const selectedDateFormatted = format(selectedDate, 'yyyy-MM-dd');
 
-    // --- 1. Fetch all raw data ---
-    const { data: lifePrksData, error: lifePrksError } = await supabase
-        .from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true });
+    // --- 1. Fetch all raw data in parallel ---
+    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
+        supabase.from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+    ]);
+
+    const { data: lifePrksData, error: lifePrksError } = lifePrksResult;
     if (lifePrksError) throw new Error("Could not fetch Life PRKs.");
 
-    const { data: areaPrksData, error: areaPrksError } = await supabase
-        .from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true });
+    const { data: areaPrksData, error: areaPrksError } = areaPrksResult;
     if (areaPrksError) throw new Error("Could not fetch Area PRKs.");
 
-    // Fetch only tasks relevant for display logic
-    const { data: allHabitTasksData, error: habitTasksError } = await supabase
-        .from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true });
+    const { data: allHabitTasksData, error: habitTasksError } = allHabitTasksResult;
     if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
-    
-    // Fetch progress snapshots for the selected date
-    const { data: snapshotData, error: snapshotError } = await supabase
-        .from('daily_progress_snapshots')
-        .select('*')
-        .eq('snapshot_date', selectedDateFormatted);
-    if(snapshotError) throw new Error(`Could not fetch progress snapshots: ${snapshotError.message}`);
 
-    // --- 2. Assemble data using snapshots ---
+    const { data: allProgressLogsData, error: progressLogsError } = allProgressLogsResult;
+    if (progressLogsError) throw new Error("Could not fetch progress logs.");
 
-    const lifePrksWithProgress = lifePrksData.map(lp => {
-        const snapshot = snapshotData.find(s => s.life_prk_id === lp.id && s.area_prk_id === null);
-        return {
-            ...mapLifePrkFromDb(lp),
-            progress: snapshot?.progress ?? 0
-        };
+    // --- 2. Map and pre-process data ---
+    const allHabitTasks = allHabitTasksData.map(mapHabitTaskFromDb);
+    const mappedProgressLogs: ProgressLog[] = allProgressLogsData.map(p => ({
+        id: p.id,
+        habitTaskId: p.habit_task_id,
+        completion_date: p.completion_date,
+    })).filter(p => p.completion_date);
+
+    // --- 3. Calculate progress for all items ---
+    const allHabitTasksWithProgress = allHabitTasks.map(ht => {
+        let progress = 0;
+        if (ht.type === 'task') {
+            const completionDate = ht.completionDate ? startOfDay(parseISO(ht.completionDate)) : null;
+            progress = completionDate && !isAfter(completionDate, selectedDate) ? 100 : 0;
+        } else {
+            progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
+        }
+        return { ...ht, progress };
     });
 
-    const areaPrksWithProgress = areaPrksData.map(ap => {
-        const snapshot = snapshotData.find(s => s.area_prk_id === ap.id);
-        return {
-            ...mapAreaPrkFromDb(ap),
-            progress: snapshot?.progress ?? 0
-        };
+    const areaPrksWithProgress = areaPrksData.map(apDb => {
+        const ap = mapAreaPrkFromDb(apDb);
+        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => {
+            const htStartDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
+            return ht.areaPrkId === ap.id && !isAfter(htStartDate, selectedDate);
+        });
+        
+        let progress = 0;
+        if (relevantHabitTasks.length > 0) {
+            const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + ht.progress, 0);
+            progress = totalProgress / relevantHabitTasks.length;
+        } else {
+            progress = 100; // No relevant tasks means the area is complete for the day
+        }
+        
+        return { ...ap, progress };
     });
 
-    // --- 3. Determine which tasks to display ---
-    const { data: progressLogsForDay, error: progressLogsError } = await supabase
-        .from('progress_logs').select('habit_task_id')
-        .eq('completion_date', selectedDateFormatted);
-    if(progressLogsError) throw new Error("Could not fetch daily progress logs.");
-    
-    const completedHabitIdsToday = new Set(progressLogsForDay.map(p => p.habit_task_id));
+    const lifePrksWithProgress = lifePrksData.map(lpDb => {
+        const lp = mapLifePrkFromDb(lpDb);
+        const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.lifePrkId === lp.id);
+        
+        let progress = 0;
+        if (relevantAreaPrks.length > 0) {
+            const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
+            progress = totalProgress / relevantAreaPrks.length;
+        } else {
+            progress = 100; // No relevant areas means the vision is complete
+        }
+        
+        return { ...lp, progress };
+    });
 
-    const habitTasksForDisplay = allHabitTasksData
-        .map(mapHabitTaskFromDb)
+    // --- 4. Filter tasks for display ---
+    const completedHabitIdsToday = new Set(
+        mappedProgressLogs
+            .filter(p => isEqual(startOfDay(parseISO(p.completion_date)), selectedDate))
+            .map(p => p.habitTaskId)
+    );
+
+    const habitTasksForDisplay = allHabitTasks
         .filter(ht => {
             const startDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
             return !isAfter(startDate, selectedDate);
@@ -99,7 +179,7 @@ export async function getDashboardData(selectedDateStr: string) {
         .map(ht => {
             let completedToday = false;
             if (ht.type === 'task') {
-                completedToday = ht.completionDate ? isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate) : false;
+                completedToday = ht.completionDate ? !isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate) : false;
             } else {
                 completedToday = completedHabitIdsToday.has(ht.id);
             }
@@ -107,7 +187,6 @@ export async function getDashboardData(selectedDateStr: string) {
         })
         .filter(ht => {
              if (ht.type === 'task' && ht.completionDate) {
-                 // Hide if it was completed on a day before the selected date
                  return isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate) || isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate)
              }
              return true;
