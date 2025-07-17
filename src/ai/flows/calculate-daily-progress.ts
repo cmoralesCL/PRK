@@ -7,7 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { eachDayOfInterval, format, startOfDay, parseISO, isAfter, isBefore, isEqual, startOfWeek, startOfMonth } from 'date-fns';
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
@@ -183,32 +183,38 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
     const startDate = startOfDay(parseISO(habit.startDate));
     if (isAfter(startDate, selectedDate)) return 0;
-
-    const completedOnSelectedDate = logs.some(log => 
-        log.habitTaskId === habit.id && 
-        log.completion_date && 
-        isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
-    );
     
     switch (habit.frequency) {
         case 'daily':
+            const completedOnSelectedDate = logs.some(log => 
+                log.habitTaskId === habit.id && 
+                log.completion_date && 
+                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
+            );
             return completedOnSelectedDate ? 100 : 0;
         case 'weekly':
-        case 'monthly':
+        case 'monthly': {
             const startOfPeriodFn = (date: Date) => {
                 if (habit.frequency === 'monthly') return startOfMonth(date);
                 return startOfWeek(date, { weekStartsOn: 1 }); // Lunes
             }
             const startOfPeriod = startOfPeriodFn(selectedDate);
-            const completionsInPeriod = logs.some(log => {
+            const completionsInPeriod = logs.filter(log => {
                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                 const logDate = startOfDay(parseISO(log.completion_date));
                 return !isBefore(logDate, startOfPeriod) && !isAfter(logDate, selectedDate);
-            });
-            return completionsInPeriod ? 100 : 0;
-        case 'specific_days':
+            }).length;
+            return completionsInPeriod > 0 ? 100 : 0;
+        }
+        case 'specific_days': {
              if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
-             return completedOnSelectedDate ? 100 : 0;
+             const completedOnDay = logs.some(log => 
+                log.habitTaskId === habit.id && 
+                log.completion_date && 
+                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
+            );
+             return completedOnDay ? 100 : 0;
+        }
         default:
             return 0;
     }
