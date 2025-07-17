@@ -58,7 +58,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
         case 'weekly': {
             const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
             const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-            
+
             const completionInWeek = logs.some(log => {
                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                 const logDate = startOfDay(parseISO(log.completion_date));
@@ -68,7 +68,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
         }
         case 'monthly': {
              const monthStart = startOfMonth(selectedDate);
-             const monthEnd = endOfDay(selectedDate);
+             const monthEnd = endOfDay(selectedDate); // Check until the selected day within the month
              const completionInMonth = logs.some(log => {
                  if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                  const logDate = startOfDay(parseISO(log.completion_date));
@@ -98,18 +98,15 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
     const allHabitTasksWithProgress = allHabitTasks
         .filter(ht => {
-            if (ht.type === 'task' && ht.completionDate) {
-                 const completionDate = startOfDay(parseISO(ht.completionDate));
-                 // Si la tarea se completó antes de la fecha seleccionada, no se incluye en el cálculo para ese día
-                 if(isBefore(completionDate, selectedDate)) return false;
-            }
             const htStartDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
             return !isAfter(htStartDate, selectedDate);
         })
         .map(ht => {
             let progress = 0;
             if (ht.type === 'task') {
-                progress = ht.completionDate ? 100 : 0;
+                // The task contributes 100% if it was completed on or before the selected date.
+                const isCompletedBySelectedDate = ht.completionDate && !isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                progress = isCompletedBySelectedDate ? 100 : 0;
             } else {
                 progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
             }
@@ -117,12 +114,31 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
         });
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
-        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id);
-        
+        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id && ht.type === 'habit');
+        const relevantTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id && ht.type === 'task');
+
+        // Only include tasks in the calculation if their start date is on or before the selected date
+        // and they haven't been completed *before* the selected date.
+        const tasksForCalculation = relevantTasks.filter(task => {
+            const taskStartDate = task.startDate ? startOfDay(parseISO(task.startDate)) : new Date(0);
+            if (isAfter(taskStartDate, selectedDate)) {
+                return false; // Don't include tasks that haven't started yet.
+            }
+            if (task.completionDate) {
+                const completionDate = startOfDay(parseISO(task.completionDate));
+                if (isBefore(completionDate, selectedDate)) {
+                   return false; // Don't include tasks completed on a previous day.
+                }
+            }
+            return true;
+        });
+
+        const allRelevantItems = [...relevantHabitTasks, ...tasksForCalculation];
+
         let progress = 0;
-        if (relevantHabitTasks.length > 0) {
-            const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + ht.progress, 0);
-            progress = totalProgress / relevantHabitTasks.length;
+        if (allRelevantItems.length > 0) {
+            const totalProgress = allRelevantItems.reduce((sum, item) => sum + item.progress, 0);
+            progress = totalProgress / allRelevantItems.length;
         } else {
             progress = 100; // No tasks or habits means 100% compliant
         }
@@ -195,10 +211,10 @@ export async function getDashboardData(selectedDateStr: string) {
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
-                // Show task if it is not completed, OR if it was completed but not before today.
+                // Show task if it's not completed, or if it was completed on the selected date.
                 if (ht.completionDate) {
                     const completionDate = startOfDay(parseISO(ht.completionDate));
-                    // If the task was completed before the selected date, don't show it.
+                    // If the task was completed *before* the selected date, don't show it.
                     if (isBefore(completionDate, selectedDate)) {
                         return false;
                     }
@@ -244,7 +260,7 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date;
         supabase.from('life_prks').select('id, title').eq('archived', false),
         supabase.from('area_prks').select('id, life_prk_id').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date').gte('completion_date', format(dateRange.from, 'yyyy-MM-dd')).lte('completion_date', format(dateRange.to, 'yyyy-MM-dd'))
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
     ]);
 
     if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
