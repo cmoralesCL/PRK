@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk } from "@/lib/types";
+import { getLifePrkProgressData as getLifePrkProgressDataQuery } from "./server/queries";
+
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
   try {
@@ -157,4 +159,8 @@ export async function archiveHabitTask(id: string) {
     const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
     if(error) throw error;
     revalidatePath('/');
+}
+
+export async function getLifePrkProgressData(dateRange?: { from: Date, to: Date }) {
+    return getLifePrkProgressDataQuery(dateRange);
 }
