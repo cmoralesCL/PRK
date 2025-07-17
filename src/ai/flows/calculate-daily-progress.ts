@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { eachDayOfInterval, format, startOfDay, parseISO, isAfter, isBefore, isEqual, startOfWeek, startOfMonth } from 'date-fns';
+import { eachDayOfInterval, format, startOfDay, parseISO, isAfter, isBefore, isEqual, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
 
 const CalculateDailyProgressInputSchema = z.object({
@@ -64,7 +64,7 @@ const calculateDailyProgressFlow = ai.defineFlow(
                 habitTaskId: p.habit_task_id,
                 completion_date: p.completion_date,
             }))
-            .filter(p => p.completion_date && !isAfter(startOfDay(parseISO(p.completion_date)), date));
+            .filter(p => p.completion_date);
 
         const allHabitTasksWithProgress: (HabitTask & { progress: number })[] = allHabitTasksData.map(ht => {
             let progress = 0;
@@ -192,13 +192,27 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
                 isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
             );
             return completedOnSelectedDate ? 100 : 0;
-        case 'weekly':
-        case 'monthly': {
-            const startOfPeriodFn = (date: Date) => {
-                if (habit.frequency === 'monthly') return startOfMonth(date);
-                return startOfWeek(date, { weekStartsOn: 1 }); // Lunes
+        case 'weekly': {
+            const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+            const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 }); // Sunday
+            
+            const completionInWeek = logs.find(log => {
+                if (!log.completion_date || log.habitTaskId !== habit.id) return false;
+                const logDate = startOfDay(parseISO(log.completion_date));
+                return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
+            });
+
+            if (completionInWeek && completionInWeek.completion_date) {
+                const completionDate = startOfDay(parseISO(completionInWeek.completion_date));
+                // Completed if a log exists for the week and selectedDate is on or after the completion date
+                if (!isBefore(selectedDate, completionDate)) {
+                    return 100;
+                }
             }
-            const startOfPeriod = startOfPeriodFn(selectedDate);
+            return 0;
+        }
+        case 'monthly': {
+            const startOfPeriod = startOfMonth(selectedDate);
             const completionsInPeriod = logs.filter(log => {
                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                 const logDate = startOfDay(parseISO(log.completion_date));
