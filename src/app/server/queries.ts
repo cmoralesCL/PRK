@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint } from "@/lib/types";
-import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, eachDayOfInterval, format } from 'date-fns';
+import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, eachDayOfInterval, format, endOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Helper to map snake_case to camelCase
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
@@ -67,10 +68,11 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
         }
         case 'monthly': {
              const monthStart = startOfMonth(selectedDate);
+             const monthEnd = endOfDay(selectedDate);
              const completionInMonth = logs.some(log => {
                  if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                  const logDate = startOfDay(parseISO(log.completion_date));
-                 return !isBefore(logDate, monthStart) && !isAfter(logDate, selectedDate);
+                 return !isBefore(logDate, monthStart) && !isAfter(logDate, monthEnd);
              });
              return completionInMonth ? 100 : 0;
         }
@@ -96,6 +98,11 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
     const allHabitTasksWithProgress = allHabitTasks
         .filter(ht => {
+            if (ht.type === 'task' && ht.completionDate) {
+                 const completionDate = startOfDay(parseISO(ht.completionDate));
+                 // Si la tarea se completó antes de la fecha seleccionada, no se incluye en el cálculo para ese día
+                 if(isBefore(completionDate, selectedDate)) return false;
+            }
             const htStartDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
             return !isAfter(htStartDate, selectedDate);
         })
@@ -117,7 +124,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
             const totalProgress = relevantHabitTasks.reduce((sum, ht) => sum + ht.progress, 0);
             progress = totalProgress / relevantHabitTasks.length;
         } else {
-            progress = 100;
+            progress = 100; // No tasks or habits means 100% compliant
         }
         
         return { ...ap, progress };
@@ -131,7 +138,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
             const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
             progress = totalProgress / relevantAreaPrks.length;
         } else {
-            progress = 100;
+            progress = 100; // No areas means 100% compliant
         }
         
         return { ...lp, progress };
@@ -167,7 +174,7 @@ export async function getDashboardData(selectedDateStr: string) {
     const allLifePrks = lifePrksData.map(mapLifePrkFromDb);
     const allAreaPrks = areaPrksData.map(mapAreaPrkFromDb);
     const allHabitTasks = allHabitTasksData.map(mapHabitTaskFromDb);
-    const mappedProgressLogs: ProgressLog[] = allProgressLogsData.map(p => ({
+    const mappedProgressLogs: ProgressLog[] = (allProgressLogsData || []).map(p => ({
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
@@ -178,7 +185,7 @@ export async function getDashboardData(selectedDateStr: string) {
     
     const completedHabitIdsToday = new Set(
         mappedProgressLogs
-            .filter(p => isEqual(startOfDay(parseISO(p.completion_date)), selectedDate))
+            .filter(p => p.completion_date && isEqual(startOfDay(parseISO(p.completion_date)), selectedDate))
             .map(p => p.habitTaskId)
     );
 
@@ -188,8 +195,15 @@ export async function getDashboardData(selectedDateStr: string) {
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
-                // Show task if it's not completed OR if it was completed on the selected date.
-                return !ht.completionDate || isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                // Show task if it is not completed, OR if it was completed but not before today.
+                if (ht.completionDate) {
+                    const completionDate = startOfDay(parseISO(ht.completionDate));
+                    // If the task was completed before the selected date, don't show it.
+                    if (isBefore(completionDate, selectedDate)) {
+                        return false;
+                    }
+                }
+                return true;
             }
 
             if (ht.frequency === 'specific_days' && ht.frequencyDays) {
@@ -220,7 +234,7 @@ export async function getDashboardData(selectedDateStr: string) {
 
 
 export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date; }): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
-    if (!dateRange) {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
         return { chartData: [], lifePrkNames: {} };
     }
 
@@ -238,9 +252,9 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date;
         return { chartData: [], lifePrkNames: {} };
     }
 
-    const allLifePrks = lifePrksResult.data!.map(mapLifePrkFromDb);
-    const allAreaPrks = areaPrksResult.data!.map(mapAreaPrkFromDb);
-    const allHabitTasks = allHabitTasksResult.data!.map(mapHabitTaskFromDb);
+    const allLifePrks = (lifePrksResult.data || []).map(mapLifePrkFromDb);
+    const allAreaPrks = (areaPrksResult.data || []).map(mapAreaPrkFromDb);
+    const allHabitTasks = (allHabitTasksResult.data || []).map(mapHabitTaskFromDb);
     const mappedProgressLogs: ProgressLog[] = (allProgressLogsResult.data || []).map(p => ({
         id: p.id,
         habitTaskId: p.habit_task_id,
@@ -255,10 +269,13 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date;
     const intervalDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
     const chartData: LifePrkProgressPoint[] = [];
 
+    // Pre-calculate progress for all habits and tasks for the entire range to avoid redundant log searching.
+    const progressCache = new Map<string, number[]>();
+
     for (const day of intervalDays) {
         const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
         const dataPoint: LifePrkProgressPoint = {
-            date: format(day, 'MMM d', {  }),
+            date: format(day, 'MMM d', { locale: es }),
         };
         lifePrksWithProgress.forEach(lp => {
             dataPoint[lp.id] = lp.progress ?? 0;
