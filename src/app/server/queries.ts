@@ -98,7 +98,8 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
     const allHabitTasksWithProgress = allHabitTasks
         .filter(ht => {
-            const htStartDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
+            if (!ht.startDate) return false;
+            const htStartDate = startOfDay(parseISO(ht.startDate));
             return !isAfter(htStartDate, selectedDate);
         })
         .map(ht => {
@@ -115,22 +116,13 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
         const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id && ht.type === 'habit');
-        const relevantTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id && ht.type === 'task');
-
-        // Only include tasks in the calculation if their start date is on or before the selected date
-        // and they haven't been completed *before* the selected date.
-        const tasksForCalculation = relevantTasks.filter(task => {
-            const taskStartDate = task.startDate ? startOfDay(parseISO(task.startDate)) : new Date(0);
-            if (isAfter(taskStartDate, selectedDate)) {
-                return false; // Don't include tasks that haven't started yet.
-            }
-            if (task.completionDate) {
-                const completionDate = startOfDay(parseISO(task.completionDate));
-                if (isBefore(completionDate, selectedDate)) {
-                   return false; // Don't include tasks completed on a previous day.
-                }
-            }
-            return true;
+        
+        // Only include tasks in the calculation if their start date is on or before the selected date.
+        const tasksForCalculation = allHabitTasksWithProgress.filter(task => {
+            if (task.type !== 'task' || task.areaPrkId !== ap.id) return false;
+            if (!task.startDate) return false; // Task must have a start date
+            const taskStartDate = startOfDay(parseISO(task.startDate));
+            return !isAfter(taskStartDate, selectedDate);
         });
 
         const allRelevantItems = [...relevantHabitTasks, ...tasksForCalculation];
@@ -207,7 +199,8 @@ export async function getDashboardData(selectedDateStr: string) {
 
     const habitTasksForDisplay = allHabitTasks
         .filter(ht => {
-            const startDate = ht.startDate ? startOfDay(parseISO(ht.startDate)) : new Date(0);
+            if (!ht.startDate) return false;
+            const startDate = startOfDay(parseISO(ht.startDate));
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
