@@ -77,7 +77,7 @@ export function ProgressChart({ chartData, lifePrkNames, timeRangeDescription }:
               left: 12,
               right: 12,
               top: 12,
-              bottom: 12,
+              bottom: 20, // Increased bottom margin for angled labels
             }}
           >
             <CartesianGrid vertical={false} />
@@ -86,7 +86,9 @@ export function ProgressChart({ chartData, lifePrkNames, timeRangeDescription }:
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 6)}
+              angle={-45}
+              textAnchor="end"
+              height={50} // Adjust height to fit labels
             />
             <YAxis 
                 tickFormatter={(value) => `${value}%`}
