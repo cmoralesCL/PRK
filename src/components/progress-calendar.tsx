@@ -6,7 +6,6 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  getDay,
   isSameMonth,
   addMonths,
   subMonths,
@@ -30,10 +29,11 @@ import { Header } from './header';
 
 interface ProgressCalendarProps {
   initialData: CalendarDataPoint[];
+  initialDate: Date;
 }
 
-export function ProgressCalendar({ initialData }: ProgressCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(initialDate);
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
