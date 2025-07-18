@@ -9,7 +9,7 @@ import { DateRange } from "react-day-picker"
 import { subDays, subMonths, subYears } from "date-fns"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
+export type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
 
 export default function JournalPage() {
   const [chartData, setChartData] = useState<LifePrkProgressPoint[]>([]);
@@ -59,6 +59,7 @@ export default function JournalPage() {
         const { chartData, lifePrkNames } = await getLifePrkProgressData({
           from: dateRange.from!,
           to: dateRange.to!,
+          timeRange: timeRange
         });
         setChartData(chartData);
         setLifePrkNames(lifePrkNames);
@@ -69,7 +70,7 @@ export default function JournalPage() {
       }
     }
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, timeRange]);
 
   return (
     <>

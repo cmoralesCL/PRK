@@ -6,6 +6,7 @@ import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tas
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk } from "@/lib/types";
 import { getLifePrkProgressData as getLifePrkProgressDataQuery, getCalendarData as getCalendarDataQuery } from "./server/queries";
+import type { TimeRangeOption } from "./journal/page";
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -174,8 +175,8 @@ export async function archiveHabitTask(id: string) {
     revalidatePath('/calendar');
 }
 
-export async function getLifePrkProgressData(dateRange?: { from: Date, to: Date }) {
-    return getLifePrkProgressDataQuery(dateRange);
+export async function getLifePrkProgressData(options: { from: Date, to: Date, timeRange: TimeRangeOption }) {
+    return getLifePrkProgressDataQuery(options);
 }
 
 export async function getCalendarData(date: Date) {

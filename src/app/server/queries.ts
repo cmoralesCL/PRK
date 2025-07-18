@@ -2,8 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint } from "@/lib/types";
-import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay } from 'date-fns';
+import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay, eachMonthOfInterval, getMonth, getYear, lastDayOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { TimeRangeOption } from "../journal/page";
 
 // Helper to map snake_case to camelCase
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
@@ -257,10 +258,8 @@ export async function getDashboardData(selectedDateStr: string) {
 }
 
 
-export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date; }): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
-    if (!dateRange || !dateRange.from || !dateRange.to) {
-        return { chartData: [], lifePrkNames: {} };
-    }
+export async function getLifePrkProgressData(options: { from: Date; to: Date; timeRange: TimeRangeOption }): Promise<{ chartData: LifePrkProgressPoint[], lifePrkNames: Record<string, string> }> {
+    const { from, to, timeRange } = options;
 
     const supabase = createClient();
 
@@ -290,18 +289,33 @@ export async function getLifePrkProgressData(dateRange?: { from: Date; to: Date;
         return acc;
     }, {} as Record<string, string>);
 
-    const intervalDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
     const chartData: LifePrkProgressPoint[] = [];
 
-    for (const day of intervalDays) {
-        const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
-        const dataPoint: LifePrkProgressPoint = {
-            date: format(day, 'MMM d', { locale: es }),
-        };
-        lifePrksWithProgress.forEach(lp => {
-            dataPoint[lp.id] = lp.progress ?? 0;
-        });
-        chartData.push(dataPoint);
+    if (timeRange === '1y') {
+        const intervalMonths = eachMonthOfInterval({ start: from, end: to });
+        for (const monthStart of intervalMonths) {
+            const monthEnd = lastDayOfMonth(monthStart);
+            const { lifePrksWithProgress } = await calculateProgressForDate(monthEnd, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
+            const dataPoint: LifePrkProgressPoint = {
+                date: format(monthStart, 'MMM', { locale: es }),
+            };
+            lifePrksWithProgress.forEach(lp => {
+                dataPoint[lp.id] = lp.progress ?? 0;
+            });
+            chartData.push(dataPoint);
+        }
+    } else {
+        const intervalDays = eachDayOfInterval({ start: from, end: to });
+        for (const day of intervalDays) {
+            const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
+            const dataPoint: LifePrkProgressPoint = {
+                date: format(day, 'MMM d', { locale: es }),
+            };
+            lifePrksWithProgress.forEach(lp => {
+                dataPoint[lp.id] = lp.progress ?? 0;
+            });
+            chartData.push(dataPoint);
+        }
     }
     
     return { chartData, lifePrkNames };
