@@ -138,11 +138,11 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                 const isToday = isSameDay(day, new Date());
 
                 return (
-                  <button
+                  <div
                     key={day.toString()}
                     onClick={() => handleDayClick(dayData, day)}
                     className={cn(
-                      "border rounded-lg p-2 h-48 flex flex-col justify-start transition-colors text-left",
+                      "border rounded-lg p-2 h-48 flex flex-col justify-start transition-colors text-left cursor-pointer",
                       isCurrentMonth || view === 'weekly'
                         ? "bg-background hover:bg-muted/50"
                         : "bg-muted/30 text-muted-foreground",
@@ -162,13 +162,14 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                            <HabitTaskListItem 
                             key={task.id} 
                             item={task}
+                            onToggle={(id, completed) => handleDayClick(dayData, day)} // Simplified for now, real toggle is in dialog
                             selectedDate={day}
                             variant="calendar"
                            />
                         ))}
                       </div>
                     </ScrollArea>
-                  </button>
+                  </div>
                 );
               })}
             </div>
