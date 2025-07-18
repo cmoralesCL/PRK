@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
 import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
@@ -24,6 +23,7 @@ import {
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO } from 'date-fns';
+import { Accordion } from '@/components/ui/accordion';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
@@ -234,25 +234,27 @@ export function Dashboard({
                  <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
             </div>
         )}
-        {!isPending && lifePrks.map((lp, index) => (
-          <div key={lp.id}>
-            <LifePrkSection
-              lifePrk={lp}
-              areaPrks={areaPrks.filter(kp => kp.lifePrkId === lp.id)}
-              habitTasks={habitTasks}
-              onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
-              onAddHabitTask={handleOpenAddHabitTaskDialog}
-              onEditHabitTask={handleOpenEditHabitTaskDialog}
-              onToggleHabitTask={handleToggleHabitTask}
-              onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-              onArchive={handleArchiveLifePrk}
-              onArchiveAreaPrk={handleArchiveAreaPrk}
-              onArchiveHabitTask={handleArchiveHabitTask}
-              selectedDate={selectedDate}
-            />
-            {index < lifePrks.length - 1 && <Separator className="my-0" />}
-          </div>
-        ))}
+        {!isPending && (
+          <Accordion type="multiple" className="w-full space-y-4" defaultValue={lifePrks.map(lp => lp.id)}>
+            {lifePrks.map((lp) => (
+              <LifePrkSection
+                key={lp.id}
+                lifePrk={lp}
+                areaPrks={areaPrks.filter(kp => kp.lifePrkId === lp.id)}
+                habitTasks={habitTasks}
+                onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
+                onAddHabitTask={handleOpenAddHabitTaskDialog}
+                onEditHabitTask={handleOpenEditHabitTaskDialog}
+                onToggleHabitTask={handleToggleHabitTask}
+                onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                onArchive={handleArchiveLifePrk}
+                onArchiveAreaPrk={handleArchiveAreaPrk}
+                onArchiveHabitTask={handleArchiveHabitTask}
+                selectedDate={selectedDate}
+              />
+            ))}
+          </Accordion>
+        )}
       </main>
 
       <AddLifePrkDialog isOpen={isAddLifePrkOpen} onOpenChange={setAddLifePrkOpen} onAdd={handleAddLifePrk} />
