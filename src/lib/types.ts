@@ -68,6 +68,6 @@ export interface LifePrkProgressPoint {
 
 // Para la nueva vista de calendario
 export interface CalendarDataPoint {
-  date: Date;
+  date: string; // Changed to string for serialization
   progress: number;
 }

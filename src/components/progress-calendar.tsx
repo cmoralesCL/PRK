@@ -14,6 +14,7 @@ import {
   isSameDay,
   addWeeks,
   subWeeks,
+  parseISO,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
@@ -29,11 +30,11 @@ import { Header } from './header';
 
 interface ProgressCalendarProps {
   initialData: CalendarDataPoint[];
-  initialDate: Date;
+  initialDate: string;
 }
 
 export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(initialDate);
+  const [currentDate, setCurrentDate] = useState(() => parseISO(initialDate));
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
@@ -41,7 +42,8 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
   const fetchNewData = (date: Date) => {
     startTransition(async () => {
       const newData = await getCalendarData(date);
-      setData(newData);
+      const serializableData = newData.map(d => ({ ...d, date: d.date.toISOString() }));
+      setData(serializableData);
     });
   };
 
@@ -73,7 +75,7 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
   }, [currentDate, view]);
 
   const dataMap = useMemo(() => {
-    return new Map(data.map(d => [format(d.date, 'yyyy-MM-dd'), d.progress]));
+    return new Map(data.map(d => [format(parseISO(d.date), 'yyyy-MM-dd'), d.progress]));
   }, [data]);
   
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
