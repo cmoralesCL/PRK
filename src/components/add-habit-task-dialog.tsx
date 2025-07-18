@@ -32,24 +32,21 @@ import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { HabitTask } from '@/lib/types';
+import type { AreaPrk, HabitTask } from '@/lib/types';
 import { useEffect } from 'react';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
+  areaPrkId: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
   startDate: z.date().optional(),
+  dueDate: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
 }).refine(data => {
-    if (data.type === 'habit' && !data.startDate) {
-        return false;
-    }
-    return true;
-}, { message: "La fecha de inicio es requerida para los hábitos", path: ['startDate'] })
-.refine(data => {
     if (data.type === 'habit' && !data.frequency) {
         return false;
     }
@@ -68,8 +65,11 @@ export type HabitTaskFormValues = z.infer<typeof formSchema>;
 interface HabitTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: HabitTaskFormValues) => void;
+  onSave: (values: HabitTaskFormValues, areaPrkId: string) => void;
   habitTask: HabitTask | null;
+  defaultAreaPrkId?: string;
+  defaultDate?: Date;
+  areaPrks: AreaPrk[];
 }
 
 const daysOfWeek = [
@@ -82,14 +82,17 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: HabitTaskDialogProps) {
+export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
   const isEditing = !!habitTask;
+
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       type: 'task',
-      frequencyDays: []
+      frequencyDays: [],
+      startDate: defaultDate || new Date(),
+      areaPrkId: defaultAreaPrkId,
     },
   });
 
@@ -99,7 +102,9 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
         form.reset({
           title: habitTask.title,
           type: habitTask.type,
-          startDate: habitTask.startDate ? new Date(`${habitTask.startDate}T00:00:00`) : undefined,
+          areaPrkId: habitTask.areaPrkId,
+          startDate: habitTask.startDate ? parseISO(habitTask.startDate) : (defaultDate || new Date()),
+          dueDate: habitTask.dueDate ? parseISO(habitTask.dueDate) : undefined,
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
         });
@@ -108,16 +113,18 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
           title: '',
           type: 'task',
           frequencyDays: [],
-          startDate: undefined,
+          startDate: defaultDate || new Date(),
+          dueDate: undefined,
           frequency: undefined,
+          areaPrkId: defaultAreaPrkId
         });
       }
     }
-  }, [isOpen, isEditing, habitTask, form]);
+  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate]);
 
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    onSave(values);
+    onSave(values, values.areaPrkId);
     form.reset();
     onOpenChange(false);
   };
@@ -130,10 +137,10 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            {isEditing ? 'Editar Hábito o Tarea' : 'Crear un Hábito o Tarea'}
+            {isEditing ? 'Editar Hito o Hábito' : 'Crear un Hito o Hábito'}
           </DialogTitle>
           <DialogDescription>
-            Esta es una acción concreta que apoya tu PRK de Área.
+            Un hito es una acción única y significativa que impulsa tu PRK de Área, como 'Lanzar mi sitio web' o 'Correr mi primera maratón'.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -165,7 +172,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="task">Tarea (Hito único)</SelectItem>
+                      <SelectItem value="task">Hito (Acción única de impacto)</SelectItem>
                       <SelectItem value="habit">Hábito (Acción recurrente)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -174,14 +181,75 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
               )}
             />
 
-            {type === 'habit' && (
-                <>
-                 <FormField
+             <FormField
+              control={form.control}
+              name="areaPrkId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PRK de Área Asociado</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isEditing}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un PRK de Área" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {areaPrks.map(ap => (
+                                <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Fecha de Inicio</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                            ) : (
+                                <span>Elige una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            {type === 'task' && (
+                <FormField
                     control={form.control}
-                    name="startDate"
+                    name="dueDate"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de Inicio</FormLabel>
+                        <FormLabel>Fecha Límite (Opcional)</FormLabel>
                         <Popover>
                             <PopoverTrigger asChild>
                             <FormControl>
@@ -193,7 +261,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                                 )}
                                 >
                                 {field.value ? (
-                                    format(field.value, "PPP")
+                                    format(field.value, "PPP", { locale: es })
                                 ) : (
                                     <span>Elige una fecha</span>
                                 )}
@@ -206,9 +274,6 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                                }
                                 initialFocus
                             />
                             </PopoverContent>
@@ -216,7 +281,11 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                         <FormMessage />
                         </FormItem>
                     )}
-                    />
+                />
+            )}
+
+            {type === 'habit' && (
+                <>
                   <FormField
                     control={form.control}
                     name="frequency"
