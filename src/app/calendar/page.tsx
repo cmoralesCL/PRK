@@ -1,6 +1,6 @@
 
 import { ProgressCalendar } from '@/components/progress-calendar';
-import { getCalendarData } from '@/app/server/actions';
+import { getCalendarData } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 
