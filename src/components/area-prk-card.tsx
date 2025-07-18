@@ -4,7 +4,7 @@ import { Gauge, Plus, Sparkles, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { HabitTaskItem } from './habit-task-item';
+import { HabitTaskListItem } from './habit-task-list-item';
 import type { AreaPrk, HabitTask } from '@/lib/types';
 import {
   DropdownMenu,
@@ -81,7 +81,14 @@ export function AreaPrkCard({
         {habitTasks.length > 0 ? (
           <div className="space-y-1">
             {habitTasks.map((item) => (
-              <HabitTaskItem key={item.id} item={item} onToggle={onToggleHabitTask} onArchive={onArchiveHabitTask} onEdit={onEditHabitTask} selectedDate={selectedDate} />
+              <HabitTaskListItem 
+                key={item.id} 
+                item={item} 
+                onToggle={onToggleHabitTask} 
+                onArchive={onArchiveHabitTask} 
+                onEdit={onEditHabitTask} 
+                selectedDate={selectedDate} 
+              />
             ))}
           </div>
         ) : (

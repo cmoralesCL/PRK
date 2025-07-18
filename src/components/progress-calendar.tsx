@@ -17,25 +17,18 @@ import {
   parseISO,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Loader2, CheckSquare, Repeat } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
-import type { CalendarDataPoint, HabitTask } from '@/lib/types';
-import { getCalendarData, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+import type { CalendarDataPoint } from '@/lib/types';
+import { getCalendarData } from '@/app/actions';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Header } from './header';
-import { useToast } from '@/hooks/use-toast';
-
+import { DayDetailDialog } from './day-detail-dialog';
+import { HabitTaskListItem } from './habit-task-list-item';
 
 interface ProgressCalendarProps {
   initialData: CalendarDataPoint[];
@@ -47,7 +40,9 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+
+  const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
 
   const fetchNewData = (date: Date) => {
     startTransition(async () => {
@@ -56,22 +51,11 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
     });
   };
 
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, type: 'habit' | 'task') => {
-    const completionDate = date.toISOString().split('T')[0];
-    startTransition(async () => {
-      try {
-        if (completed) {
-          await logHabitTaskCompletion(id, type, completionDate);
-        } else {
-          await removeHabitTaskCompletion(id, type, completionDate);
-        }
-        fetchNewData(currentDate); // Refetch data to update the view
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
-      }
-    });
-  }
-
+  const handleDayClick = (dayData: CalendarDataPoint | undefined, day: Date) => {
+    setSelectedDayData(dayData ?? { date: day.toISOString(), progress: 0, tasks: [] });
+    setDetailDialogOpen(true);
+  };
+  
   const handleDateChange = (newDate: Date) => {
     setCurrentDate(newDate);
     fetchNewData(newDate);
@@ -100,7 +84,7 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
   }, [currentDate, view]);
 
   const dataMap = useMemo(() => {
-    return new Map(data.map(d => [format(parseISO(d.date), 'yyyy-MM-dd'), { progress: d.progress, tasks: d.tasks }]));
+    return new Map(data.map(d => [format(parseISO(d.date), 'yyyy-MM-dd'), d]));
   }, [data]);
   
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -114,7 +98,6 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
         hideDatePicker
         hideAddButton
       />
-      <TooltipProvider>
         <Card className="shadow-lg mt-8">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -155,10 +138,11 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                 const isToday = isSameDay(day, new Date());
 
                 return (
-                  <div
+                  <button
                     key={day.toString()}
+                    onClick={() => handleDayClick(dayData, day)}
                     className={cn(
-                      "border rounded-lg p-2 h-48 flex flex-col justify-start transition-colors",
+                      "border rounded-lg p-2 h-48 flex flex-col justify-start transition-colors text-left",
                       isCurrentMonth || view === 'weekly'
                         ? "bg-background hover:bg-muted/50"
                         : "bg-muted/30 text-muted-foreground",
@@ -174,37 +158,30 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                     </div>
                     <ScrollArea className="flex-grow mt-2 -mx-2 px-2">
                       <div className="space-y-1.5">
-                        {tasks.map(task => {
-                           const Icon = task.type === 'habit' ? Repeat : CheckSquare;
-                           return(
-                            <Tooltip key={task.id} delayDuration={300}>
-                               <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
-                                      <Checkbox
-                                        id={`cal-${task.id}-${format(day, 'yyyy-MM-dd')}`}
-                                        checked={task.completedToday}
-                                        onCheckedChange={(checked) => handleToggleHabitTask(task.id, !!checked, day, task.type)}
-                                        className="h-3.5 w-3.5"
-                                      />
-                                      <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                      <p className="text-xs text-secondary-foreground truncate flex-grow">{task.title}</p>
-                                  </div>
-                                </TooltipTrigger>
-                               <TooltipContent>
-                                <p>{task.title}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                           )
-                        })}
+                        {tasks.map(task => (
+                           <HabitTaskListItem 
+                            key={task.id} 
+                            item={task}
+                            selectedDate={day}
+                            variant="calendar"
+                           />
+                        ))}
                       </div>
                     </ScrollArea>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           </CardContent>
         </Card>
-      </TooltipProvider>
+        {selectedDayData && (
+             <DayDetailDialog 
+                isOpen={isDetailDialogOpen}
+                onOpenChange={setDetailDialogOpen}
+                dayData={selectedDayData}
+                onDataChange={() => fetchNewData(currentDate)}
+             />
+        )}
     </>
   );
 }
