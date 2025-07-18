@@ -107,11 +107,12 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
         return false;
     }
     
+    // Si la tarea tiene fecha de vencimiento y ya pasó, solo está activa si se completó en el día seleccionado.
     if (task.dueDate) {
         const dueDate = startOfDay(parseISO(task.dueDate));
-        if (isAfter(selectedDate, dueDate)) {
-            return !!task.completionDate && isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
-        }
+         if (isBefore(selectedDate, startDate) || isAfter(selectedDate, dueDate)) {
+             return false;
+         }
     }
     
     return true;
@@ -122,30 +123,52 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
     const habitTaskIdsForDay = new Set(habitTasksForDay.map(ht => ht.id));
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
-        const relevantHabitsAndTasks = allHabitTasks.filter(ht => 
-            ht.areaPrkId === ap.id && habitTaskIdsForDay.has(ht.id)
-        );
+        const relevantHabitsAndTasks = allHabitTasks.filter(ht => {
+            if (ht.areaPrkId !== ap.id) return false;
+            
+            if (ht.type === 'task') {
+                return isTaskActiveOnDate(ht, selectedDate);
+            }
 
-        let progress; // Undefined by default
-        if (relevantHabitsAndTasks.length > 0) {
-            const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
-                if (item.type === 'task') {
-                    const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
-                    return sum + (isCompleted ? 100 : 0);
+            // Para hábitos, comprobamos si el día es un día activo para el hábito.
+            if (!ht.startDate || isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)) return false;
+
+            switch(ht.frequency) {
+                case 'daily': return true;
+                case 'weekly': return true;
+                case 'monthly': return true;
+                case 'specific_days': {
+                     if (!ht.frequencyDays || ht.frequencyDays.length === 0) return false;
+                     const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+                     const selectedDayOfWeek = getDay(selectedDate);
+                     const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
+                     return requiredDays.includes(selectedDayOfWeek);
                 }
-                return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
-            }, 0);
-            progress = totalProgress / relevantHabitsAndTasks.length;
-        } else {
-            progress = NaN;
+                default: return false;
+            }
+        });
+
+        if (relevantHabitsAndTasks.length === 0) {
+            return { ...ap, progress: null }; // No hay tareas o hábitos medibles para este día.
         }
+
+        const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
+            if (item.type === 'task') {
+                const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
+                return sum + (isCompleted ? 100 : 0);
+            }
+            // Solo los habitos que están en `habitTasksForDay` (es decir, activos) se usan para el progreso.
+            return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
+        }, 0);
+        
+        const progress = totalProgress / relevantHabitsAndTasks.length;
         
         return { ...ap, progress };
     });
 
     const lifePrksWithProgress = allLifePrks.map(lp => {
         const relevantAreaPrks = areaPrksWithProgress.filter(ap => 
-            ap.lifePrkId === lp.id && !isNaN(ap.progress ?? NaN)
+            ap.lifePrkId === lp.id && ap.progress !== null
         );
         
         let progress = 0;
@@ -162,7 +185,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
         progress: calculateHabitProgress(ht, mappedProgressLogs, selectedDate)
     }))
 
-    return { lifePrksWithProgress, areaPrksWithProgress: areaPrksWithProgress.map(ap => ({...ap, progress: isNaN(ap.progress ?? NaN) ? 100 : ap.progress})), allHabitTasksWithProgress };
+    return { lifePrksWithProgress, areaPrksWithProgress: areaPrksWithProgress.map(ap => ({...ap, progress: ap.progress})), allHabitTasksWithProgress };
 }
 
 

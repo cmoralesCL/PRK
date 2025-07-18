@@ -17,7 +17,7 @@ export interface AreaPrk {
   unit: string;
   created_at?: string;
   archived: boolean;
-  progress?: number; // Añadido para el nuevo cálculo
+  progress?: number | null; // Añadido para el nuevo cálculo, puede ser null
 }
 
 export interface HabitTask {
