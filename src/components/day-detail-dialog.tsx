@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Plus } from 'lucide-react';
 import {
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import type { CalendarDataPoint } from '@/lib/types';
+import type { AreaPrk, CalendarDataPoint } from '@/lib/types';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, addHabitTask } from '@/app/actions';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
@@ -26,13 +26,14 @@ interface DayDetailDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   dayData: CalendarDataPoint;
   onDataChange: () => void;
+  areaPrks: AreaPrk[];
 }
 
-export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }: DayDetailDialogProps) {
+export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, areaPrks }: DayDetailDialogProps) {
   const [currentDayData, setCurrentDayData] = useState(dayData);
   const [isToggling, startToggleTransition] = useTransition();
   const { toast } = useToast();
-  const selectedDate = useMemo(() => new Date(currentDayData.date), [currentDayData.date]);
+  const selectedDate = useMemo(() => new Date(dayData.date), [dayData.date]);
   
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
 
@@ -158,6 +159,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }:
         }}
         habitTask={null}
         defaultDate={selectedDate}
+        areaPrks={areaPrks}
       />
     </>
   );

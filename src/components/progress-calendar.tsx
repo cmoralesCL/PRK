@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import {
   format,
   startOfMonth,
@@ -23,12 +23,13 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { CalendarDataPoint } from '@/lib/types';
+import type { AreaPrk, CalendarDataPoint } from '@/lib/types';
 import { getCalendarData } from '@/app/actions';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Header } from './header';
 import { DayDetailDialog } from './day-detail-dialog';
 import { HabitTaskListItem } from './habit-task-list-item';
+import { createClient } from '@/lib/supabase/client';
 
 interface ProgressCalendarProps {
   initialData: CalendarDataPoint[];
@@ -43,6 +44,20 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
+  const [areaPrks, setAreaPrks] = useState<AreaPrk[]>([]);
+
+  useEffect(() => {
+    const fetchAreaPrks = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('area_prks').select('*').eq('archived', false);
+      if (error) {
+        console.error("Error fetching Area PRKs in calendar:", error);
+      } else {
+        setAreaPrks(data || []);
+      }
+    };
+    fetchAreaPrks();
+  }, []);
 
   const fetchNewData = (date: Date) => {
     startTransition(async () => {
@@ -162,7 +177,10 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                            <HabitTaskListItem 
                             key={task.id} 
                             item={task}
-                            onToggle={(id, completed) => handleDayClick(dayData, day)} // Simplified for now, real toggle is in dialog
+                            onToggle={(id, completed) => {
+                                // Refresh data on toggle to ensure calendar view is up-to-date
+                                fetchNewData(currentDate);
+                            }}
                             selectedDate={day}
                             variant="calendar"
                            />
@@ -181,6 +199,7 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
                 onOpenChange={setDetailDialogOpen}
                 dayData={selectedDayData}
                 onDataChange={() => fetchNewData(currentDate)}
+                areaPrks={areaPrks}
              />
         )}
     </>

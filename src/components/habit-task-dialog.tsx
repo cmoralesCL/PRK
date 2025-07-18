@@ -36,8 +36,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
@@ -70,6 +69,7 @@ interface HabitTaskDialogProps {
   habitTask: HabitTask | null;
   defaultAreaPrkId?: string;
   defaultDate?: Date;
+  areaPrks: AreaPrk[];
 }
 
 const daysOfWeek = [
@@ -82,9 +82,8 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate }: HabitTaskDialogProps) {
+export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
   const isEditing = !!habitTask;
-  const [allAreaPrks, setAllAreaPrks] = useState<AreaPrk[]>([]);
 
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
@@ -96,21 +95,6 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       areaPrkId: defaultAreaPrkId,
     },
   });
-
-  useEffect(() => {
-    async function fetchAreaPrks() {
-        const supabase = createClient();
-        const { data, error } = await supabase.from('area_prks').select('*').eq('archived', false);
-        if (error) {
-            console.error("Error fetching area prks", error);
-            return;
-        }
-        setAllAreaPrks(data as AreaPrk[]);
-    }
-    if(isOpen) {
-        fetchAreaPrks();
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -210,7 +194,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {allAreaPrks.map(ap => (
+                            {areaPrks.map(ap => (
                                 <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>
                             ))}
                         </SelectContent>

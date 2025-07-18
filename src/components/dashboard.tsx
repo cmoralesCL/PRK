@@ -265,6 +265,7 @@ export function Dashboard({
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
         defaultAreaPrkId={activeAreaPrkId || undefined}
+        areaPrks={areaPrks}
        />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 
