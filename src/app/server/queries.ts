@@ -228,6 +228,14 @@ export async function getDashboardData(selectedDateStr: string) {
             let completedToday = false;
             if (ht.type === 'task') {
                 completedToday = !!ht.completionDate && isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
+            } else if (ht.frequency === 'weekly') {
+                const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+                completedToday = mappedProgressLogs.some(log => {
+                    if (!log.completion_date || log.habitTaskId !== ht.id) return false;
+                    const logDate = startOfDay(parseISO(log.completion_date));
+                    return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
+                });
             } else {
                 completedToday = completedHabitIdsToday.has(ht.id);
             }
