@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
 import { useEffect, useState } from 'react';
