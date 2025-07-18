@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import type { AreaPrk, HabitTask, LifePrk } from "@/lib/types";
-import { getLifePrkProgressData as getLifePrkProgressDataQuery } from "./server/queries";
+import { getLifePrkProgressData as getLifePrkProgressDataQuery, getCalendarData as getCalendarDataQuery } from "./server/queries";
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -27,6 +27,8 @@ export async function addLifePrk(values: { title: string; description?: string }
 
     if(error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
+    revalidatePath('/journal');
     return data as LifePrk;
 }
 
@@ -36,7 +38,7 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
-        target_value: 100, // No se usa para el cálculo pero se mantiene por estructura
+        target_value: 100,
         current_value: 0
      }]).select().single();
 
@@ -45,6 +47,7 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
         throw error;
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
     const typedData: AreaPrk = {
       id: data.id,
       lifePrkId: data.life_prk_id,
@@ -73,6 +76,7 @@ export async function addHabitTask(values: Partial<HabitTask>) {
 
     if(error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
     return data as HabitTask;
 }
 
@@ -94,6 +98,7 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
   
     if (error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
     return data as HabitTask;
 }
 
@@ -114,6 +119,8 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         if (error) throw error;
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
+    revalidatePath('/journal');
 }
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
@@ -138,6 +145,8 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
     }
     
     revalidatePath('/');
+    revalidatePath('/calendar');
+    revalidatePath('/journal');
 }
 
 export async function archiveLifePrk(id: string) {
@@ -145,6 +154,8 @@ export async function archiveLifePrk(id: string) {
     const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
     if(error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
+    revalidatePath('/journal');
 }
 
 export async function archiveAreaPrk(id: string) {
@@ -152,6 +163,7 @@ export async function archiveAreaPrk(id: string) {
     const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
     if(error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function archiveHabitTask(id: string) {
@@ -159,8 +171,13 @@ export async function archiveHabitTask(id: string) {
     const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
     if(error) throw error;
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function getLifePrkProgressData(dateRange?: { from: Date, to: Date }) {
     return getLifePrkProgressDataQuery(dateRange);
+}
+
+export async function getCalendarData(date: Date) {
+    return getCalendarDataQuery(date);
 }

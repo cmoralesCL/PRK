@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, BookOpen } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, BookOpen, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicke
                 </h1>
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {!hideDatePicker && (
                  <Popover>
                  <PopoverTrigger asChild>
@@ -64,23 +64,19 @@ export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicke
                </Popover>
             )}
 
-            {pathname === '/' ? (
-                <Link href="/journal">
-                    <Button variant="outline" className="shadow-md">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        Diario
-                    </Button>
-                </Link>
-            ) : (
-                <Link href="/">
-                    <Button variant="outline" className="shadow-md">
-                        <Compass className="mr-2 h-4 w-4" />
-                        Dashboard
-                    </Button>
-                </Link>
-            )}
+             <Link href="/calendar">
+                <Button variant={pathname === '/calendar' ? 'secondary' : 'outline'} className="shadow-md">
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    Calendario
+                </Button>
+            </Link>
+             <Link href="/journal">
+                <Button variant={pathname === '/journal' ? 'secondary' : 'outline'} className="shadow-md">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Diario
+                </Button>
+            </Link>
            
-
             {!hideAddButton && (
                  <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
                     <Plus className="mr-2 h-4 w-4" />

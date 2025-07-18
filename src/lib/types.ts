@@ -65,3 +65,9 @@ export interface LifePrkProgressPoint {
   date: string;
   [lifePrkId: string]: number | string; // Allows 'date' and dynamic keys for each Life PRK
 }
+
+// Para la nueva vista de calendario
+export interface CalendarDataPoint {
+  date: Date;
+  progress: number;
+}
