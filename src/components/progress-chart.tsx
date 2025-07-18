@@ -21,6 +21,7 @@ import type { LifePrkProgressPoint } from '@/lib/types';
 interface ProgressChartProps {
     chartData: LifePrkProgressPoint[];
     lifePrkNames: Record<string, string>;
+    timeRangeDescription: string;
 }
 
 // Generate an array of HSL colors for the chart
@@ -35,7 +36,7 @@ const generateHslColors = (count: number): string[] => {
 };
 
 
-export function ProgressChart({ chartData, lifePrkNames }: ProgressChartProps) {
+export function ProgressChart({ chartData, lifePrkNames, timeRangeDescription }: ProgressChartProps) {
   const lifePrkIds = Object.keys(lifePrkNames);
   const colors = generateHslColors(lifePrkIds.length);
   
@@ -65,7 +66,7 @@ export function ProgressChart({ chartData, lifePrkNames }: ProgressChartProps) {
     <Card className="bg-card/70 shadow-md">
       <CardHeader>
         <CardTitle>Progreso de PRKs de Vida</CardTitle>
-        <CardDescription>Últimos 30 días</CardDescription>
+        <CardDescription>{timeRangeDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-96 w-full">
@@ -124,4 +125,3 @@ export function ProgressChart({ chartData, lifePrkNames }: ProgressChartProps) {
     </Card>
   );
 }
-

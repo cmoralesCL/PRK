@@ -6,35 +6,60 @@ import { Header } from '@/components/header';
 import { useEffect, useState } from 'react';
 import type { LifePrkProgressPoint } from '@/lib/types';
 import { DateRange } from "react-day-picker"
-import { subDays } from "date-fns"
-import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { subDays, subMonths, subYears } from "date-fns"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
 
 export default function JournalPage() {
   const [chartData, setChartData] = useState<LifePrkProgressPoint[]>([]);
   const [lifePrkNames, setLifePrkNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>('30d');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [timeRangeDescription, setTimeRangeDescription] = useState('Últimos 30 días');
 
   useEffect(() => {
-    // Set initial date range on the client to avoid hydration mismatch
-    setDateRange({
-      from: subDays(new Date(), 29),
-      to: new Date(),
-    });
-  }, []);
+    let from: Date;
+    const to = new Date();
+    let description = '';
+
+    switch (timeRange) {
+      case '7d':
+        from = subDays(to, 6);
+        description = 'Últimos 7 días';
+        break;
+      case '3m':
+        from = subMonths(to, 3);
+        description = 'Últimos 3 meses';
+        break;
+      case '1y':
+        from = subYears(to, 1);
+        description = 'Último año';
+        break;
+      case '30d':
+      default:
+        from = subDays(to, 29);
+        description = 'Últimos 30 días';
+        break;
+    }
+    setDateRange({ from, to });
+    setTimeRangeDescription(description);
+  }, [timeRange]);
 
   useEffect(() => {
     // Don't fetch data until the date range is set
-    if (!dateRange) {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
       return;
     }
 
     async function fetchData() {
       setLoading(true);
       try {
-        const { chartData, lifePrkNames } = await getLifePrkProgressData(
-          dateRange && dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined
-        );
+        const { chartData, lifePrkNames } = await getLifePrkProgressData({
+          from: dateRange.from!,
+          to: dateRange.to!,
+        });
         setChartData(chartData);
         setLifePrkNames(lifePrkNames);
       } catch (error) {
@@ -64,14 +89,21 @@ export default function JournalPage() {
                 Visualización del progreso de tus PRKs de Vida.
               </p>
             </div>
-            <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+            <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRangeOption)}>
+                <TabsList>
+                    <TabsTrigger value="7d">7 Días</TabsTrigger>
+                    <TabsTrigger value="30d">30 Días</TabsTrigger>
+                    <TabsTrigger value="3m">3 Meses</TabsTrigger>
+                    <TabsTrigger value="1y">1 Año</TabsTrigger>
+                </TabsList>
+            </Tabs>
           </div>
           {loading ? (
             <div className="flex items-center justify-center rounded-lg border bg-card text-card-foreground shadow-sm h-96 w-full">
               <h2 className="text-2xl font-headline font-semibold animate-pulse">Cargando gráfico...</h2>
             </div>
           ) : (
-             <ProgressChart chartData={chartData} lifePrkNames={lifePrkNames} />
+             <ProgressChart chartData={chartData} lifePrkNames={lifePrkNames} timeRangeDescription={timeRangeDescription} />
           )}
         </div>
       </main>
