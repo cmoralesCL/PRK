@@ -84,7 +84,9 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
              const selectedDayOfWeek = getDay(selectedDate); // Sunday is 0, Monday is 1...
              const requiredDays = habit.frequencyDays.map(day => dayOfWeekMap[day]);
              if (!requiredDays.includes(selectedDayOfWeek)) {
-                return 100; // Not a required day, so it doesn't hurt progress
+                // If the habit hasn't started yet, it shouldn't count as 100.
+                const habitStartDate = startOfDay(parseISO(habit.startDate!));
+                return isAfter(habitStartDate, selectedDate) ? 0 : 100;
              }
              const completedOnDay = logs.some(log => 
                 log.habitTaskId === habit.id && 
@@ -100,33 +102,34 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
 
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
     const allHabitTasksWithProgress = allHabitTasks
-        .filter(ht => {
-            if (!ht.startDate) return false;
-            const htStartDate = startOfDay(parseISO(ht.startDate));
-            return !isAfter(htStartDate, selectedDate);
-        })
         .map(ht => {
             let progress = 0;
-            if (ht.type === 'task') {
-                const isCompletedBySelectedDate = ht.completionDate && !isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate);
-                progress = isCompletedBySelectedDate ? 100 : 0;
-            } else {
-                progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
+            // Only calculate progress for tasks that have started
+            if (ht.startDate && !isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)) {
+                 if (ht.type === 'task') {
+                    const isCompletedBySelectedDate = ht.completionDate && !isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                    progress = isCompletedBySelectedDate ? 100 : 0;
+                } else {
+                    progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
+                }
             }
             return { ...ht, progress };
         });
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
-        const relevantHabitTasks = allHabitTasksWithProgress.filter(ht => ht.areaPrkId === ap.id && ht.type === 'habit');
+        const relevantHabits = allHabitTasksWithProgress.filter(ht => 
+            ht.areaPrkId === ap.id && 
+            ht.type === 'habit' && 
+            ht.startDate && !isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)
+        );
         
-        const tasksForCalculation = allHabitTasksWithProgress.filter(task => {
-            if (task.type !== 'task' || task.areaPrkId !== ap.id) return false;
-            if (!task.startDate) return false;
-            const taskStartDate = startOfDay(parseISO(task.startDate));
-            return !isAfter(taskStartDate, selectedDate);
-        });
+        const relevantTasks = allHabitTasksWithProgress.filter(task => 
+            task.type === 'task' && 
+            task.areaPrkId === ap.id &&
+            task.startDate && !isAfter(startOfDay(parseISO(task.startDate)), selectedDate)
+        );
 
-        const allRelevantItems = [...relevantHabitTasks, ...tasksForCalculation];
+        const allRelevantItems = [...relevantHabits, ...relevantTasks];
 
         let progress = 0;
         if (allRelevantItems.length > 0) {
