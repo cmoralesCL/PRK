@@ -29,14 +29,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Header } from './header';
 import { DayDetailDialog } from './day-detail-dialog';
 import { HabitTaskListItem } from './habit-task-list-item';
-import { createClient } from '@/lib/supabase/client';
 
 interface ProgressCalendarProps {
   initialData: CalendarDataPoint[];
   initialDate: string;
+  initialAreaPrks: AreaPrk[];
 }
 
-export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarProps) {
+export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: ProgressCalendarProps) {
   const [currentDate, setCurrentDate] = useState(() => parseISO(initialDate));
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
@@ -44,20 +44,7 @@ export function ProgressCalendar({ initialData, initialDate }: ProgressCalendarP
 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
-  const [areaPrks, setAreaPrks] = useState<AreaPrk[]>([]);
-
-  useEffect(() => {
-    const fetchAreaPrks = async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase.from('area_prks').select('*').eq('archived', false);
-      if (error) {
-        console.error("Error fetching Area PRKs in calendar:", error);
-      } else {
-        setAreaPrks(data || []);
-      }
-    };
-    fetchAreaPrks();
-  }, []);
+  const [areaPrks, setAreaPrks] = useState<AreaPrk[]>(initialAreaPrks);
 
   const fetchNewData = (date: Date) => {
     startTransition(async () => {
