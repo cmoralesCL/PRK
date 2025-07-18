@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint } from "@/lib/types";
-import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, eachDayOfInterval, format, endOfDay } from 'date-fns';
+import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Helper to map snake_case to camelCase
@@ -68,7 +68,7 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
         }
         case 'monthly': {
              const monthStart = startOfMonth(selectedDate);
-             const monthEnd = endOfDay(selectedDate); // Check until the selected day within the month
+             const monthEnd = endOfMonth(selectedDate); 
              const completionInMonth = logs.some(log => {
                  if (!log.completion_date || log.habitTaskId !== habit.id) return false;
                  const logDate = startOfDay(parseISO(log.completion_date));
@@ -204,10 +204,10 @@ export async function getDashboardData(selectedDateStr: string) {
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
-                // Show task if it's not completed, or if it was completed on the selected date.
+                // Show task if it's not completed, or if it was completed on or before the selected date.
+                // Hide it if it was completed *before* the selected date.
                 if (ht.completionDate) {
                     const completionDate = startOfDay(parseISO(ht.completionDate));
-                    // If the task was completed *before* the selected date, don't show it.
                     if (isBefore(completionDate, selectedDate)) {
                         return false;
                     }
@@ -235,6 +235,14 @@ export async function getDashboardData(selectedDateStr: string) {
                     if (!log.completion_date || log.habitTaskId !== ht.id) return false;
                     const logDate = startOfDay(parseISO(log.completion_date));
                     return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
+                });
+            } else if (ht.frequency === 'monthly') {
+                const monthStart = startOfMonth(selectedDate);
+                const monthEnd = endOfMonth(selectedDate);
+                completedToday = mappedProgressLogs.some(log => {
+                    if (!log.completion_date || log.habitTaskId !== ht.id) return false;
+                    const logDate = startOfDay(parseISO(log.completion_date));
+                    return !isBefore(logDate, monthStart) && !isAfter(logDate, monthEnd);
                 });
             } else {
                 completedToday = completedHabitIdsToday.has(ht.id);
