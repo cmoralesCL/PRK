@@ -84,8 +84,6 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
              const selectedDayOfWeek = getDay(selectedDate); // Sunday is 0, Monday is 1...
              const requiredDays = habit.frequencyDays.map(day => dayOfWeekMap[day]);
              if (!requiredDays.includes(selectedDayOfWeek)) {
-                // If today is not a required day for the habit, it doesn't penalize progress.
-                // It's considered 100% compliant for the day unless it hasn't started yet.
                 const habitStartDate = startOfDay(parseISO(habit.startDate!));
                 return isAfter(habitStartDate, selectedDate) ? 0 : 100;
              }
@@ -106,26 +104,17 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
 
     const startDate = startOfDay(parseISO(task.startDate));
     if (isAfter(startDate, selectedDate)) {
-        return false; // Task has not started yet
+        return false;
     }
     
-    // An open task is always active from its start date until its due date
     if (task.dueDate) {
         const dueDate = startOfDay(parseISO(task.dueDate));
-        if (isBefore(selectedDate, startDate) || isAfter(selectedDate, dueDate)) {
-            // if it's completed, it's only active on the day it was completed
-            if (task.completionDate) {
-                 return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
-            }
-            return false;
+        if (isAfter(selectedDate, dueDate)) {
+            return !!task.completionDate && isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
         }
     }
     
-    if (task.completionDate) {
-        return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
-    }
-    
-    return true; // Active if started and not yet completed
+    return true;
 }
 
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
@@ -137,20 +126,17 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
             ht.areaPrkId === ap.id && habitTaskIdsForDay.has(ht.id)
         );
 
-        let progress = 0;
+        let progress; // Undefined by default
         if (relevantHabitsAndTasks.length > 0) {
             const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
                 if (item.type === 'task') {
                     const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
                     return sum + (isCompleted ? 100 : 0);
                 }
-                // For habits, we use the specific progress for that day
                 return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
             }, 0);
             progress = totalProgress / relevantHabitsAndTasks.length;
         } else {
-            // If an Area PRK has no items for the day, its progress is considered neutral (e.g., NaN)
-            // so it can be filtered out later.
             progress = NaN;
         }
         
@@ -166,9 +152,6 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
         if (relevantAreaPrks.length > 0) {
             const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
             progress = totalProgress / relevantAreaPrks.length;
-        } else {
-            // If a Life PRK has no Area PRKs with tasks for the day, its progress is 0.
-            progress = 0;
         }
         
         return { ...lp, progress };
@@ -194,7 +177,6 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
                 return isTaskActiveOnDate(ht, selectedDate);
             }
 
-            // For habits
             if (ht.frequency === 'specific_days' && ht.frequencyDays) {
                 const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
                 const selectedDayOfWeek = getDay(selectedDate);
@@ -202,11 +184,9 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
                 return requiredDays.includes(selectedDayOfWeek);
             }
             if (ht.frequency === 'weekly') {
-                // weekly habit is active every day of the week
                 return true;
             }
             if(ht.frequency === 'monthly') {
-                // monthly habit is active every day of the month
                 return true;
             }
             if(ht.frequency === 'daily') {
@@ -298,7 +278,7 @@ export async function getLifePrkProgressData(options: { from: Date; to: Date; ti
 
     const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
         supabase.from('life_prks').select('id, title').eq('archived', false),
-        supabase.from('area_prks').select('id, life_prk_id').eq('archived', false),
+        supabase.from('area_prks').select('*').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
         supabase.from('progress_logs').select('id, habit_task_id, completion_date')
     ]);
