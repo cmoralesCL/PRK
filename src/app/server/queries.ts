@@ -109,78 +109,79 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
         return false; // Task has not started yet
     }
     
-    // An open task is always active from its start date
-    if (!task.completionDate) return true;
-
-    // A completed task is only active on the day it was completed
-    return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
+    // An open task is always active from its start date until its due date
+    if (task.dueDate) {
+        const dueDate = startOfDay(parseISO(task.dueDate));
+        if (isBefore(selectedDate, startDate) || isAfter(selectedDate, dueDate)) {
+            // if it's completed, it's only active on the day it was completed
+            if (task.completionDate) {
+                 return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
+            }
+            return false;
+        }
+    }
+    
+    if (task.completionDate) {
+        return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
+    }
+    
+    return true; // Active if started and not yet completed
 }
 
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
-    const allHabitTasksWithProgress = allHabitTasks
-        .map(ht => {
-            let progress = 0;
-            if (ht.startDate && !isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)) {
-                 if (ht.type === 'task') {
-                    // Progress for a task is binary: 100 if completed, 0 otherwise.
-                    // The completion date is checked against the selected date in getHabitTasksForDate
-                    const isCompletedOnSelectedDate = !!ht.completionDate && isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
-                    progress = isCompletedOnSelectedDate ? 100 : 0;
-                } else {
-                    progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
-                }
-            }
-            return { ...ht, progress };
-        });
+    const habitTasksForDay = getHabitTasksForDate(selectedDate, allHabitTasks, mappedProgressLogs);
+    const habitTaskIdsForDay = new Set(habitTasksForDay.map(ht => ht.id));
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
-        const relevantHabits = allHabitTasksWithProgress.filter(ht => 
-            ht.areaPrkId === ap.id && ht.type === 'habit'
+        const relevantHabitsAndTasks = allHabitTasks.filter(ht => 
+            ht.areaPrkId === ap.id && habitTaskIdsForDay.has(ht.id)
         );
-        
-        const relevantTasks = allHabitTasksWithProgress.filter(task => 
-            task.areaPrkId === ap.id && 
-            task.type === 'task' &&
-            isTaskActiveOnDate(task, selectedDate)
-        );
-
-        const allRelevantItems = [...relevantHabits, ...relevantTasks];
 
         let progress = 0;
-        if (allRelevantItems.length > 0) {
-            const totalProgress = allRelevantItems.reduce((sum, item) => {
-                 // Recalculate progress for task based on *any* completion, not just on selected date
+        if (relevantHabitsAndTasks.length > 0) {
+            const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
                 if (item.type === 'task') {
                     const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
                     return sum + (isCompleted ? 100 : 0);
                 }
-                return sum + item.progress; // Use pre-calculated habit progress
+                // For habits, we use the specific progress for that day
+                return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
             }, 0);
-            progress = totalProgress / allRelevantItems.length;
+            progress = totalProgress / relevantHabitsAndTasks.length;
         } else {
-            // If an Area PRK has no items, its progress is 100% (nothing to fail at).
-            progress = 100;
+            // If an Area PRK has no items for the day, its progress is considered neutral (e.g., NaN)
+            // so it can be filtered out later.
+            progress = NaN;
         }
         
         return { ...ap, progress };
     });
 
     const lifePrksWithProgress = allLifePrks.map(lp => {
-        const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.lifePrkId === lp.id);
+        const relevantAreaPrks = areaPrksWithProgress.filter(ap => 
+            ap.lifePrkId === lp.id && !isNaN(ap.progress ?? NaN)
+        );
         
         let progress = 0;
         if (relevantAreaPrks.length > 0) {
             const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
             progress = totalProgress / relevantAreaPrks.length;
         } else {
-            progress = 100;
+            // If a Life PRK has no Area PRKs with tasks for the day, its progress is 0.
+            progress = 0;
         }
         
         return { ...lp, progress };
     });
 
-    return { lifePrksWithProgress, areaPrksWithProgress, allHabitTasksWithProgress };
+    const allHabitTasksWithProgress = allHabitTasks.map(ht => ({
+        ...ht,
+        progress: calculateHabitProgress(ht, mappedProgressLogs, selectedDate)
+    }))
+
+    return { lifePrksWithProgress, areaPrksWithProgress: areaPrksWithProgress.map(ap => ({...ap, progress: isNaN(ap.progress ?? NaN) ? 100 : ap.progress})), allHabitTasksWithProgress };
 }
+
 
 const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]): HabitTask[] => {
     return allHabitTasks
