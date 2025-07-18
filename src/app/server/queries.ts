@@ -135,7 +135,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
     const areaPrksWithProgress = allAreaPrks.map(ap => {
         const relevantHabitsAndTasks = allHabitTasks.filter(ht => {
             if (ht.areaPrkId !== ap.id) return false;
-
+            
             if (ht.type === 'task') {
                 return isTaskActiveOnDate(ht, selectedDate);
             }
@@ -161,10 +161,10 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
         if (relevantHabitsAndTasks.length === 0) {
             return { ...ap, progress: null };
         }
-
+        
         const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
             if (item.type === 'task') {
-                const isCompleted = !!item.completionDate && isEqual(startOfDay(parseISO(item.completionDate)), selectedDate);
+                const isCompleted = !!item.completionDate && !isAfter(selectedDate, startOfDay(parseISO(item.completionDate)));
                 return sum + (isCompleted ? 100 : 0);
             }
             return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
@@ -177,7 +177,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
 
     const lifePrksWithProgress = allLifePrks.map(lp => {
         const relevantAreaPrks = areaPrksWithProgress.filter(ap => 
-            ap.lifePrkId === lp.id && ap.progress !== null
+            ap.lifePrkId === lp.id && ap.progress !== null && !isNaN(ap.progress)
         );
         
         if (relevantAreaPrks.length === 0) {
@@ -231,7 +231,14 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
         .map(ht => {
             let completedToday = false;
             if (ht.type === 'task') {
-                completedToday = !!ht.completionDate && isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                // An active task is completed if it has a completion date and the selected date
+                // is within the range of start date and completion date.
+                if (ht.completionDate && ht.startDate) {
+                    const completionDay = startOfDay(parseISO(ht.completionDate));
+                    const startDay = startOfDay(parseISO(ht.startDate));
+                    // Check if selectedDate is on or after startDay and on or before completionDay
+                    completedToday = !isBefore(selectedDate, startDay) && !isAfter(selectedDate, completionDay);
+                }
             } else if (ht.frequency === 'weekly') {
                 const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
                 const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -406,9 +413,9 @@ export async function getCalendarData(currentDate: Date): Promise<CalendarDataPo
     for (const day of intervalDays) {
         const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
         
-        const totalProgress = lifePrksWithProgress.reduce((sum, lp) => sum + (lp.progress ?? 0), 0);
-        const relevantLifePrksCount = lifePrksWithProgress.filter(lp => lp.progress !== null).length;
-        const overallProgress = relevantLifePrksCount > 0 ? totalProgress / relevantLifePrksCount : 0;
+        const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null && lp.progress > 0);
+        const totalProgress = relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0);
+        const overallProgress = relevantLifePrks.length > 0 ? totalProgress / relevantLifePrks.length : 0;
         
         const tasksForDay = getHabitTasksForDate(day, allHabitTasks, mappedProgressLogs);
 
