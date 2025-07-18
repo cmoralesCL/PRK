@@ -101,15 +101,17 @@ export function Dashboard({
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
+    setActiveAreaPrkId(habitTask.areaPrkId);
     setHabitTaskDialogOpen(true);
   };
 
-  const handleSaveHabitTask = (values: HabitTaskFormValues) => {
+  const handleSaveHabitTask = (values: HabitTaskFormValues, areaPrkId: string) => {
     startTransition(async () => {
         try {
             const habitTaskData: Partial<HabitTask> = {
                 title: values.title,
                 type: values.type,
+                areaPrkId: areaPrkId,
                 startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
                 dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
@@ -119,8 +121,8 @@ export function Dashboard({
             if (editingHabitTask) {
                 await updateHabitTask(editingHabitTask.id, habitTaskData);
                 toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
-            } else if(activeAreaPrkId) {
-                await addHabitTask({ ...habitTaskData, areaPrkId: activeAreaPrkId });
+            } else {
+                await addHabitTask(habitTaskData);
                 toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
@@ -260,6 +262,7 @@ export function Dashboard({
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
+        defaultAreaPrkId={activeAreaPrkId || undefined}
        />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 

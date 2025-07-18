@@ -34,12 +34,14 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { HabitTask } from '@/lib/types';
-import { useEffect } from 'react';
+import type { AreaPrk, HabitTask } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'task']),
+  areaPrkId: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
@@ -63,8 +65,10 @@ export type HabitTaskFormValues = z.infer<typeof formSchema>;
 interface HabitTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: HabitTaskFormValues) => void;
+  onSave: (values: HabitTaskFormValues, areaPrkId: string) => void;
   habitTask: HabitTask | null;
+  defaultAreaPrkId?: string;
+  defaultDate?: Date;
 }
 
 const daysOfWeek = [
@@ -77,17 +81,35 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: HabitTaskDialogProps) {
+export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate }: HabitTaskDialogProps) {
   const isEditing = !!habitTask;
+  const [allAreaPrks, setAllAreaPrks] = useState<AreaPrk[]>([]);
+
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       type: 'task',
       frequencyDays: [],
-      startDate: new Date(),
+      startDate: defaultDate || new Date(),
+      areaPrkId: defaultAreaPrkId,
     },
   });
+
+  useEffect(() => {
+    async function fetchAreaPrks() {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('area_prks').select('*').eq('archived', false);
+        if (error) {
+            console.error("Error fetching area prks", error);
+            return;
+        }
+        setAllAreaPrks(data as AreaPrk[]);
+    }
+    if(isOpen) {
+        fetchAreaPrks();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -95,7 +117,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
         form.reset({
           title: habitTask.title,
           type: habitTask.type,
-          startDate: habitTask.startDate ? parseISO(habitTask.startDate) : undefined,
+          areaPrkId: habitTask.areaPrkId,
+          startDate: habitTask.startDate ? parseISO(habitTask.startDate) : (defaultDate || new Date()),
           dueDate: habitTask.dueDate ? parseISO(habitTask.dueDate) : undefined,
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
@@ -105,17 +128,18 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
           title: '',
           type: 'task',
           frequencyDays: [],
-          startDate: new Date(),
+          startDate: defaultDate || new Date(),
           dueDate: undefined,
           frequency: undefined,
+          areaPrkId: defaultAreaPrkId
         });
       }
     }
-  }, [isOpen, isEditing, habitTask, form]);
+  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate]);
 
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    onSave(values);
+    onSave(values, values.areaPrkId);
     form.reset();
     onOpenChange(false);
   };
@@ -171,6 +195,29 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                 </FormItem>
               )}
             />
+
+             <FormField
+              control={form.control}
+              name="areaPrkId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PRK de Área Asociado</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isEditing}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un PRK de Área" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {allAreaPrks.map(ap => (
+                                <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
                 control={form.control}
@@ -189,7 +236,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                             )}
                             >
                             {field.value ? (
-                                format(field.value, "PPP")
+                                format(field.value, "PPP", { locale: es })
                             ) : (
                                 <span>Elige una fecha</span>
                             )}
@@ -229,7 +276,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask }: Hab
                                 )}
                                 >
                                 {field.value ? (
-                                    format(field.value, "PPP")
+                                    format(field.value, "PPP", { locale: es })
                                 ) : (
                                     <span>Elige una fecha</span>
                                 )}
