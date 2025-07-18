@@ -1,3 +1,5 @@
+'use server';
+
 import { createClient } from "@/lib/supabase/server";
 import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint } from "@/lib/types";
 import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay } from 'date-fns';
@@ -336,7 +338,7 @@ export async function getCalendarData(currentDate: Date): Promise<CalendarDataPo
     const calendarData: CalendarDataPoint[] = [];
 
     if (allLifePrks.length === 0) {
-        return intervalDays.map(day => ({ date: day, progress: 0, tasks: [] }));
+        return intervalDays.map(day => ({ date: day.toISOString(), progress: 0, tasks: [] }));
     }
 
     for (const day of intervalDays) {
