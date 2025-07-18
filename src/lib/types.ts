@@ -70,4 +70,5 @@ export interface LifePrkProgressPoint {
 export interface CalendarDataPoint {
   date: string; // Changed to string for serialization
   progress: number;
+  tasks: HabitTask[];
 }

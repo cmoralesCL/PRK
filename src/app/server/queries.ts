@@ -153,42 +153,8 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
     return { lifePrksWithProgress, areaPrksWithProgress, allHabitTasksWithProgress };
 }
 
-export async function getDashboardData(selectedDateStr: string) {
-    const supabase = createClient();
-    const selectedDate = startOfDay(parseISO(selectedDateStr));
-
-    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
-        supabase.from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
-        supabase.from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
-        supabase.from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true }),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
-    ]);
-
-    const { data: lifePrksData, error: lifePrksError } = lifePrksResult;
-    if (lifePrksError) throw new Error("Could not fetch Life PRKs.");
-
-    const { data: areaPrksData, error: areaPrksError } = areaPrksResult;
-    if (areaPrksError) throw new Error("Could not fetch Area PRKs.");
-
-    const { data: allHabitTasksData, error: habitTasksError } = allHabitTasksResult;
-    if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
-
-    const { data: allProgressLogsData, error: progressLogsError } = allProgressLogsResult;
-    if (progressLogsError) throw new Error("Could not fetch progress logs.");
-
-    const allLifePrks = lifePrksData.map(mapLifePrkFromDb);
-    const allAreaPrks = areaPrksData.map(mapAreaPrkFromDb);
-    const allHabitTasks = allHabitTasksData.map(mapHabitTaskFromDb);
-    const mappedProgressLogs: ProgressLog[] = (allProgressLogsData || []).map(p => ({
-        id: p.id,
-        habitTaskId: p.habit_task_id,
-        completion_date: p.completion_date,
-    })).filter(p => p.completion_date);
-
-
-    const { lifePrksWithProgress, areaPrksWithProgress } = await calculateProgressForDate(selectedDate, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
-    
-    const habitTasksForDisplay = allHabitTasks
+const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]): HabitTask[] => {
+    return allHabitTasks
         .filter(ht => {
             if (!ht.startDate) return false;
             const startDate = startOfDay(parseISO(ht.startDate));
@@ -242,6 +208,44 @@ export async function getDashboardData(selectedDateStr: string) {
             }
             return { ...ht, completedToday };
         });
+}
+
+export async function getDashboardData(selectedDateStr: string) {
+    const supabase = createClient();
+    const selectedDate = startOfDay(parseISO(selectedDateStr));
+
+    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
+        supabase.from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true }),
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+    ]);
+
+    const { data: lifePrksData, error: lifePrksError } = lifePrksResult;
+    if (lifePrksError) throw new Error("Could not fetch Life PRKs.");
+
+    const { data: areaPrksData, error: areaPrksError } = areaPrksResult;
+    if (areaPrksError) throw new Error("Could not fetch Area PRKs.");
+
+    const { data: allHabitTasksData, error: habitTasksError } = allHabitTasksResult;
+    if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
+
+    const { data: allProgressLogsData, error: progressLogsError } = allProgressLogsResult;
+    if (progressLogsError) throw new Error("Could not fetch progress logs.");
+
+    const allLifePrks = lifePrksData.map(mapLifePrkFromDb);
+    const allAreaPrks = areaPrksData.map(mapAreaPrkFromDb);
+    const allHabitTasks = allHabitTasksData.map(mapHabitTaskFromDb);
+    const mappedProgressLogs: ProgressLog[] = (allProgressLogsData || []).map(p => ({
+        id: p.id,
+        habitTaskId: p.habit_task_id,
+        completion_date: p.completion_date,
+    })).filter(p => p.completion_date);
+
+
+    const { lifePrksWithProgress, areaPrksWithProgress } = await calculateProgressForDate(selectedDate, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
+    
+    const habitTasksForDisplay = getHabitTasksForDate(selectedDate, allHabitTasks, mappedProgressLogs);
     
     return { 
         lifePrks: lifePrksWithProgress, 
@@ -332,7 +336,7 @@ export async function getCalendarData(currentDate: Date): Promise<CalendarDataPo
     const calendarData: CalendarDataPoint[] = [];
 
     if (allLifePrks.length === 0) {
-        return intervalDays.map(day => ({ date: day, progress: 0 }));
+        return intervalDays.map(day => ({ date: day, progress: 0, tasks: [] }));
     }
 
     for (const day of intervalDays) {
@@ -340,10 +344,13 @@ export async function getCalendarData(currentDate: Date): Promise<CalendarDataPo
         
         const totalProgress = lifePrksWithProgress.reduce((sum, lp) => sum + (lp.progress ?? 0), 0);
         const overallProgress = lifePrksWithProgress.length > 0 ? totalProgress / lifePrksWithProgress.length : 0;
+        
+        const tasksForDay = getHabitTasksForDate(day, allHabitTasks, mappedProgressLogs);
 
         calendarData.push({
-            date: day,
+            date: day.toISOString(),
             progress: overallProgress,
+            tasks: tasksForDay
         });
     }
 
