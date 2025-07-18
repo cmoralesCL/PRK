@@ -2,12 +2,12 @@
 import { ProgressCalendar } from '@/components/progress-calendar';
 import { getCalendarData } from '@/app/actions';
 import { createClient } from '@/lib/supabase/server';
-import type { AreaPrk } from '@/lib/types';
+import { startOfDay } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
-  const currentDate = new Date();
+  const currentDate = startOfDay(new Date());
   const supabase = createClient();
 
   const [calendarDataResult, areaPrksResult] = await Promise.all([

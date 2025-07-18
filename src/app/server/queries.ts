@@ -334,7 +334,9 @@ export async function getCalendarData(currentDate: Date): Promise<CalendarDataPo
         supabase.from('life_prks').select('*').eq('archived', false),
         supabase.from('area_prks').select('*').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date').gte('completion_date', format(monthStart, 'yyyy-MM-dd')).lte('completion_date', format(monthEnd, 'yyyy-MM-dd'))
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+            .gte('completion_date', format(startOfDay(monthStart), 'yyyy-MM-dd'))
+            .lte('completion_date', format(endOfDay(monthEnd), 'yyyy-MM-dd'))
     ]);
 
      if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
