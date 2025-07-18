@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Plus } from 'lucide-react';
@@ -15,10 +15,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { CalendarDataPoint, HabitTask } from '@/lib/types';
-import { addHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
+import { getCalendarData } from '@/app/actions';
 
 interface DayDetailDialogProps {
   isOpen: boolean;
@@ -27,64 +28,60 @@ interface DayDetailDialogProps {
   onDataChange: () => void;
 }
 
-export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }: DayDetailDialogProps) {
-  const [isPending, startTransition] = useTransition();
+export function DayDetailDialog({ isOpen, onOpenChange, dayData: initialDayData, onDataChange }: DayDetailDialogProps) {
+  const [dayData, setDayData] = useState(initialDayData);
+  const [isToggling, startToggleTransition] = useTransition();
   const { toast } = useToast();
   const selectedDate = useMemo(() => new Date(dayData.date), [dayData.date]);
   
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-  const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
+
+  // Update local state if initial data changes
+  useState(() => {
+    setDayData(initialDayData);
+  }, [initialDayData]);
+
+  const refreshData = async () => {
+    const newCalendarData = await getCalendarData(selectedDate);
+    const updatedDayData = newCalendarData.find(d => new Date(d.date).toDateString() === selectedDate.toDateString());
+    if (updatedDayData) {
+        setDayData(updatedDayData);
+    }
+    onDataChange();
+  }
 
 
   const handleToggle = (id: string, completed: boolean, date: Date) => {
     const task = dayData.tasks.find(t => t.id === id);
     if (!task) return;
     
-    startTransition(async () => {
+    startToggleTransition(async () => {
         try {
             if (completed) {
                 await logHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0]);
             } else {
                 await removeHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0]);
             }
-            onDataChange();
+            await refreshData();
         } catch(e) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la tarea.' });
         }
     });
   };
 
-  const handleSaveHabitTask = (values: HabitTaskFormValues, areaPrkId: string) => {
-    startTransition(async () => {
-        try {
-            const habitTaskData: Partial<HabitTask> = {
-                areaPrkId: areaPrkId,
-                title: values.title,
-                type: values.type,
-                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-                dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
-                frequency: values.frequency,
-                frequencyDays: values.frequencyDays,
-            };
-
-            await addHabitTask(habitTaskData);
-            toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
-            onDataChange();
-            
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
-        }
-    });
-  };
-
   const handleOpenAddDialog = () => {
-    setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    if(!open) {
+        onOpenChange(false);
+    }
   }
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-headline">
@@ -100,7 +97,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }:
               <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Acciones del Día</h3>
               <ScrollArea className="h-64 pr-4 border-b">
                   <div className="space-y-2">
-                  {isPending ? (
+                  {isToggling ? (
                       <div className="flex items-center justify-center h-full">
                           <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
@@ -110,7 +107,8 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }:
                               key={task.id} 
                               item={task} 
                               onToggle={handleToggle}
-                              selectedDate={selectedDate} 
+                              selectedDate={selectedDate}
+                              variant="calendar" 
                           />
                       ))
                   ) : (
@@ -133,8 +131,11 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }:
       <HabitTaskDialog 
         isOpen={isHabitTaskDialogOpen}
         onOpenChange={setHabitTaskDialogOpen}
-        onSave={handleSaveHabitTask}
-        habitTask={editingHabitTask}
+        onSave={async () => {
+            setHabitTaskDialogOpen(false);
+            await refreshData();
+        }}
+        habitTask={null}
         defaultDate={selectedDate}
       />
     </>
