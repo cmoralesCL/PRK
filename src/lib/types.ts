@@ -33,7 +33,7 @@ export interface HabitTask {
   startDate?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
   frequencyDays?: string[] | null; // Corresponds to frequency_days
-  weight?: number;
+  weight: number;
 
   // Nuevo campo para tareas
   dueDate?: string | null; // Corresponds to due_date

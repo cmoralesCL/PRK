@@ -116,6 +116,7 @@ export function Dashboard({
                 dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
                 frequencyDays: values.frequencyDays,
+                weight: values.weight,
             };
             
             if (editingHabitTask) {
