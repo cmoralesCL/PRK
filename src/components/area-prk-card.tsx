@@ -88,7 +88,7 @@ export function AreaPrkCard({
           <p className="text-sm text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
         )}
       </CardContent>
-      <CardFooter className="flex justify-between gap-2">
+      <CardFooter className="flex justify-end gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(areaPrk)}>
           <Sparkles className="mr-2 h-4 w-4" />
           Sugerir Tareas
