@@ -8,8 +8,8 @@ export default async function CalendarPage() {
   const currentDate = new Date();
   const calendarData = await getCalendarData(currentDate);
 
-  // Convert Date objects to strings for safe serialization
-  const serializableData = calendarData.map(d => ({ ...d, date: d.date.toISOString() }));
+  // The data is already serializable, no need to map it again.
+  const serializableData = calendarData;
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
