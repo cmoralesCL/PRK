@@ -116,10 +116,12 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
         return !isAfter(selectedDate, completionDate);
     }
     
-    // If not completed, and it has a due date, it must be before or on the due date.
+    // If not completed, and it has a due date, it is inactive two days after the due date.
     if (task.dueDate) {
         const dueDate = startOfDay(parseISO(task.dueDate));
-        if (isAfter(selectedDate, dueDate)) {
+        const dayAfterDueDate = endOfDay(dueDate); // end of due date day
+        const twoDaysAfterDueDate = new Date(dayAfterDueDate.getTime() + 24 * 60 * 60 * 1000); // 24h after end of due date
+        if (isAfter(selectedDate, twoDaysAfterDueDate)) {
             return false;
         }
     }
@@ -135,17 +137,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
             if (ht.areaPrkId !== ap.id) return false;
 
             if (ht.type === 'task') {
-                const taskStartDate = startOfDay(parseISO(ht.startDate!));
-                 // Not relevant if it hasn't started
-                if(isAfter(taskStartDate, selectedDate)) return false;
-
-                const isCompleted = !!ht.completionDate && isBefore(startOfDay(parseISO(ht.completionDate)), selectedDate);
-                if (isCompleted) return false;
-
-                // Not relevant if it's past its due date and not completed
-                if(ht.dueDate && isAfter(selectedDate, startOfDay(parseISO(ht.dueDate))) && !ht.completionDate) return false;
-
-                return true;
+                return isTaskActiveOnDate(ht, selectedDate);
             }
 
             // For habits, check if the day is an active day for the habit.
@@ -172,7 +164,7 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
 
         const totalProgress = relevantHabitsAndTasks.reduce((sum, item) => {
             if (item.type === 'task') {
-                const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
+                const isCompleted = !!item.completionDate && isEqual(startOfDay(parseISO(item.completionDate)), selectedDate);
                 return sum + (isCompleted ? 100 : 0);
             }
             return sum + calculateHabitProgress(item, mappedProgressLogs, selectedDate);
