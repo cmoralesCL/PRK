@@ -104,17 +104,19 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
 
     const startDate = startOfDay(parseISO(task.startDate));
 
-    // If task is already completed, it's only "active" on the day it was completed.
-    if (task.completionDate) {
-        return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
-    }
-    
-    // If not completed, it's active if selectedDate is on or after a start date.
+    // A task is not active if the selected date is before its start date.
     if (isBefore(selectedDate, startDate)) {
         return false;
     }
 
-    // And if it has a due date, it must be before or on the due date.
+    // If task is already completed, it's active up to and including its completion day.
+    // It becomes inactive the day after it's completed.
+    if (task.completionDate) {
+        const completionDate = startOfDay(parseISO(task.completionDate));
+        return !isAfter(selectedDate, completionDate);
+    }
+    
+    // If not completed, and it has a due date, it must be before or on the due date.
     if (task.dueDate) {
         const dueDate = startOfDay(parseISO(task.dueDate));
         if (isAfter(selectedDate, dueDate)) {
@@ -133,12 +135,12 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
             if (ht.areaPrkId !== ap.id) return false;
 
             if (ht.type === 'task') {
-                // For progress calculation, a task is relevant if it's supposed to be worked on.
-                // It should appear every day until completion.
                 const taskStartDate = startOfDay(parseISO(ht.startDate!));
-
-                // Not relevant if it hasn't started
+                 // Not relevant if it hasn't started
                 if(isAfter(taskStartDate, selectedDate)) return false;
+
+                const isCompleted = !!ht.completionDate && isBefore(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                if (isCompleted) return false;
 
                 // Not relevant if it's past its due date and not completed
                 if(ht.dueDate && isAfter(selectedDate, startOfDay(parseISO(ht.dueDate))) && !ht.completionDate) return false;
