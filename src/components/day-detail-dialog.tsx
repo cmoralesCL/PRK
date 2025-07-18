@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Plus } from 'lucide-react';
@@ -15,14 +15,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import type { AreaPrk, CalendarDataPoint, HabitTask, LifePrk } from '@/lib/types';
-import { getDashboardData } from '@/app/server/queries';
+import type { AreaPrk, CalendarDataPoint, HabitTask } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
 import { addHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
-
 
 interface DayDetailDialogProps {
   isOpen: boolean;
@@ -40,16 +39,23 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange }:
   const [selectedAreaPrk, setSelectedAreaPrk] = useState<string>('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
-  useState(() => {
+  useEffect(() => {
     async function fetchAreaPrks() {
-        const { areaPrks } = await getDashboardData(new Date().toISOString().split('T')[0]);
-        setAllAreaPrks(areaPrks);
-        if(areaPrks.length > 0) {
-            setSelectedAreaPrk(areaPrks[0].id);
-        }
+      const supabase = createClient();
+      const { data, error } = await supabase.from('area_prks').select('*').eq('archived', false);
+      if (error) {
+        console.error("Error fetching area prks", error);
+        return;
+      }
+      setAllAreaPrks(data as AreaPrk[]);
+      if (data && data.length > 0) {
+        setSelectedAreaPrk(data[0].id);
+      }
     }
-    fetchAreaPrks();
-  });
+    if(isOpen) {
+        fetchAreaPrks();
+    }
+  }, [isOpen]);
 
   const handleToggle = (id: string, completed: boolean, date: Date) => {
     const task = dayData.tasks.find(t => t.id === id);
