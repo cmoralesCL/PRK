@@ -84,7 +84,8 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
              const selectedDayOfWeek = getDay(selectedDate); // Sunday is 0, Monday is 1...
              const requiredDays = habit.frequencyDays.map(day => dayOfWeekMap[day]);
              if (!requiredDays.includes(selectedDayOfWeek)) {
-                // If the habit hasn't started yet, it shouldn't count as 100.
+                // If today is not a required day for the habit, it doesn't penalize progress.
+                // It's considered 100% compliant for the day unless it hasn't started yet.
                 const habitStartDate = startOfDay(parseISO(habit.startDate!));
                 return isAfter(habitStartDate, selectedDate) ? 0 : 100;
              }
@@ -100,15 +101,31 @@ const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedD
     }
 }
 
+const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
+    if (task.type !== 'task' || !task.startDate) return false;
+
+    const startDate = startOfDay(parseISO(task.startDate));
+    if (isAfter(startDate, selectedDate)) {
+        return false; // Task has not started yet
+    }
+    
+    // An open task is always active from its start date
+    if (!task.completionDate) return true;
+
+    // A completed task is only active on the day it was completed
+    return isEqual(startOfDay(parseISO(task.completionDate)), selectedDate);
+}
+
 async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
     const allHabitTasksWithProgress = allHabitTasks
         .map(ht => {
             let progress = 0;
-            // Only calculate progress for tasks that have started
             if (ht.startDate && !isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)) {
                  if (ht.type === 'task') {
-                    const isCompletedBySelectedDate = ht.completionDate && !isAfter(startOfDay(parseISO(ht.completionDate)), selectedDate);
-                    progress = isCompletedBySelectedDate ? 100 : 0;
+                    // Progress for a task is binary: 100 if completed, 0 otherwise.
+                    // The completion date is checked against the selected date in getHabitTasksForDate
+                    const isCompletedOnSelectedDate = !!ht.completionDate && isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
+                    progress = isCompletedOnSelectedDate ? 100 : 0;
                 } else {
                     progress = calculateHabitProgress(ht, mappedProgressLogs, selectedDate);
                 }
@@ -118,24 +135,30 @@ async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk
 
     const areaPrksWithProgress = allAreaPrks.map(ap => {
         const relevantHabits = allHabitTasksWithProgress.filter(ht => 
-            ht.areaPrkId === ap.id && 
-            ht.type === 'habit' && 
-            ht.startDate && !isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)
+            ht.areaPrkId === ap.id && ht.type === 'habit'
         );
         
         const relevantTasks = allHabitTasksWithProgress.filter(task => 
-            task.type === 'task' && 
-            task.areaPrkId === ap.id &&
-            task.startDate && !isAfter(startOfDay(parseISO(task.startDate)), selectedDate)
+            task.areaPrkId === ap.id && 
+            task.type === 'task' &&
+            isTaskActiveOnDate(task, selectedDate)
         );
 
         const allRelevantItems = [...relevantHabits, ...relevantTasks];
 
         let progress = 0;
         if (allRelevantItems.length > 0) {
-            const totalProgress = allRelevantItems.reduce((sum, item) => sum + item.progress, 0);
+            const totalProgress = allRelevantItems.reduce((sum, item) => {
+                 // Recalculate progress for task based on *any* completion, not just on selected date
+                if (item.type === 'task') {
+                    const isCompleted = !!item.completionDate && !isAfter(startOfDay(parseISO(item.completionDate)), selectedDate);
+                    return sum + (isCompleted ? 100 : 0);
+                }
+                return sum + item.progress; // Use pre-calculated habit progress
+            }, 0);
             progress = totalProgress / allRelevantItems.length;
         } else {
+            // If an Area PRK has no items, its progress is 100% (nothing to fail at).
             progress = 100;
         }
         
@@ -167,23 +190,29 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
             if (isAfter(startDate, selectedDate)) return false;
 
             if (ht.type === 'task') {
-                if (ht.completionDate) {
-                    const completionDate = startOfDay(parseISO(ht.completionDate));
-                    if (isBefore(completionDate, selectedDate)) {
-                        return false;
-                    }
-                }
-                return true;
+                return isTaskActiveOnDate(ht, selectedDate);
             }
 
+            // For habits
             if (ht.frequency === 'specific_days' && ht.frequencyDays) {
                 const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
                 const selectedDayOfWeek = getDay(selectedDate);
                 const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
                 return requiredDays.includes(selectedDayOfWeek);
             }
+            if (ht.frequency === 'weekly') {
+                // weekly habit is active every day of the week
+                return true;
+            }
+            if(ht.frequency === 'monthly') {
+                // monthly habit is active every day of the month
+                return true;
+            }
+            if(ht.frequency === 'daily') {
+                return true;
+            }
             
-            return true;
+            return false;
         })
         .map(ht => {
             let completedToday = false;
