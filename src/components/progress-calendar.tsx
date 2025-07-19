@@ -44,8 +44,12 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
   const [today, setToday] = useState<Date | null>(null);
 
   useEffect(() => {
-    // This ensures new Date() is only called on the client side after hydration.
+    // This ensures new Date() is only called on the client side after hydration,
+    // preventing server/client mismatch on what "today" is.
     setToday(new Date());
+    // Also, we set the calendar's current date to today on initial client load
+    // to ensure the view is centered on the user's actual current date.
+    setCurrentDate(new Date());
   }, []);
 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
