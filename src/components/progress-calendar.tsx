@@ -110,7 +110,14 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
                 </div>
                 { (isCurrentMonth || view === 'week') && (
                   <div className="flex-grow overflow-y-auto mt-1 space-y-1 pr-1">
-                     <Progress value={progressInfo?.progress ?? 0} className="h-1.5" />
+                     {progressInfo && (
+                        <div className="flex items-center gap-2">
+                          <Progress value={progressInfo?.progress ?? 0} className="h-1.5 w-full" />
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {Math.round(progressInfo.progress)}%
+                          </span>
+                        </div>
+                      )}
                     {tasks.slice(0, 4).map(task => (
                       <HabitTaskItem key={task.id} item={task} selectedDate={day} />
                     ))}
