@@ -1,0 +1,63 @@
+[2025-07-19T08:02:48.561Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "42P10",
+  "details": null,
+  "hint": null,
+  "message": "there is no unique or exclusion constraint matching the ON CONFLICT specification"
+}
+--------------------------------------------------
+
+[2025-07-19T08:03:42.159Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "42P10",
+  "details": null,
+  "hint": null,
+  "message": "there is no unique or exclusion constraint matching the ON CONFLICT specification"
+}
+--------------------------------------------------
+
+[2025-07-19T08:05:33.659Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "42P10",
+  "details": null,
+  "hint": null,
+  "message": "there is no unique or exclusion constraint matching the ON CONFLICT specification"
+}
+--------------------------------------------------
+
+[2025-07-19T08:09:18.167Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "23502",
+  "details": "Failing row contains (db629753-1d77-4bcf-a999-c4cfcc945c70, 576b055f-0900-4993-b041-686e0038a84e, 2025-07-14, 5, null, 2025-07-19 08:09:18.087573+00).",
+  "hint": null,
+  "message": "null value in column \"completion_percentage\" of relation \"progress_logs\" violates not-null constraint"
+}
+--------------------------------------------------
+
+[2025-07-19T08:09:29.859Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "23502",
+  "details": "Failing row contains (a05cb67b-ae87-4436-bbf1-9957a068afb2, 576b055f-0900-4993-b041-686e0038a84e, 2025-07-14, 10, null, 2025-07-19 08:09:29.783854+00).",
+  "hint": null,
+  "message": "null value in column \"completion_percentage\" of relation \"progress_logs\" violates not-null constraint"
+}
+--------------------------------------------------
+
+[2025-07-19T08:09:38.305Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "23502",
+  "details": "Failing row contains (2a2dfa0e-90e7-4319-9ae4-ba019a24679c, 576b055f-0900-4993-b041-686e0038a84e, 2025-07-14, 2, null, 2025-07-19 08:09:38.227289+00).",
+  "hint": null,
+  "message": "null value in column \"completion_percentage\" of relation \"progress_logs\" violates not-null constraint"
+}
+--------------------------------------------------
+
+[2025-07-19T08:33:25.159Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "23502",
+  "details": "Failing row contains (fd06c680-c3e9-49f5-8da9-e27726a45d4e, 576b055f-0900-4993-b041-686e0038a84e, 2025-07-17, 10, null, 2025-07-19 08:33:25.082127+00).",
+  "hint": null,
+  "message": "null value in column \"completion_percentage\" of relation \"progress_logs\" violates not-null constraint"
+}
+--------------------------------------------------
+

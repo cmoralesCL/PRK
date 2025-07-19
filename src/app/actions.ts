@@ -180,11 +180,33 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             if (updateError) throw updateError;
         }
 
-        const upsertData: Omit<ProgressLog, 'id'> = {
+        let completionPercentage = 1.0; // Default to 100% for binary habits/tasks
+
+        // If it's a quantitative habit, calculate the percentage
+        if (progressValue !== undefined) {
+            const { data: task, error: taskError } = await supabase
+                .from('habit_tasks')
+                .select('measurement_goal')
+                .eq('id', habitTaskId)
+                .single();
+
+            if (taskError || !task) {
+                throw new Error(`Could not find task with id ${habitTaskId} to calculate progress percentage.`);
+            }
+
+            const target = task.measurement_goal?.target;
+            if (typeof target === 'number' && target > 0) {
+                completionPercentage = Math.max(0, Math.min(1, progressValue / target));
+            } else {
+                 completionPercentage = progressValue > 0 ? 1 : 0; // If goal is not set, any progress is 100%
+            }
+        }
+
+        const upsertData: Omit<ProgressLog, 'id' | 'created_at'> = {
             habit_task_id: habitTaskId,
             completion_date: completionDate,
             progress_value: progressValue ?? null,
-            completion_percentage: progressValue !== undefined ? null : 1.0,
+            completion_percentage: completionPercentage,
         };
         
         // Upsert operation: if a log exists for this task on this day, update it. Otherwise, insert a new one.
@@ -532,3 +554,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    
