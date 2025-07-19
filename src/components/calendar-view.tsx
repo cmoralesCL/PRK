@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,11 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
-    const [currentMonth, setCurrentMonth] = useState(initialMonth);
+    const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setCurrentMonth(initialMonth);
+    }, [initialMonth]);
 
     const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
     const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
@@ -87,6 +91,14 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la acción.' });
             }
         });
+    }
+    
+    if (!currentMonth) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-2xl font-headline">Cargando Calendario...</div>
+            </div>
+        );
     }
 
     return (

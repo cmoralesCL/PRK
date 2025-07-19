@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, getDay, addWeeks, subWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,6 +33,10 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [view, setView] = useState<'month' | 'week'>('month');
+
+  useEffect(() => {
+    setCurrentDate(initialMonth);
+  }, [initialMonth]);
 
   const handleDayClick = (day: Date) => {
     setSelectedDay(day);
