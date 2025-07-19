@@ -28,6 +28,7 @@ interface ProgressCalendarProps {
   dailyProgressData: DailyProgressSnapshot[];
   habitTasksData: Record<string, HabitTask[]>;
   weeklyProgressData: WeeklyProgressSnapshot[];
+  monthlyProgress: number;
   onDayClick: (date: Date) => void;
 }
 
@@ -37,6 +38,7 @@ export function ProgressCalendar({
   dailyProgressData, 
   habitTasksData, 
   weeklyProgressData,
+  monthlyProgress,
   onDayClick,
 }: ProgressCalendarProps) {
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -71,9 +73,24 @@ export function ProgressCalendar({
     <TooltipProvider>
       <div className="p-4 sm:p-6 bg-card rounded-xl shadow-lg">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-           <h2 className="text-2xl font-bold font-headline capitalize text-center sm:text-left">
-            {headerLabel}
-          </h2>
+           <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold font-headline capitalize text-center sm:text-left">
+                {headerLabel}
+              </h2>
+              {view === 'month' && (
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted">
+                           <span className="text-sm font-bold font-headline text-primary">{Math.round(monthlyProgress)}%</span>
+                           <span className="text-xs text-muted-foreground hidden sm:inline">Prog. Mensual</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Progreso ponderado de todo el mes</p>
+                    </TooltipContent>
+                </Tooltip>
+              )}
+           </div>
           <div className="flex items-center gap-2">
              <ToggleGroup type="single" value={view} onValueChange={(value: 'month' | 'week') => value && setView(value)}>
               <ToggleGroupItem value="month" aria-label="Vista mensual">

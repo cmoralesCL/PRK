@@ -484,6 +484,7 @@ export async function getCalendarData(monthDate: Date) {
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     
     const daysInView = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    const daysInMonth = eachDayOfInterval(monthInterval);
 
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) throw lifePrksError;
@@ -502,19 +503,22 @@ export async function getCalendarData(monthDate: Date) {
 
     for (const day of daysInView) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
-        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
         
-        const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
-        const overallProgress = relevantLifePrks.length > 0
-            ? relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / relevantLifePrks.length
-            : 0;
+        if (habitTasksForDay.length > 0) {
+            const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
+            
+            const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
+            const overallProgress = relevantLifePrks.length > 0
+                ? relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / relevantLifePrks.length
+                : 0;
 
-        dailyProgress.push({
-            id: format(day, 'yyyy-MM-dd'),
-            snapshot_date: format(day, 'yyyy-MM-dd'),
-            progress: isNaN(overallProgress) ? 0 : overallProgress,
-        });
-
+            dailyProgress.push({
+                id: format(day, 'yyyy-MM-dd'),
+                snapshot_date: format(day, 'yyyy-MM-dd'),
+                progress: isNaN(overallProgress) ? 0 : overallProgress,
+            });
+        }
+        
         habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
     }
     
@@ -619,11 +623,50 @@ export async function getCalendarData(monthDate: Date) {
         weekIndex += 7;
     }
 
+    // Calculate Monthly Progress
+    let totalMonthlyWeightedProgress = 0;
+    let totalMonthlyWeight = 0;
+
+    // Daily tasks for the month
+    daysInMonth.forEach(day => {
+        const dayString = format(day, 'yyyy-MM-dd');
+        const tasks = habitTasksByDay[dayString] ?? [];
+        if (tasks.length > 0) {
+            const dayProgress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress ?? 0;
+            const dayWeight = tasks.reduce((sum, task) => sum + task.weight, 0);
+            totalMonthlyWeightedProgress += (dayProgress / 100) * dayWeight;
+            totalMonthlyWeight += dayWeight;
+        }
+    });
+
+    // Monthly commitments
+    const monthlyCommitmentTasks = commitments.filter(c => c.frequency === 'monthly');
+    monthlyCommitmentTasks.forEach(task => {
+        let progressPercentage = 0;
+        const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
+
+        if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+            const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
+            progressPercentage = Math.min((totalValue / task.measurement_goal.target), 1);
+        } else if (task.measurement_type === 'binary') {
+            const completions = logs.filter(l => l.completion_percentage === 1).length;
+            const target = task.measurement_goal?.target ?? 1;
+            progressPercentage = Math.min((completions / target), 1);
+        }
+
+        totalMonthlyWeightedProgress += progressPercentage * task.weight;
+        totalMonthlyWeight += task.weight;
+    });
+
+    const monthlyProgress = totalMonthlyWeight > 0
+        ? (totalMonthlyWeightedProgress / totalMonthlyWeight) * 100
+        : 0;
 
     return {
         dailyProgress,
         habitTasks: habitTasksByDay,
         weeklyProgress,
+        monthlyProgress,
         areaPrks,
         commitments,
     };

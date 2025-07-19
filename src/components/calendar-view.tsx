@@ -20,6 +20,8 @@ interface CalendarViewProps {
     habitTasksData: Record<string, HabitTask[]>;
     areaPrks: AreaPrk[];
     weeklyProgressData: WeeklyProgressSnapshot[];
+    monthlyProgress: number;
+    onDayClick: (day: Date) => void;
 }
 
 export function CalendarView({ 
@@ -27,7 +29,9 @@ export function CalendarView({
     dailyProgressData, 
     habitTasksData, 
     areaPrks,
-    weeklyProgressData
+    weeklyProgressData,
+    monthlyProgress,
+    onDayClick
 }: CalendarViewProps) {
     const router = useRouter();
     const { toast } = useToast();
@@ -65,10 +69,6 @@ export function CalendarView({
     
     const handleCloseDayDetail = () => {
         setDayDetailOpen(false);
-    }
-
-    const handleDayClick = (day: Date) => {
-        handleOpenDayDetail(day);
     }
 
     const handleSaveHabitTask = (values: HabitTaskFormValues) => {
@@ -131,7 +131,8 @@ export function CalendarView({
                   dailyProgressData={dailyProgressData}
                   habitTasksData={habitTasksData}
                   weeklyProgressData={weeklyProgressData}
-                  onDayClick={handleDayClick}
+                  monthlyProgress={monthlyProgress}
+                  onDayClick={onDayClick}
                 />
             </main>
             <AddHabitTaskDialog 

@@ -21,6 +21,7 @@ interface CalendarPageClientProps {
         habitTasks: Record<string, HabitTask[]>;
         areaPrks: AreaPrk[];
         weeklyProgress: WeeklyProgressSnapshot[];
+        monthlyProgress: number;
         commitments: HabitTask[];
     };
     initialMonthString: string;
@@ -130,6 +131,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                     habitTasksData={initialData.habitTasks}
                     areaPrks={initialData.areaPrks || []}
                     weeklyProgressData={initialData.weeklyProgress || []}
+                    monthlyProgress={initialData.monthlyProgress}
                     onDayClick={handleDayClick}
                 />
             </main>
