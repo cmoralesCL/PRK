@@ -141,7 +141,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            {isEditing ? 'Editar Hábito o Tarea' : 'Crear un Hábito o Tarea'}
+            {isEditing ? 'Editar Hábito o Hito' : 'Crear un Hábito o Hito'}
           </DialogTitle>
           <DialogDescription>
             Esta es una acción concreta que apoya tu PRK de Área.
@@ -176,7 +176,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="task">Tarea (Hito único)</SelectItem>
+                      <SelectItem value="task">Hito (Acción única de impacto)</SelectItem>
                       <SelectItem value="habit">Hábito (Acción recurrente)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -365,7 +365,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                     )}
                 </>
             )}
-
+            
             <FormField
               control={form.control}
               name="weight"
@@ -377,6 +377,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                 </FormItem>
               )}
             />
+
 
             <DialogFooter>
               <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Acción'}</Button>
