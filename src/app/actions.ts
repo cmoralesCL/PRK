@@ -50,21 +50,9 @@ export async function addAreaPrk(values: { title: string; unit: string; life_prk
     revalidatePath('/');
 }
 
-export async function addHabitTask(values: Partial<HabitTask>) {
+export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>>) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('habit_tasks').insert([{ 
-        area_prk_id: values.areaPrkId,
-        title: values.title,
-        type: values.type,
-        start_date: values.startDate || new Date().toISOString().split('T')[0],
-        frequency: values.frequency,
-        frequency_days: values.frequencyDays,
-        due_date: values.dueDate,
-        weight: values.weight || 1,
-        is_critical: values.isCritical,
-        measurement_type: values.measurementType,
-        measurement_goal: values.measurementGoal,
-    }]);
+    const { data, error } = await supabase.from('habit_tasks').insert([{ ...values }]);
 
     if(error) {
         console.error("Error adding Habit/Task:", error);
@@ -74,22 +62,11 @@ export async function addHabitTask(values: Partial<HabitTask>) {
     revalidatePath('/calendar');
 }
 
-export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<void> {
+export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>>): Promise<void> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('habit_tasks')
-      .update({
-        title: values.title,
-        type: values.type,
-        start_date: values.startDate,
-        due_date: values.dueDate,
-        frequency: values.frequency,
-        frequency_days: values.frequencyDays,
-        weight: values.weight,
-        is_critical: values.isCritical,
-        measurement_type: values.measurementType,
-        measurement_goal: values.measurementGoal
-      })
+      .update({ ...values })
       .eq('id', id);
   
     if (error) {
@@ -204,10 +181,10 @@ export async function archiveHabitTask(id: string) {
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
-    if (!task.startDate) {
+    if (!task.start_date) {
         return false; // No puede estar activa si no tiene fecha de inicio.
     }
-    const startDate = parseISO(task.startDate);
+    const startDate = parseISO(task.start_date);
     const targetDate = startOfDay(date);
 
     if (targetDate < startOfDay(startDate)) {
@@ -215,10 +192,10 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     }
 
     if (task.type === 'task' || task.type === 'project') {
-        const dueDate = task.dueDate ? parseISO(task.dueDate) : null;
+        const dueDate = task.due_date ? parseISO(task.due_date) : null;
         // La tarea es visible si está dentro de su rango O si no tiene fecha de vencimiento y ya empezó.
         // Se muestra hasta un día después de su fecha de vencimiento o finalización para permitir el registro tardío.
-        const completionDate = task.completionDate ? parseISO(task.completionDate) : null;
+        const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
         
         if (completionDate && completionDate < targetDate) {
             return false; // Ya se completó en un día anterior.
@@ -242,7 +219,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return targetDate.getDate() === startDate.getDate();
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee').toLowerCase(); // mon, tue, wed...
-                return task.frequencyDays?.includes(dayOfWeek) ?? false;
+                return task.frequency_days?.includes(dayOfWeek) ?? false;
             default:
                 return false;
         }
@@ -264,15 +241,15 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
 
     return activeTasks.map(task => {
         const completionLog = allProgressLogs.find(log => 
-            log.habitTaskId === task.id && 
+            log.habit_task_id === task.id && 
             format(parseISO(log.completion_date), 'yyyy-MM-dd') === dateString
         );
 
         return {
             ...task,
             completedToday: !!completionLog,
-            // Aseguramos que `completionDate` refleje el log del día si existe.
-            completionDate: completionLog ? dateString : (task.type !== 'habit' ? task.completionDate : undefined),
+            // Aseguramos que `completion_date` refleje el log del día si existe.
+            completion_date: completionLog ? dateString : (task.type !== 'habit' ? task.completion_date : undefined),
         };
     });
 }
@@ -287,7 +264,7 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  */
 function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = habitTasks.filter(ht => ht.areaPrkId === areaPrk.id);
+        const relevantTasks = habitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null }; // Sin medición

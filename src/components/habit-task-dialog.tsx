@@ -41,15 +41,15 @@ import { useEffect } from 'react';
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'project', 'task']),
-  areaPrkId: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
-  startDate: z.date().optional(),
-  dueDate: z.date().optional(),
+  area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
+  start_date: z.date().optional(),
+  due_date: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
-  frequencyDays: z.array(z.string()).optional(),
+  frequency_days: z.array(z.string()).optional(),
   weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
-  isCritical: z.boolean().default(false),
-  measurementType: z.enum(['binary', 'quantitative', 'temporal']).optional(),
-  measurementGoal: z.object({
+  is_critical: z.boolean().default(false),
+  measurement_type: z.enum(['binary', 'quantitative', 'temporal']).optional(),
+  measurement_goal: z.object({
       target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0."),
       unit: z.string().min(1, "La unidad es requerida."),
   }).optional(),
@@ -60,23 +60,23 @@ const formSchema = z.object({
     return true;
 }, { message: "La frecuencia es requerida para los hábitos", path: ['frequency'] })
 .refine(data => {
-    if (data.frequency === 'specific_days' && (!data.frequencyDays || data.frequencyDays.length === 0)) {
+    if (data.frequency === 'specific_days' && (!data.frequency_days || data.frequency_days.length === 0)) {
         return false;
     }
     return true;
-}, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequencyDays'] })
+}, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequency_days'] })
 .refine(data => {
-    if (data.type === 'habit' && !data.measurementType) {
+    if (data.type === 'habit' && !data.measurement_type) {
         return false;
     }
     return true;
-}, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurementType']})
+}, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurement_type']})
 .refine(data => {
-    if (data.measurementType === 'quantitative' && !data.measurementGoal) {
+    if (data.measurement_type === 'quantitative' && !data.measurement_goal) {
         return false;
     }
     return true;
-}, { message: "El objetivo y la unidad son requeridos para la medición cuantitativa.", path: ['measurementGoal'] });
+}, { message: "El objetivo y la unidad son requeridos para la medición cuantitativa.", path: ['measurement_goal'] });
 
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
@@ -84,7 +84,7 @@ export type HabitTaskFormValues = z.infer<typeof formSchema>;
 interface HabitTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: HabitTaskFormValues, areaPrkId: string) => void;
+  onSave: (values: HabitTaskFormValues) => void;
   habitTask: HabitTask | null;
   defaultAreaPrkId?: string;
   defaultDate?: Date;
@@ -117,12 +117,12 @@ export function HabitTaskDialog({
     defaultValues: {
       title: '',
       type: 'task',
-      frequencyDays: [],
-      startDate: defaultDate || new Date(),
-      areaPrkId: defaultAreaPrkId,
+      frequency_days: [],
+      start_date: defaultDate || new Date(),
+      area_prk_id: defaultAreaPrkId,
       weight: 1,
-      measurementType: 'binary',
-      isCritical: false,
+      measurement_type: 'binary',
+      is_critical: false,
     },
   });
 
@@ -132,29 +132,29 @@ export function HabitTaskDialog({
         form.reset({
           title: habitTask.title,
           type: habitTask.type,
-          areaPrkId: habitTask.areaPrkId,
-          startDate: habitTask.startDate ? parseISO(habitTask.startDate) : (defaultDate || new Date()),
-          dueDate: habitTask.dueDate ? parseISO(habitTask.dueDate) : undefined,
+          area_prk_id: habitTask.area_prk_id,
+          start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
+          due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           frequency: habitTask.frequency || undefined,
-          frequencyDays: habitTask.frequencyDays || [],
+          frequency_days: habitTask.frequency_days || [],
           weight: habitTask.weight || 1,
-          isCritical: habitTask.isCritical || false,
-          measurementType: habitTask.measurementType || 'binary',
-          measurementGoal: habitTask.measurementGoal || undefined,
+          is_critical: habitTask.is_critical || false,
+          measurement_type: habitTask.measurement_type || 'binary',
+          measurement_goal: habitTask.measurement_goal || undefined,
         });
       } else {
         form.reset({
           title: '',
           type: 'task',
-          frequencyDays: [],
-          startDate: defaultDate || new Date(),
-          dueDate: undefined,
+          frequency_days: [],
+          start_date: defaultDate || new Date(),
+          due_date: undefined,
           frequency: undefined,
-          areaPrkId: defaultAreaPrkId,
+          area_prk_id: defaultAreaPrkId,
           weight: 1,
-          isCritical: false,
-          measurementType: 'binary',
-          measurementGoal: undefined,
+          is_critical: false,
+          measurement_type: 'binary',
+          measurement_goal: undefined,
         });
       }
     }
@@ -162,14 +162,14 @@ export function HabitTaskDialog({
 
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    onSave(values, values.areaPrkId);
+    onSave(values);
     form.reset();
     onOpenChange(false);
   };
 
   const type = form.watch('type');
   const frequency = form.watch('frequency');
-  const measurementType = form.watch('measurementType');
+  const measurementType = form.watch('measurement_type');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -223,7 +223,7 @@ export function HabitTaskDialog({
 
              <FormField
               control={form.control}
-              name="areaPrkId"
+              name="area_prk_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>PRK de Área Asociado</FormLabel>
@@ -246,7 +246,7 @@ export function HabitTaskDialog({
             
             <FormField
                 control={form.control}
-                name="startDate"
+                name="start_date"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
                     <FormLabel>Fecha de Inicio</FormLabel>
@@ -286,7 +286,7 @@ export function HabitTaskDialog({
             {type !== 'habit' && (
                 <FormField
                     control={form.control}
-                    name="dueDate"
+                    name="due_date"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                         <FormLabel>Fecha Límite (Opcional)</FormLabel>
@@ -353,7 +353,7 @@ export function HabitTaskDialog({
                     {frequency === 'specific_days' && (
                         <FormField
                             control={form.control}
-                            name="frequencyDays"
+                            name="frequency_days"
                             render={() => (
                                 <FormItem>
                                     <div className="mb-4">
@@ -364,7 +364,7 @@ export function HabitTaskDialog({
                                         <FormField
                                         key={item.id}
                                         control={form.control}
-                                        name="frequencyDays"
+                                        name="frequency_days"
                                         render={({ field }) => {
                                             return (
                                             <FormItem
@@ -402,7 +402,7 @@ export function HabitTaskDialog({
 
                     <FormField
                         control={form.control}
-                        name="measurementType"
+                        name="measurement_type"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Tipo de Medición</FormLabel>
@@ -425,7 +425,7 @@ export function HabitTaskDialog({
                     {measurementType === 'quantitative' && (
                         <FormField
                             control={form.control}
-                            name="measurementGoal"
+                            name="measurement_goal"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Objetivo Cuantitativo</FormLabel>
@@ -468,7 +468,7 @@ export function HabitTaskDialog({
 
              <FormField
               control={form.control}
-              name="isCritical"
+              name="is_critical"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">

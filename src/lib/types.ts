@@ -22,36 +22,36 @@ export interface AreaPrk {
 
 export interface HabitTask {
   id: string;
-  areaPrkId: string; // Corresponds to area_prk_id in Supabase
+  area_prk_id: string; // Corresponds to area_prk_id in Supabase
   title: string;
   type: 'habit' | 'project' | 'task';
   created_at?: string;
   archived: boolean;
   
-  startDate?: string; // Corresponds to start_date
+  start_date?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
-  frequencyDays?: string[] | null; // Corresponds to frequency_days
+  frequency_days?: string[] | null; // Corresponds to frequency_days
   weight: number;
 
-  dueDate?: string | null; // Corresponds to due_date
-  completionDate?: string | null; // Corresponds to completion_date
+  due_date?: string | null; // Corresponds to due_date
+  completion_date?: string | null; // Corresponds to completion_date
 
   completedToday?: boolean;
 
-  isCritical: boolean; // Corresponds to is_critical
+  is_critical: boolean; // Corresponds to is_critical
 
   // Campos para la medición de hábitos
-  measurementType?: 'binary' | 'quantitative' | 'temporal' | null;
-  measurementGoal?: { target: number; unit: string; } | null; // Corresponds to measurement_goal
+  measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;
+  measurement_goal?: { target: number; unit: string; } | null; // Corresponds to measurement_goal
 }
 
 export interface ProgressLog {
   id: string;
-  habitTaskId: string; // Corresponds to habit_task_id in Supabase
+  habit_task_id: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
   
-  progressValue?: number | null; // Corresponds to progress_value
-  completionPercentage?: number | null; // Corresponds to completion_percentage
+  progress_value?: number | null; // Corresponds to progress_value
+  completion_percentage?: number | null; // Corresponds to completion_percentage
 }
 
 export interface DailyProgressSnapshot {

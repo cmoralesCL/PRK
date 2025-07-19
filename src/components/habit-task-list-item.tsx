@@ -117,11 +117,11 @@ export function HabitTaskListItem({
                 )}
             </div>
         </div>
-        {item.type !== 'habit' && item.dueDate && (
+        {item.type !== 'habit' && item.due_date && (
             <div className="pl-8 pt-1 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                    Vence: {format(parseISO(item.dueDate), 'd MMM yyyy', { locale: es })}
+                    Vence: {format(parseISO(item.due_date), 'd MMM yyyy', { locale: es })}
                 </span>
             </div>
         )}

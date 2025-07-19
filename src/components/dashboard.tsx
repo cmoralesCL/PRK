@@ -101,25 +101,25 @@ export function Dashboard({
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
-    setActiveAreaPrkId(habitTask.areaPrkId);
+    setActiveAreaPrkId(habitTask.area_prk_id);
     setHabitTaskDialogOpen(true);
   };
 
-  const handleSaveHabitTask = (values: HabitTaskFormValues, areaPrkId: string) => {
+  const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-            const habitTaskData: Partial<HabitTask> = {
+            const habitTaskData = {
                 title: values.title,
                 type: values.type,
-                areaPrkId: areaPrkId,
-                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-                dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
+                area_prk_id: values.area_prk_id,
+                start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : undefined,
+                due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
-                frequencyDays: values.frequencyDays,
+                frequency_days: values.frequency_days,
                 weight: values.weight,
-                isCritical: values.isCritical,
-                measurementType: values.measurementType,
-                measurementGoal: values.measurementGoal,
+                is_critical: values.is_critical,
+                measurement_type: values.measurement_type,
+                measurement_goal: values.measurement_goal,
             };
             
             if (editingHabitTask) {
@@ -165,13 +165,13 @@ export function Dashboard({
         try {
             const startDate = new Date().toISOString().split('T')[0];
             await addHabitTask({ 
-                areaPrkId, 
+                area_prk_id: areaPrkId, 
                 title, 
                 type: 'task',
-                startDate,
+                start_date: startDate,
                 weight: 1, // Default weight for suggestions
-                isCritical: false,
-                measurementType: 'binary',
+                is_critical: false,
+                measurement_type: 'binary',
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
         } catch (error) {

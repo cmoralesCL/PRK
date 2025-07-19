@@ -66,17 +66,17 @@ export function LifePrkSection({
               </div>
             </AccordionTrigger>
              <div className="flex items-center gap-2 flex-shrink-0 self-start mt-4 sm:self-center sm:mt-0">
-                <Button variant="outline" onClick={() => onAddAreaPrk(lifePrk.id)}>
+                <Button variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Agregar PRK de Área
                 </Button>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-5 w-5" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem onClick={() => onArchive(lifePrk.id)}>
                             <Archive className="mr-2 h-4 w-4" />
                             Archivar PRK de Vida
@@ -103,7 +103,7 @@ export function LifePrkSection({
               <AreaPrkCard
                   key={kp.id}
                   areaPrk={kp}
-                  habitTasks={habitTasks.filter((ht) => ht.areaPrkId === kp.id)}
+                  habitTasks={habitTasks.filter((ht) => ht.area_prk_id === kp.id)}
                   onAddHabitTask={onAddHabitTask}
                   onEditHabitTask={onEditHabitTask}
                   onToggleHabitTask={onToggleHabitTask}
