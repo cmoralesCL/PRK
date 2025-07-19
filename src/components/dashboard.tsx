@@ -172,11 +172,7 @@ export function Dashboard({
                 area_prk_id: editingHabitTask ? editingHabitTask.area_prk_id : values.area_prk_id,
                 weight: values.weight,
                 is_critical: values.is_critical,
-                commitment_period: values.commitment_period,
-                measurement_type: values.type === 'habit' ? values.measurement_type : undefined,
-                measurement_goal: values.type === 'habit' ? values.measurement_goal : undefined,
-                frequency: values.type === 'habit' ? values.frequency : undefined,
-                frequency_days: values.type === 'habit' ? values.frequency_days : undefined,
+                commitment_period: values.commitment_period || null,
             };
 
             if (values.commitment_period) {
@@ -211,6 +207,19 @@ export function Dashboard({
                 habitTaskData.due_date = values.due_date ? values.due_date.toISOString().split('T')[0] : undefined;
             }
             
+            if (values.type === 'habit') {
+              habitTaskData.measurement_type = values.measurement_type;
+              habitTaskData.measurement_goal = values.measurement_goal;
+              habitTaskData.frequency = values.frequency;
+              habitTaskData.frequency_days = values.frequency_days;
+            } else {
+              // Ensure habit-specific fields are not sent for tasks/projects
+              habitTaskData.measurement_type = undefined;
+              habitTaskData.measurement_goal = undefined;
+              habitTaskData.frequency = undefined;
+              habitTaskData.frequency_days = undefined;
+            }
+
             if (editingHabitTask) {
                 await updateHabitTask(editingHabitTask.id, habitTaskData);
                 toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
@@ -413,3 +422,5 @@ export function Dashboard({
     </>
   );
 }
+
+    
