@@ -1,13 +1,11 @@
 
-'use client';
-
 import { useState } from 'react';
 import { getCalendarData } from '@/app/actions';
 import { CalendarView } from '@/components/calendar-view';
 import { CommitmentsSidebar } from '@/components/commitments-sidebar';
 import { format } from 'date-fns';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
-
+import { cn } from '@/lib/utils';
 
 interface CalendarPageClientProps {
     initialData: {
@@ -22,6 +20,8 @@ interface CalendarPageClientProps {
 }
 
 function CalendarPageClient({ initialData, initialMonthString, selectedDate }: CalendarPageClientProps) {
+    'use client';
+    
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     return (
