@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import type { AreaPrk, HabitTask, LifePrk, TimeRangeOption } from "@/lib/types";
+import type { AreaPrk, HabitTask, LifePrk } from "@/lib/types";
 import { getLifePrkProgressData as getLifePrkProgressDataQuery, getCalendarData as getCalendarDataQuery } from "./server/queries";
 
 
@@ -26,7 +26,6 @@ export async function addLifePrk(values: { title: string; description?: string }
     const { data, error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
         description: values.description || '',
-        user_id: user.id
     }]).select().single();
 
     if(error) throw error;
