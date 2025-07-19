@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { HabitTaskListItem } from '@/components/habit-task-list-item';
+import { HabitTaskItem } from '@/components/habit-task-item';
 import { DayDetailDialog } from './day-detail-dialog';
 import { cn } from '@/lib/utils';
 import type { DailyProgressSnapshot, HabitTask } from '@/lib/types';
@@ -113,7 +113,7 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
                 </div>
                 { (isCurrentMonth || view === 'week') && (
                   <div className="flex-grow overflow-y-auto mt-1 space-y-1 pr-1">
-                     {progressInfo && progressInfo.progress > 0 && (
+                     {progressInfo && (
                         <div className="flex items-center gap-2">
                           <Progress value={progressInfo?.progress ?? 0} className="h-1.5 w-full" />
                           <span className="text-xs font-medium text-muted-foreground">
