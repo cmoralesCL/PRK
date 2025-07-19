@@ -352,7 +352,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 // The actual progress calculation is handled separately.
                 return true;
             case 'specific_days':
-                const dayOfWeek = format(targetDate, 'eee', {locale: es}).toLowerCase(); 
+                const dayOfWeek = format(targetDate, 'eee').toLowerCase();
                 return task.frequency_days?.includes(dayOfWeek) ?? false;
             default:
                 return false;
@@ -412,7 +412,7 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         // Filter out weekly/monthly habits from daily progress calculation
         const relevantTasks = habitTasks.filter(ht => 
             ht.area_prk_id === areaPrk.id &&
-            ht.type !== 'habit' || (ht.type === 'habit' && ht.frequency !== 'weekly' && ht.frequency !== 'monthly')
+            (ht.type !== 'habit' || (ht.type === 'habit' && ht.frequency !== 'weekly' && ht.frequency !== 'monthly'))
         );
         
         if (relevantTasks.length === 0) {
@@ -541,7 +541,35 @@ export async function getCalendarData(monthDate: Date) {
         task.type === 'habit' && task.frequency === 'monthly' && isTaskActiveOnDate(task, monthDate)
     );
 
-    const commitments = [...weeklyCommitments, ...monthlyCommitments];
+    const commitments = [...weeklyCommitments, ...monthlyCommitments].map(task => {
+        // Find all progress logs for this task within the relevant period
+        let logs;
+        if (task.frequency === 'weekly') {
+            logs = allProgressLogs.filter(log => 
+                log.habit_task_id === task.id &&
+                isWithinInterval(parseISO(log.completion_date), { start: weekForCommitmentsStart, end: weekForCommitmentsEnd })
+            );
+        } else { // monthly
+             logs = allProgressLogs.filter(log => 
+                log.habit_task_id === task.id &&
+                isWithinInterval(parseISO(log.completion_date), { start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
+            );
+        }
+
+        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage === 1 ? 1 : 0)), 0);
+        
+        let completedToday = false;
+        const todayLog = logs.find(log => isSameDay(parseISO(log.completion_date), new Date()));
+        if(todayLog) {
+            completedToday = todayLog.completion_percentage === 1;
+        }
+
+        return {
+            ...task,
+            current_progress_value: totalProgressValue,
+            completedToday: completedToday
+        };
+    });
 
 
     const weeklyProgress: WeeklyProgressSnapshot[] = [];
@@ -551,17 +579,43 @@ export async function getCalendarData(monthDate: Date) {
         const weekEnd = addDays(weekStart, 6);
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-        const weekProgressValues = weekDays
+        // Daily progress average for the week
+        const weekDailyProgressValues = weekDays
             .map(d => dailyProgress.find(dp => dp.snapshot_date === format(d, 'yyyy-MM-dd'))?.progress)
-            .filter((p): p is number => p !== undefined && p !== null);
+            .filter((p): p is number => p !== undefined && p !== null && p > 0);
 
-        const avgProgress = weekProgressValues.length > 0
-            ? weekProgressValues.reduce((sum, p) => sum + p, 0) / weekProgressValues.length
+        const avgDailyProgress = weekDailyProgressValues.length > 0
+            ? weekDailyProgressValues.reduce((sum, p) => sum + p, 0) / weekDailyProgressValues.length
+            : 0;
+
+        // Commitments progress for the week
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
+        const commitmentProgressValues = weeklyCommitmentTasks.map(task => {
+             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+                return Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1) * 100;
+            }
+            if (task.measurement_type === 'binary' && task.measurement_goal?.target) {
+                return Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1) * 100;
+            }
+            return 0; // Should not happen if goal is set
+        }).filter(p => p > 0);
+
+        const avgCommitmentProgress = commitmentProgressValues.length > 0
+            ? commitmentProgressValues.reduce((sum, p) => sum + p, 0) / commitmentProgressValues.length
+            : 0;
+
+        // Combine progresses
+        const progressSources = [];
+        if (avgDailyProgress > 0) progressSources.push(avgDailyProgress);
+        if (avgCommitmentProgress > 0) progressSources.push(avgCommitmentProgress);
+
+        const combinedAvgProgress = progressSources.length > 0
+            ? progressSources.reduce((sum, p) => sum + p, 0) / progressSources.length
             : 0;
 
         weeklyProgress.push({
             id: format(weekStart, 'yyyy-MM-dd'),
-            progress: avgProgress,
+            progress: combinedAvgProgress,
         });
 
         weekIndex += 7;
@@ -607,3 +661,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    
