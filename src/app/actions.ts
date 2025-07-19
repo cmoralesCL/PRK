@@ -27,6 +27,7 @@ import {
     areIntervalsOverlapping,
     differenceInWeeks,
     differenceInMonths,
+    differenceInDays,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -128,13 +129,9 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.frequency = values.frequency;
         dataToInsert.measurement_type = values.measurement_type;
         dataToInsert.measurement_goal = values.measurement_goal;
-
-        if (values.frequency === 'specific_days') {
-            dataToInsert.frequency_days = values.frequency_days;
-        }
-        if (values.frequency === 'every_x_weeks' || values.frequency === 'every_x_months') {
-            dataToInsert.frequency_interval = values.frequency_interval;
-        }
+        dataToInsert.frequency_unit = values.frequency_unit;
+        dataToInsert.frequency_interval = values.frequency_interval;
+        dataToInsert.frequency_days = values.frequency_days;
     }
 
 
@@ -161,18 +158,11 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         updateData.measurement_type = null;
         updateData.measurement_goal = null;
         updateData.frequency_interval = null;
+        updateData.frequency_unit = null;
     } else {
         // If it is a habit but measurement is binary, null out goal
         if (values.measurement_type === 'binary') {
             updateData.measurement_goal = null;
-        }
-        // Null out interval if not needed
-        if (values.frequency !== 'every_x_weeks' && values.frequency !== 'every_x_months') {
-            updateData.frequency_interval = null;
-        }
-        // Null out specific days if not needed
-         if (values.frequency !== 'specific_days') {
-            updateData.frequency_days = null;
         }
     }
 
@@ -201,7 +191,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             if (updateError) throw updateError;
         }
 
-        let completionPercentage = 1.0; // Default to 100% for binary habits/tasks
+        let completionPercentage = 1.0; 
 
         if (progressValue !== undefined) {
             const { data: task, error: taskError } = await supabase
@@ -363,22 +353,25 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         return false;
 
     } else if (task.type === 'habit') {
+        const interval = task.frequency_interval || 1;
         switch (task.frequency) {
             case 'daily':
                 return true;
-            case 'weekly':
-                return true; // Active for weekly commitments sidebar
-            case 'monthly':
-                return true; // Active for monthly commitments sidebar
+            case 'weekly': // Acumulativo
+            case 'monthly': // Acumulativo
+                return false; // These are handled as commitments, not on specific days.
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee').toLowerCase();
                 return task.frequency_days?.includes(dayOfWeek) ?? false;
+            case 'every_x_days':
+                 const daysDiff = differenceInDays(targetDate, startDate);
+                return daysDiff >= 0 && daysDiff % interval === 0;
             case 'every_x_weeks':
-                const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 });
-                return weeksDiff >= 0 && weeksDiff % (task.frequency_interval || 1) === 0;
+                const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: getDay(startDate) as any });
+                return weeksDiff >= 0 && weeksDiff % interval === 0 && getDay(targetDate) === getDay(startDate);
             case 'every_x_months':
                 const monthsDiff = differenceInMonths(targetDate, startDate);
-                return monthsDiff >= 0 && monthsDiff % (task.frequency_interval || 1) === 0 && targetDate.getDate() === startDate.getDate();
+                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === startDate.getDate();
             default:
                 return false;
         }
@@ -396,10 +389,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[]): Promise<HabitTask[]> {
     const dateString = format(date, 'yyyy-MM-dd');
     
-    const activeTasks = allHabitTasks.filter(task => 
-        isTaskActiveOnDate(task, date) &&
-        (task.type !== 'habit' || (task.type === 'habit' && task.frequency !== 'weekly' && task.frequency !== 'monthly'))
-    );
+    const activeTasks = allHabitTasks.filter(task => isTaskActiveOnDate(task, date));
 
     return activeTasks.map(task => {
         const completionLog = allProgressLogs.find(log => 
@@ -433,10 +423,7 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  */
 function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = habitTasks.filter(ht => 
-            ht.area_prk_id === areaPrk.id &&
-            (ht.type !== 'habit' || (ht.type === 'habit' && ht.frequency !== 'weekly' && ht.frequency !== 'monthly'))
-        );
+        const relevantTasks = habitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null };
@@ -444,11 +431,14 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
-             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-                const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target;
-                return sum + (progressPercentage * task.weight);
+            if (task.completedToday) {
+                 if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+                    const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target;
+                    return sum + (progressPercentage * task.weight);
+                }
+                return sum + (1 * task.weight);
             }
-            return sum + (task.completedToday ? task.weight : 0);
+            return sum;
         }, 0);
         
         const progress = totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
@@ -576,7 +566,7 @@ export async function getCalendarData(monthDate: Date) {
             );
         }
 
-        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage === 1 ? 1 : 0)), 0);
+        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? log.completion_percentage : 0)), 0);
         
         let completedToday = false;
         if (task.measurement_type === 'binary') {
@@ -605,31 +595,43 @@ export async function getCalendarData(monthDate: Date) {
         let totalWeightedProgress = 0;
         let totalWeight = 0;
 
-        // 1. Daily tasks progress (already weighted)
+        // 1. Daily tasks progress (already weighted by day)
         weekDays.forEach(d => {
             const dayString = format(d, 'yyyy-MM-dd');
             const tasks = habitTasksByDay[dayString] ?? [];
             if (tasks.length > 0) {
-                const dayProgress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress ?? 0;
-                const dayWeight = tasks.reduce((sum, task) => sum + task.weight, 0);
-                totalWeightedProgress += (dayProgress / 100) * dayWeight;
-                totalWeight += dayWeight;
+                tasks.forEach(task => {
+                    const progressPercentage = task.completedToday 
+                        ? (task.measurement_type === 'quantitative' && task.measurement_goal?.target 
+                            ? (task.current_progress_value ?? 0) / task.measurement_goal.target
+                            : 1)
+                        : 0;
+                    totalWeightedProgress += progressPercentage * task.weight;
+                    totalWeight += task.weight;
+                });
             }
         });
 
         // 2. Weekly commitments progress (now with weight)
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' && areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: parseISO(c.start_date!), end: c.archived_at ? parseISO(c.archived_at) : new Date(8640000000000000)}));
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
         weeklyCommitmentTasks.forEach(task => {
+             if (!task.start_date) return;
+            const taskStartDate = parseISO(task.start_date);
+            const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
+            if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
+                return;
+            }
+
             let progressPercentage = 0;
             const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
             
             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : (totalValue > 0 ? 1 : 0);
+                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
                 const target = task.measurement_goal?.target ?? 1;
-                progressPercentage = target > 0 ? (completions / target) : (completions > 0 ? 1 : 0);
+                progressPercentage = target > 0 ? (completions / target) : 0;
             }
             
             totalWeightedProgress += progressPercentage * task.weight;
@@ -656,17 +658,20 @@ export async function getCalendarData(monthDate: Date) {
     daysInMonth.forEach(day => {
         const dayString = format(day, 'yyyy-MM-dd');
         const tasks = habitTasksByDay[dayString] ?? [];
-        if (tasks.length > 0) {
-            const dayProgress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress ?? 0;
-            const dayWeight = tasks.reduce((sum, task) => sum + task.weight, 0);
-            totalMonthlyWeightedProgress += (dayProgress / 100) * dayWeight;
-            totalMonthlyWeight += dayWeight;
-        }
+        tasks.forEach(task => {
+            const progressPercentage = task.completedToday 
+                ? (task.measurement_type === 'quantitative' && task.measurement_goal?.target
+                    ? (task.current_progress_value ?? 0) / task.measurement_goal.target
+                    : 1)
+                : 0;
+            totalMonthlyWeightedProgress += progressPercentage * task.weight;
+            totalMonthlyWeight += task.weight;
+        });
     });
 
-    // Monthly commitments
-    const monthlyCommitmentTasks = commitments.filter(c => c.frequency === 'monthly');
-    monthlyCommitmentTasks.forEach(task => {
+    // Weekly and Monthly commitments for the month
+    const accumulativeCommitments = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'monthly');
+    accumulativeCommitments.forEach(task => {
         let progressPercentage = 0;
         const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
 

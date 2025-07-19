@@ -32,9 +32,13 @@ export interface HabitTask {
   archived_at?: string | null;
   
   start_date?: string; // Corresponds to start_date
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | 'every_x_weeks' | 'every_x_months' | null;
-  frequency_interval?: number | null; // For 'every_x_weeks' or 'every_x_months'
-  frequency_days?: string[] | null; // Corresponds to frequency_days
+  
+  // Frequency for interval-based habits
+  frequency?: 'daily' | 'specific_days' | 'every_x_days' | 'every_x_weeks' | 'every_x_months' | 'weekly' | 'monthly' | null;
+  frequency_unit?: 'days' | 'weeks' | 'months' | null;
+  frequency_interval?: number | null; // For 'every_x...' frequencies
+  frequency_days?: string[] | null; // For 'specific_days'
+  
   weight: number;
 
   due_date?: string | null; // Corresponds to due_date
@@ -45,9 +49,6 @@ export interface HabitTask {
 
   is_critical: boolean; // Corresponds to is_critical
   
-  // Este campo no existe en la BD, lo eliminamos.
-  // commitment_period?: CommitmentPeriod | null; 
-
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | null;
   measurement_goal?: { target?: number; unit?: string; } | null; // Corresponds to measurement_goal

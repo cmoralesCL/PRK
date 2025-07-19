@@ -49,7 +49,8 @@ const formSchema = z.object({
     weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
     is_critical: z.boolean().default(false),
     // Habit specific fields
-    frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days', 'every_x_weeks', 'every_x_months']).optional(),
+    frequency: z.enum(['daily', 'specific_days', 'every_x_days', 'every_x_weeks', 'every_x_months', 'weekly', 'monthly']).optional(),
+    frequency_unit: z.enum(['days', 'weeks', 'months']).optional(),
     frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
     measurement_type: z.enum(['binary', 'quantitative']).optional(),
@@ -67,7 +68,7 @@ const formSchema = z.object({
     path: ["frequency_days"],
 })
 .refine((data) => {
-    if (data.type === 'habit' && (data.frequency === 'every_x_weeks' || data.frequency === 'every_x_months')) {
+    if (data.type === 'habit' && (data.frequency === 'every_x_days' || data.frequency === 'every_x_weeks' || data.frequency === 'every_x_months')) {
         return data.frequency_interval != null && data.frequency_interval > 0;
     }
     return true;
@@ -135,6 +136,7 @@ export function AddHabitTaskDialog({
 
   const type = form.watch('type');
   const frequency = type === 'habit' ? form.watch('frequency') : undefined;
+  const isIntervalFrequency = frequency === 'every_x_days' || frequency === 'every_x_weeks' || frequency === 'every_x_months';
   const measurementType = type === 'habit' ? form.watch('measurement_type') : undefined;
 
   useEffect(() => {
@@ -156,6 +158,7 @@ export function AddHabitTaskDialog({
                 frequency: habitTask.frequency || 'daily',
                 frequency_days: habitTask.frequency_days || [],
                 frequency_interval: habitTask.frequency_interval,
+                frequency_unit: habitTask.frequency_unit,
                 measurement_type: habitTask.measurement_type === 'quantitative' ? 'quantitative' : 'binary',
                 ...(habitTask.measurement_type === 'quantitative' && {
                     measurement_goal: {
@@ -180,6 +183,7 @@ export function AddHabitTaskDialog({
           weight: 1,
           is_critical: false,
           frequency_interval: 1,
+          frequency_unit: 'days',
           ...defaultValues
         });
       }
@@ -188,7 +192,17 @@ export function AddHabitTaskDialog({
 
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    onSave(values);
+    let finalValues = { ...values };
+
+    if (values.frequency === 'every_x_weeks') {
+        finalValues.frequency_unit = 'weeks';
+    } else if (values.frequency === 'every_x_months') {
+        finalValues.frequency_unit = 'months';
+    } else if (values.frequency === 'every_x_days') {
+        finalValues.frequency_unit = 'days';
+    }
+
+    onSave(finalValues);
     form.reset();
     onOpenChange(false);
   };
@@ -368,11 +382,12 @@ export function AddHabitTaskDialog({
                             </FormControl>
                             <SelectContent>
                                 <SelectItem value="daily">Diaria</SelectItem>
-                                <SelectItem value="weekly">Semanal (Acumulativa)</SelectItem>
-                                <SelectItem value="monthly">Mensual (Acumulativa)</SelectItem>
                                 <SelectItem value="specific_days">Días Específicos</SelectItem>
+                                <SelectItem value="every_x_days">Cada X Días</SelectItem>
                                 <SelectItem value="every_x_weeks">Cada X Semanas</SelectItem>
                                 <SelectItem value="every_x_months">Cada X Meses</SelectItem>
+                                <SelectItem value="weekly">Acumulativo Semanal</SelectItem>
+                                <SelectItem value="monthly">Acumulativo Mensual</SelectItem>
                             </SelectContent>
                             </Select>
                             <FormMessage />
@@ -380,14 +395,14 @@ export function AddHabitTaskDialog({
                     )}
                     />
 
-                    {(frequency === 'every_x_weeks' || frequency === 'every_x_months') && (
+                    {isIntervalFrequency && (
                          <FormField
                             control={form.control}
                             name="frequency_interval"
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>
-                                    {frequency === 'every_x_weeks' ? 'Cada cuantas semanas' : 'Cada cuantos meses'}
+                                    Intervalo (Cada X...)
                                 </FormLabel>
                                 <Input type="number" min="1" placeholder="Ej: 2" {...field} />
                                 <FormMessage />
