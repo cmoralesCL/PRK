@@ -115,14 +115,18 @@ export function Dashboard({
     startTransition(async () => {
         try {
             const habitTaskData: Partial<HabitTask> = {
+                areaPrkId,
                 title: values.title,
                 type: values.type,
-                areaPrkId: areaPrkId,
-                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
-                dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
-                frequency: values.frequency,
-                frequencyDays: values.frequencyDays,
+                startDate: values.startDate?.toISOString().split('T')[0],
                 weight: values.weight,
+                isCritical: values.isCritical,
+                // Only include these fields if they have a value to avoid sending `undefined`
+                ...(values.dueDate && { dueDate: values.dueDate.toISOString().split('T')[0] }),
+                ...(values.frequency && { frequency: values.frequency }),
+                ...(values.frequencyDays && values.frequencyDays.length > 0 && { frequencyDays: values.frequencyDays }),
+                ...(values.measurementType && { measurementType: values.measurementType }),
+                ...(values.measurementGoal && { measurementGoal: values.measurementGoal }),
             };
             
             if (editingHabitTask) {
@@ -133,6 +137,7 @@ export function Dashboard({
                 toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
+          console.error("Error saving habit/task:", error);
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
         }
     });
