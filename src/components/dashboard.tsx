@@ -203,8 +203,8 @@ export function Dashboard({
                 habitTaskData.start_date = format(startDate, 'yyyy-MM-dd');
                 habitTaskData.due_date = format(dueDate, 'yyyy-MM-dd');
             } else {
-                habitTaskData.start_date = values.start_date ? values.start_date.toISOString().split('T')[0] : undefined;
-                habitTaskData.due_date = values.due_date ? values.due_date.toISOString().split('T')[0] : undefined;
+                habitTaskData.start_date = values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined;
+                habitTaskData.due_date = values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined;
             }
             
             if (values.type === 'habit') {
@@ -421,6 +421,8 @@ export function Dashboard({
     </>
   );
 }
+
+    
 
     
 
