@@ -371,7 +371,11 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[]): Promise<HabitTask[]> {
     const dateString = format(date, 'yyyy-MM-dd');
     
-    const activeTasks = allHabitTasks.filter(task => isTaskActiveOnDate(task, date));
+    // Filter tasks that are active AND are not weekly/monthly commitments, as they don't appear in daily views.
+    const activeTasks = allHabitTasks.filter(task => 
+        isTaskActiveOnDate(task, date) &&
+        (task.type !== 'habit' || (task.type === 'habit' && task.frequency !== 'weekly' && task.frequency !== 'monthly'))
+    );
 
     return activeTasks.map(task => {
         const completionLog = allProgressLogs.find(log => 

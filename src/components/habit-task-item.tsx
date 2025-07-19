@@ -47,7 +47,7 @@ export function HabitTaskItem({ item, onToggle, selectedDate }: HabitTaskItemPro
         <Checkbox
             id={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
             checked={isCompleted}
-            onCheckedChange={handleToggle}
+            onCheckedChange={onToggle ? handleToggle : undefined}
             className={cn("h-3.5 w-3.5 border-secondary-foreground/50", !onToggle && "pointer-events-none")}
             aria-label={`Marcar ${item.title} como completada`}
         />
@@ -57,7 +57,7 @@ export function HabitTaskItem({ item, onToggle, selectedDate }: HabitTaskItemPro
             className={cn(
                 "text-xs truncate flex-grow text-left font-normal", 
                 isCompleted && "line-through",
-                onToggle ? "cursor-pointer" : "cursor-default pointer-events-none"
+                onToggle ? "cursor-pointer" : "cursor-default"
             )}
         >
             {item.title}
