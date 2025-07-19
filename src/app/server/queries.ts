@@ -75,7 +75,6 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
 
 const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> => {
     const supabase = createClient();
-    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
 
     const { data: allHabitTasksData, error: habitTasksError } = await supabase
         .from('habit_tasks')
@@ -90,9 +89,7 @@ const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> =>
     // Fetch progress logs for the specific date range needed
     const { data: progressLogsData, error: progressLogsError } = await supabase
         .from('progress_logs')
-        .select('habit_task_id, completion_date')
-        .gte('completion_date', format(subDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), 1), 'yyyy-MM-dd'))
-        .lte('completion_date', format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+        .select('habit_task_id, completion_date');
 
     if (progressLogsError) throw progressLogsError;
     
@@ -105,22 +102,36 @@ const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> =>
     return allHabitTasks
         .filter(ht => {
             if (ht.archived) return false;
+            
+            // Handle one-time tasks and projects
             if (ht.type === 'project' || ht.type === 'task') {
                 return isTaskActiveOnDate(ht, selectedDate);
             }
 
-            if (!ht.startDate) return false;
-            const startDate = startOfDay(parseISO(ht.startDate));
-            if (isAfter(startDate, selectedDate)) return false;
+            // Handle recurring habits
+            if (ht.type === 'habit') {
+                if (!ht.startDate) return false;
+                const startDate = startOfDay(parseISO(ht.startDate));
+                if (isAfter(startDate, selectedDate)) return false;
 
-            if (ht.frequency === 'specific_days' && ht.frequencyDays) {
-                const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-                const selectedDayOfWeek = getDay(selectedDate);
-                const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
-                return requiredDays.includes(selectedDayOfWeek);
-            }
-            if (ht.frequency === 'weekly' || ht.frequency === 'monthly' || ht.frequency === 'daily') {
-                return true;
+                switch (ht.frequency) {
+                    case 'daily':
+                        return true;
+                    case 'weekly':
+                        return true;
+                    case 'monthly':
+                        return true;
+                    case 'specific_days':
+                        if (ht.frequencyDays && ht.frequencyDays.length > 0) {
+                            const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+                            const selectedDayOfWeek = getDay(selectedDate);
+                            const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
+                            return requiredDays.includes(selectedDayOfWeek);
+                        }
+                        return false; // No specific days defined
+                    default:
+                        return false;
+                }
             }
             
             return false;
@@ -128,7 +139,8 @@ const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> =>
         .map(ht => {
             let completedToday = false;
             if (ht.type === 'project' || ht.type === 'task') {
-                if (ht.completionDate && ht.startDate) {
+                // For one-time tasks, completedToday is true only if completionDate is the selectedDate
+                 if (ht.completionDate) {
                      completedToday = isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
                 }
             } else { // 'habit'
@@ -300,11 +312,11 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
         supabase.from('daily_progress_snapshots').select('snapshot_date, progress')
             .gte('snapshot_date', format(monthStart, 'yyyy-MM-dd'))
             .lte('snapshot_date', format(monthEnd, 'yyyy-MM-dd')),
-        supabase.from('habit_tasks').select('*').eq('archived', false)
+        getHabitTasksForDate(startOfDay(date))
     ]);
 
-    if (snapshots.error || allHabitTasks.error) {
-        console.error("Error fetching calendar data:", snapshots.error || allHabitTasks.error);
+    if (snapshots.error) {
+        console.error("Error fetching calendar data:", snapshots.error);
         return [];
     }
 
@@ -314,31 +326,17 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
     const intervalDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const calendarData: CalendarDataPoint[] = [];
 
-    const mappedAllHabitTasks = allHabitTasks.data.map(mapHabitTaskFromDb);
-
     for (const day of intervalDays) {
+        // We can optimize this by fetching all tasks for the month once,
+        // then filtering in-memory for each day.
+        const tasksForDay = await getHabitTasksForDate(startOfDay(day));
+        
         const dateStr = format(day, 'yyyy-MM-dd');
-        const tasksForDay = mappedAllHabitTasks.filter(ht => {
-             if (ht.type === 'project' || ht.type === 'task') {
-                return isTaskActiveOnDate(ht, day);
-            }
-             if (!ht.startDate) return false;
-            const startDate = startOfDay(parseISO(ht.startDate));
-            if (isAfter(startDate, day)) return false;
-
-            if (ht.frequency === 'specific_days' && ht.frequencyDays) {
-                 const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-                const selectedDayOfWeek = getDay(day);
-                const requiredDays = ht.frequencyDays.map(d => dayOfWeekMap[d]);
-                return requiredDays.includes(selectedDayOfWeek);
-            }
-            return ht.frequency === 'daily' || ht.frequency === 'weekly' || ht.frequency === 'monthly';
-        });
-
+        
         calendarData.push({
             date: day.toISOString(),
             progress: progressMap.get(dateStr) ?? 0,
-            tasks: tasksForDay // Nota: El estado `completedToday` ya no se calcula aquí
+            tasks: tasksForDay
         });
     }
 
