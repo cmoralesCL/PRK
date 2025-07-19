@@ -1,11 +1,12 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
-import { format, startOfDay, parseISO, getDay, addDays } from 'date-fns';
+import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot } from "@/lib/types";
+import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -70,6 +71,7 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         throw error;
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<void> {
@@ -95,6 +97,7 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>): P
         throw error;
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
@@ -118,6 +121,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         if (logError) throw logError;
 
         revalidatePath('/');
+        revalidatePath('/calendar');
     } catch (error) {
         console.error('Error in logHabitTaskCompletion:', error);
         throw new Error('Failed to log task completion.');
@@ -146,6 +150,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         }
         
         revalidatePath('/');
+        revalidatePath('/calendar');
     } catch (error) {
         console.error('Error in removeHabitTaskCompletion:', error);
         throw new Error('Failed to remove task completion log.');
@@ -162,6 +167,7 @@ export async function archiveLifePrk(id: string) {
         throw new Error("Failed to archive life prk.");
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function archiveAreaPrk(id: string) {
@@ -174,6 +180,7 @@ export async function archiveAreaPrk(id: string) {
         throw new Error("Failed to archive area prk.");
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function archiveHabitTask(id: string) {
@@ -186,6 +193,7 @@ export async function archiveHabitTask(id: string) {
         throw new Error("Failed to archive habit/task.");
     }
     revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 
@@ -330,5 +338,54 @@ export async function getDashboardData(selectedDateString: string) {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
+    };
+}
+
+
+export async function getCalendarData(monthDate: Date) {
+    const supabase = createClient();
+
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+    // Fetch all necessary data for the entire month once
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
+    if (lifePrksError) throw lifePrksError;
+
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
+    if (areaPrksError) throw areaPrksError;
+
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
+    if (habitTasksError) throw habitTasksError;
+
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(monthStart, 'yyyy-MM-dd')).lte('completion_date', format(monthEnd, 'yyyy-MM-dd'));
+    if (progressLogsError) throw progressLogsError;
+
+    // Calculate progress for each day of the month
+    const dailyProgress: DailyProgressSnapshot[] = [];
+    const habitTasksByDay: Record<string, HabitTask[]> = {};
+
+    for (const day of daysInMonth) {
+        const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
+        
+        const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
+        const overallProgress = relevantLifePrks.length > 0
+            ? relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / relevantLifePrks.length
+            : 0;
+
+        dailyProgress.push({
+            id: format(day, 'yyyy-MM-dd'),
+            snapshot_date: format(day, 'yyyy-MM-dd'),
+            progress: isNaN(overallProgress) ? 0 : overallProgress,
+        });
+
+        habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
+    }
+
+    return {
+        dailyProgress,
+        habitTasks: habitTasksByDay,
     };
 }

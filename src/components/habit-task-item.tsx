@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CheckSquare, Repeat } from 'lucide-react';
@@ -11,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { format } from 'date-fns';
 
 
 interface HabitTaskItemProps {
@@ -36,6 +38,7 @@ export function HabitTaskItem({ item, onToggle, selectedDate }: HabitTaskItemPro
             checked={isCompleted}
             onCheckedChange={handleToggle}
             className="h-3.5 w-3.5"
+            disabled={!onToggle}
         />
         <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
         <Label 

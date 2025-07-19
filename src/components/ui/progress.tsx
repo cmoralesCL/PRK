@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -11,9 +12,9 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => {
   const progressValue = value || 0;
   const colorClass = 
-    progressValue === 100 
+    progressValue >= 75
       ? 'bg-green-500' 
-      : progressValue >= 50 
+      : progressValue >= 40
       ? 'bg-orange-400' 
       : 'bg-red-500';
 

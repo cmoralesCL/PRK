@@ -1,6 +1,7 @@
+
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -26,17 +27,33 @@ interface HeaderProps {
 export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicker = false, hideAddButton = false }: HeaderProps) {
   const pathname = usePathname();
 
+  const navLinks = [
+    { href: "/", label: "Dashboard", icon: Compass },
+    { href: "/calendar", label: "Calendario", icon: CalendarIcon },
+    // { href: "/journal", label: "Diario", icon: BookOpen },
+  ];
+
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-10 border-b">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-6">
             <Link href="/" className="flex items-center space-x-3">
                 <Compass className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold font-headline text-foreground">
-                Brújula de Resultados Personales
+                <h1 className="text-xl font-bold font-headline text-foreground hidden sm:block">
+                Brújula de Resultados
                 </h1>
             </Link>
+            <nav className="flex items-center gap-1">
+                {navLinks.map(link => (
+                    <Button key={link.href} variant={pathname === link.href ? "secondary" : "ghost"} asChild>
+                        <Link href={link.href}>
+                            <link.icon className="h-4 w-4 sm:mr-2"/>
+                            <span className="hidden sm:inline">{link.label}</span>
+                        </Link>
+                    </Button>
+                ))}
+            </nav>
           </div>
           <div className="flex items-center gap-2">
             {!hideDatePicker && (
@@ -45,7 +62,7 @@ export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicke
                    <Button
                      variant={'outline'}
                      className={cn(
-                       'w-[280px] justify-start text-left font-normal',
+                       'w-[240px] justify-start text-left font-normal hidden md:flex',
                        !selectedDate && 'text-muted-foreground'
                      )}
                    >
@@ -67,7 +84,7 @@ export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicke
             {!hideAddButton && (
                  <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
                     <Plus className="mr-2 h-4 w-4" />
-                    Agregar PRK de Vida
+                    <span className="hidden sm:inline">PRK de Vida</span>
                 </Button>
             )}
           </div>
