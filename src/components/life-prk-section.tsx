@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Target, Plus, Archive, MoreVertical } from 'lucide-react';
+import { Target, Plus, Archive, MoreVertical, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AreaPrkCard } from './area-prk-card';
@@ -18,6 +18,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { cn } from '@/lib/utils';
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
@@ -53,22 +54,27 @@ export function LifePrkSection({
 
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
-       <div className="py-8 bg-card rounded-lg shadow-sm px-6">
-        <AccordionTrigger className="w-full hover:no-underline p-0 rounded-md hover:bg-muted/50 text-left">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-4">
-              <div className="flex-grow">
-                  <div className="mb-4 sm:mb-0">
-                      <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-                          <Target className="h-8 w-8 text-primary" />
-                          {lifePrk.title}
-                      </h2>
-                      <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+       <div className="py-4 bg-card rounded-lg shadow-sm px-6">
+        <div className="flex justify-between items-start gap-4">
+            <AccordionTrigger className="w-full hover:no-underline p-0 rounded-md text-left flex-grow group">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-2">
+                  <div className="flex-grow">
+                      <div className="mb-4 sm:mb-0">
+                          <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
+                              <Target className="h-8 w-8 text-primary" />
+                              {lifePrk.title}
+                          </h2>
+                          <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+                      </div>
                   </div>
+                  <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </div>
-            <div className="flex items-center gap-2 flex-shrink-0 self-start mt-4 sm:self-center sm:mt-0">
+            </AccordionTrigger>
+             <div className="flex items-center gap-2 flex-shrink-0 self-center">
                 <Button variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Agregar PRK de Área
+                    <span className="hidden sm:inline">Agregar PRK de Área</span>
+                    <span className="inline sm:hidden">PRK Área</span>
                 </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -85,7 +91,6 @@ export function LifePrkSection({
                 </DropdownMenu>
             </div>
           </div>
-        </AccordionTrigger>
         
         <div className="px-4">
             <div className="space-y-2 mt-4">
