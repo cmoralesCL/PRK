@@ -159,28 +159,43 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
 
 export async function archiveLifePrk(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
-    if(error) throw error;
-    revalidatePath('/');
-    revalidatePath('/calendar');
-    revalidatePath('/journal');
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
+        if(error) throw error;
+        revalidatePath('/');
+        revalidatePath('/calendar');
+        revalidatePath('/journal');
+    } catch (error) {
+        console.error('Error archiving Life PRK:', error);
+        throw new Error('Failed to archive Life PRK.');
+    }
 }
 
 export async function archiveAreaPrk(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
-    if(error) throw error;
-    revalidatePath('/');
-    revalidatePath('/calendar');
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
+        if(error) throw error;
+        revalidatePath('/');
+        revalidatePath('/calendar');
+    } catch (error) {
+        console.error('Error archiving Area PRK:', error);
+        throw new Error('Failed to archive Area PRK.');
+    }
 }
 
 export async function archiveHabitTask(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
-    if(error) throw error;
-    revalidatePath('/');
-    revalidatePath('/calendar');
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
+        if(error) throw error;
+        revalidatePath('/');
+        revalidatePath('/calendar');
+    } catch (error) {
+        console.error('Error archiving Habit/Task:', error);
+        throw new Error('Failed to archive Habit/Task.');
+    }
 }
 
 export async function getLifePrkProgressData(options: { from: Date, to: Date, timeRange: TimeRangeOption }) {
