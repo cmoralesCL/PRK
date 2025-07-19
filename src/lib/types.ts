@@ -55,8 +55,8 @@ export interface ProgressLog {
   id: string;
   habit_task_id: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
-  
   progress_value?: number | null; // Corresponds to progress_value
+  completion_percentage?: number | null; // Corresponds to completion_percentage
 }
 
 export interface DailyProgressSnapshot {
@@ -64,3 +64,4 @@ export interface DailyProgressSnapshot {
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
+

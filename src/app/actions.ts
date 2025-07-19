@@ -103,11 +103,18 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
 
 export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('habit_tasks').insert([{ 
+    
+    const dataToInsert = {
         ...values,
-        ...(values.measurement_type && { measurement_type: values.measurement_type }),
-        ...(values.measurement_goal && { measurement_goal: values.measurement_goal }),
-     }]);
+        ...(values.type === 'habit' && {
+            measurement_type: values.measurement_type,
+            measurement_goal: values.measurement_goal,
+            frequency: values.frequency,
+            frequency_days: values.frequency_days,
+        }),
+    };
+
+    const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
 
     if(error) {
         console.error("Error adding Habit/Task:", error);
@@ -159,14 +166,19 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             if (updateError) throw updateError;
         }
 
-        // Upsert operation: if a log exists for this task on this day, update it. Otherwise, insert a new one.
-        const { error: logError } = await supabase.from('progress_logs').upsert({
+        const upsertData: any = {
             habit_task_id: habitTaskId,
             completion_date: completionDate,
-            progress_value: progressValue, 
-        }, {
-            onConflict: 'habit_task_id, completion_date'
-        });
+            progress_value: progressValue,
+             // Set completion_percentage to null for quantitative habits, 1.0 for others
+            completion_percentage: progressValue !== undefined ? null : 1.0,
+        };
+        
+        // Upsert operation: if a log exists for this task on this day, update it. Otherwise, insert a new one.
+        const { error: logError } = await supabase.from('progress_logs').upsert(
+            upsertData, 
+            { onConflict: 'habit_task_id, completion_date' }
+        );
 
         if (logError) throw logError;
 
@@ -503,9 +515,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     return endOfMonth(endMonth);
 }
 
-    
-
-    
-    
-
-    
