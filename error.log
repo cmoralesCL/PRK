@@ -61,3 +61,12 @@ Caught non-error object: {
 }
 --------------------------------------------------
 
+[2025-07-19T23:58:35.164Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "PGRST204",
+  "details": null,
+  "hint": null,
+  "message": "Could not find the 'frequency_interval' column of 'habit_tasks' in the schema cache"
+}
+--------------------------------------------------
+
