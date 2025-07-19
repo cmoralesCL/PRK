@@ -85,7 +85,7 @@ export function Dashboard({
     if (!activeLifePrkId) return;
      startTransition(async () => {
         try {
-          await addAreaPrk({ ...values, lifePrkId: activeLifePrkId });
+          await addAreaPrk({ ...values, life_prk_id: activeLifePrkId });
           toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Área.' });
@@ -116,6 +116,10 @@ export function Dashboard({
                 dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
                 frequency: values.frequency,
                 frequencyDays: values.frequencyDays,
+                weight: values.weight,
+                isCritical: values.isCritical,
+                measurementType: values.measurementType,
+                measurementGoal: values.measurementGoal,
             };
             
             if (editingHabitTask) {
@@ -126,7 +130,8 @@ export function Dashboard({
                 toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
+            console.error("Error al guardar la acción:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción. Revisa los campos e inténtalo de nuevo.' });
         }
     });
   };
@@ -141,7 +146,7 @@ export function Dashboard({
       try {
         if (completed) {
           await logHabitTaskCompletion(id, task.type, completionDate);
-          if (task.type === 'task') {
+          if (task.type === 'task' || task.type === 'project') {
               toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
@@ -163,7 +168,10 @@ export function Dashboard({
                 areaPrkId, 
                 title, 
                 type: 'task',
-                startDate
+                startDate,
+                weight: 1, // Default weight for suggestions
+                isCritical: false,
+                measurementType: 'binary',
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
         } catch (error) {
@@ -265,6 +273,7 @@ export function Dashboard({
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
         defaultAreaPrkId={activeAreaPrkId || undefined}
+        defaultDate={selectedDate}
         areaPrks={areaPrks}
        />
       <AiSuggestionDialog 
@@ -276,5 +285,3 @@ export function Dashboard({
     </>
   );
 }
-
-    
