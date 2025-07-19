@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parse, startOfWeek } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +11,6 @@ import { ProgressCalendar } from '@/components/progress-calendar';
 import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
 import { addHabitTask, updateHabitTask, archiveHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
-import { useState } from 'react';
 import { CommitmentsPanel } from './commitments-panel';
 import { DayDetailDialog } from './day-detail-dialog';
 
@@ -46,6 +45,7 @@ export function CalendarView({
 
     const [isDayDetailOpen, setDayDetailOpen] = useState(false);
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
+    const [wasCommitmentPanelOpen, setWasCommitmentPanelOpen] = useState(false);
 
     const handleMonthChange = (newMonth: Date) => {
         startTransition(() => {
@@ -69,11 +69,19 @@ export function CalendarView({
         setSelectedDayForDetail(day);
         setDayDetailOpen(true);
     };
+    
+    const handleCloseDayDetail = () => {
+        setDayDetailOpen(false);
+        // Reset the tracking state when the dialog closes
+        setWasCommitmentPanelOpen(false);
+    }
 
     const handleDayClick = (day: Date) => {
         setSelectedWeek(startOfWeek(day, { weekStartsOn: 1 }));
         setCommitmentPanelOpen(true);
         handleOpenDayDetail(day);
+        // Track that both were opened together
+        setWasCommitmentPanelOpen(true);
     }
     
     const handleToggleCommitment = (habitTaskId: string, completed: boolean, date: Date, progressValue?: number) => {
@@ -172,24 +180,24 @@ export function CalendarView({
             />
             <DayDetailDialog 
                 isOpen={isDayDetailOpen}
-                onOpenChange={setDayDetailOpen}
+                onOpenChange={handleCloseDayDetail}
                 day={selectedDayForDetail}
                 tasks={selectedDayForDetail ? habitTasksData[format(selectedDayForDetail, 'yyyy-MM-dd')] || [] : []}
                 onAddTask={(date) => {
-                    setDayDetailOpen(false); // Cierra el modal de detalle para abrir el de creación
+                    handleCloseDayDetail(); // Cierra el modal de detalle para abrir el de creación
                     handleOpenAddTaskDialog(date);
                 }}
                 onEditTask={(task, date) => {
-                    setDayDetailOpen(false);
+                    handleCloseDayDetail();
                     handleOpenEditTaskDialog(task, date);
                 }}
                 onArchiveTask={handleArchiveHabitTask}
                 onOpenCommitments={(date) => {
-                    setDayDetailOpen(false);
+                    handleCloseDayDetail();
                     setSelectedWeek(startOfWeek(date, { weekStartsOn: 1 }));
                     setCommitmentPanelOpen(true);
                 }}
-                showOverlay={!isCommitmentPanelOpen}
+                showOverlay={!wasCommitmentPanelOpen}
             />
             <CommitmentsPanel
                 isOpen={isCommitmentPanelOpen}
