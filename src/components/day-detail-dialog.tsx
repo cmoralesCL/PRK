@@ -29,6 +29,7 @@ interface DayDetailDialogProps {
   onEditTask: (task: HabitTask, date: Date) => void;
   onArchiveTask: (id: string, date: Date) => void;
   onOpenCommitments: (date: Date) => void;
+  showOverlay?: boolean;
 }
 
 export function DayDetailDialog({ 
@@ -39,7 +40,8 @@ export function DayDetailDialog({
   onAddTask, 
   onEditTask, 
   onArchiveTask,
-  onOpenCommitments
+  onOpenCommitments,
+  showOverlay = true,
 }: DayDetailDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -79,7 +81,7 @@ export function DayDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" showOverlay={showOverlay}>
         <DialogHeader>
           <DialogTitle className="font-headline">
             Tareas del {format(day, "d 'de' LLLL", { locale: es })}

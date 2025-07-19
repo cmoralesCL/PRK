@@ -189,6 +189,7 @@ export function CalendarView({
                     setSelectedWeek(startOfWeek(date, { weekStartsOn: 1 }));
                     setCommitmentPanelOpen(true);
                 }}
+                showOverlay={!isCommitmentPanelOpen}
             />
             <CommitmentsPanel
                 isOpen={isCommitmentPanelOpen}
