@@ -74,8 +74,8 @@ const formSchema = z.object({
     return true;
 }, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurement_type']})
 .refine(data => {
-    if (data.measurement_type === 'quantitative' && (!data.measurement_goal || !data.measurement_goal.target || !data.measurement_goal.unit)) {
-        return false;
+    if (data.measurement_type === 'quantitative') {
+        return data.measurement_goal?.target !== undefined && data.measurement_goal?.unit !== undefined && data.measurement_goal?.unit !== '';
     }
     return true;
 }, { message: "El objetivo y la unidad son requeridos para la medición cuantitativa.", path: ['measurement_goal'] });
@@ -83,7 +83,7 @@ const formSchema = z.object({
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
 
-interface HabitTaskDialogProps {
+interface AddHabitTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (values: HabitTaskFormValues) => void;
@@ -103,7 +103,7 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
+export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: AddHabitTaskDialogProps) {
   const isEditing = !!habitTask;
 
   const form = useForm<HabitTaskFormValues>({
