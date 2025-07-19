@@ -348,6 +348,8 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return true;
             case 'weekly':
             case 'monthly':
+                // For weekly/monthly habits, they are always considered "active" during their period.
+                // The actual progress calculation is handled separately.
                 return true;
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee', {locale: es}).toLowerCase(); 
@@ -403,7 +405,11 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  */
 function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = habitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
+        // Filter out weekly/monthly habits from daily progress calculation
+        const relevantTasks = habitTasks.filter(ht => 
+            ht.area_prk_id === areaPrk.id &&
+            ht.type !== 'habit' || (ht.type === 'habit' && ht.frequency !== 'weekly' && ht.frequency !== 'monthly')
+        );
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null }; // Sin medición

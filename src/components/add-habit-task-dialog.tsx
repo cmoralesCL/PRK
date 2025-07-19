@@ -37,7 +37,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
-import { useEffect } from 'react';
+import { useEffect, useTransition } from 'react';
 import { Label } from './ui/label';
 
 const formSchema = z.object({
@@ -123,6 +123,10 @@ export function AddHabitTaskDialog({
     },
   });
 
+  const type = form.watch('type');
+  const frequency = type === 'habit' ? form.watch('frequency') : undefined;
+  const measurementType = type === 'habit' ? form.watch('measurement_type') : undefined;
+
   useEffect(() => {
     if (isOpen) {
       if (isEditing && habitTask) {
@@ -170,16 +174,18 @@ export function AddHabitTaskDialog({
     }
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
+   useEffect(() => {
+    if (type === 'habit' && (frequency === 'weekly' || frequency === 'monthly')) {
+        form.setValue('measurement_type', 'quantitative');
+    }
+   }, [type, frequency, form]);
+
 
   const onSubmit = (values: HabitTaskFormValues) => {
     onSave(values);
     form.reset();
     onOpenChange(false);
   };
-
-  const type = form.watch('type');
-  const frequency = type === 'habit' ? form.watch('frequency') : undefined;
-  const measurementType = type === 'habit' ? form.watch('measurement_type') : undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -356,8 +362,8 @@ export function AddHabitTaskDialog({
                             </FormControl>
                             <SelectContent>
                                 <SelectItem value="daily">Diaria</SelectItem>
-                                <SelectItem value="weekly">Semanal</SelectItem>
-                                <SelectItem value="monthly">Mensual</SelectItem>
+                                <SelectItem value="weekly">Semanal (Acumulativa)</SelectItem>
+                                <SelectItem value="monthly">Mensual (Acumulativa)</SelectItem>
                                 <SelectItem value="specific_days">Días Específicos</SelectItem>
                             </SelectContent>
                             </Select>
@@ -422,14 +428,19 @@ export function AddHabitTaskDialog({
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Tipo de Medición</FormLabel>
-                                <Select onValueChange={(value) => {
-                                    field.onChange(value);
-                                    if (value === 'quantitative') {
-                                        form.setValue('measurement_goal', { target: 1, unit: ''});
-                                    } else {
-                                        form.setValue('measurement_goal', undefined);
-                                    }
-                                }} defaultValue={field.value} value={field.value}>
+                                <Select 
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        if (value === 'quantitative') {
+                                            form.setValue('measurement_goal', { target: 1, unit: ''});
+                                        } else {
+                                            form.setValue('measurement_goal', undefined);
+                                        }
+                                    }} 
+                                    defaultValue={field.value} 
+                                    value={field.value}
+                                    disabled={frequency === 'weekly' || frequency === 'monthly'}
+                                >
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecciona un tipo de medición" />

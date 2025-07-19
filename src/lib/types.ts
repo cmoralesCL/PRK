@@ -48,7 +48,7 @@ export interface HabitTask {
   // commitment_period?: CommitmentPeriod | null; 
 
   // Campos para la medición de hábitos
-  measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;
+  measurement_type?: 'binary' | 'quantitative' | null;
   measurement_goal?: { target?: number; unit?: string; } | null; // Corresponds to measurement_goal
 }
 
