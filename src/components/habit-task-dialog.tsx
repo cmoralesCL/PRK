@@ -42,6 +42,7 @@ const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'project', 'task']),
   area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
+  is_weekly_commitment: z.boolean().default(false),
   start_date: z.date().optional(),
   due_date: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
@@ -123,6 +124,7 @@ export function HabitTaskDialog({
       weight: 1,
       measurement_type: 'binary',
       is_critical: false,
+      is_weekly_commitment: false,
     },
   });
 
@@ -133,6 +135,7 @@ export function HabitTaskDialog({
           title: habitTask.title,
           type: habitTask.type,
           area_prk_id: habitTask.area_prk_id,
+          is_weekly_commitment: habitTask.is_weekly_commitment || false,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           frequency: habitTask.frequency || undefined,
@@ -147,6 +150,7 @@ export function HabitTaskDialog({
           title: '',
           type: 'task',
           frequency_days: [],
+          is_weekly_commitment: false,
           start_date: defaultDate || new Date(),
           due_date: undefined,
           frequency: undefined,
@@ -170,6 +174,7 @@ export function HabitTaskDialog({
   const type = form.watch('type');
   const frequency = form.watch('frequency');
   const measurementType = form.watch('measurement_type');
+  const isWeeklyCommitment = form.watch('is_weekly_commitment');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -243,53 +248,36 @@ export function HabitTaskDialog({
                 </FormItem>
               )}
             />
-            
-            <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Fecha de Inicio</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP", { locale: es })
-                            ) : (
-                                <span>Elige una fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
 
-            {type !== 'habit' && (
+            {type === 'task' && (
+                 <FormField
+                    control={form.control}
+                    name="is_weekly_commitment"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <FormLabel>¿Es un Compromiso Semanal?</FormLabel>
+                                <FormMessage />
+                            </div>
+                            <FormControl>
+                                <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            )}
+            
+            {!isWeeklyCommitment && (
+              <>
                 <FormField
                     control={form.control}
-                    name="due_date"
+                    name="start_date"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                        <FormLabel>Fecha Límite (Opcional)</FormLabel>
+                        <FormLabel>Fecha de Inicio</FormLabel>
                         <Popover>
                             <PopoverTrigger asChild>
                             <FormControl>
@@ -322,6 +310,48 @@ export function HabitTaskDialog({
                         </FormItem>
                     )}
                 />
+
+                {type !== 'habit' && (
+                    <FormField
+                        control={form.control}
+                        name="due_date"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Fecha Límite (Opcional)</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP", { locale: es })
+                                    ) : (
+                                        <span>Elige una fecha</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+              </>
             )}
 
             {type === 'habit' && (
@@ -434,7 +464,7 @@ export function HabitTaskDialog({
                                             <Input 
                                                 type="number" 
                                                 placeholder="Objetivo" 
-                                                onChange={(e) => field.onChange({ target: e.target.value, unit: field.value?.unit || '' })}
+                                                onChange={(e) => field.onChange({ target: Number(e.target.value), unit: field.value?.unit || '' })}
                                                 value={field.value?.target || ''}
                                             />
                                         </FormControl>

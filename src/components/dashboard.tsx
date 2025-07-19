@@ -24,13 +24,15 @@ import {
     archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO } from 'date-fns';
+import { parseISO, format, startOfWeek, endOfWeek } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
+import { WeeklyCommitmentsCard } from './weekly-commitments-card';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
+  weeklyCommitments: HabitTask[];
   initialSelectedDate: string;
 }
 
@@ -38,6 +40,7 @@ export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
+  weeklyCommitments,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -160,19 +163,27 @@ export function Dashboard({
   const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-            const habitTaskData = {
+            let habitTaskData: Partial<HabitTask> = {
                 title: values.title,
                 type: values.type,
                 area_prk_id: values.area_prk_id,
-                start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : undefined,
-                due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
-                frequency: values.frequency,
-                frequency_days: values.frequency_days,
                 weight: values.weight,
                 is_critical: values.is_critical,
-                measurement_type: values.measurement_type,
-                measurement_goal: values.measurement_goal,
+                is_weekly_commitment: values.is_weekly_commitment,
+                measurement_type: values.type === 'habit' ? values.measurement_type : undefined,
+                measurement_goal: values.type === 'habit' ? values.measurement_goal : undefined,
+                frequency: values.type === 'habit' ? values.frequency : undefined,
+                frequency_days: values.type === 'habit' ? values.frequency_days : undefined,
             };
+
+            if (values.is_weekly_commitment) {
+                const today = new Date();
+                habitTaskData.start_date = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                habitTaskData.due_date = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            } else {
+                habitTaskData.start_date = values.start_date ? values.start_date.toISOString().split('T')[0] : undefined;
+                habitTaskData.due_date = values.due_date ? values.due_date.toISOString().split('T')[0] : undefined;
+            }
             
             if (editingHabitTask) {
                 await updateHabitTask(editingHabitTask.id, habitTaskData);
@@ -189,7 +200,8 @@ export function Dashboard({
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean, date: Date) => {
-    const task = habitTasks.find(ht => ht.id === id);
+    const allTasks = [...habitTasks, ...weeklyCommitments];
+    const task = allTasks.find(ht => ht.id === id);
     if (!task) return;
 
     const completionDate = date.toISOString().split('T')[0];
@@ -223,6 +235,7 @@ export function Dashboard({
                 start_date: startDate,
                 weight: 1, // Default weight for suggestions
                 is_critical: false,
+                is_weekly_commitment: false,
                 measurement_type: 'binary',
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
@@ -283,6 +296,15 @@ export function Dashboard({
         onDateChange={handleDateChange} 
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        
+        <WeeklyCommitmentsCard
+          commitments={weeklyCommitments}
+          selectedDate={selectedDate}
+          onToggle={handleToggleHabitTask}
+          onEdit={handleOpenEditHabitTaskDialog}
+          onArchive={handleArchiveHabitTask}
+        />
+
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
                 <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
@@ -297,7 +319,7 @@ export function Dashboard({
         )}
         {!isPending && lifePrks.length > 0 && (
           <>
-            <div className="flex justify-end gap-2 mb-4">
+            <div className="flex justify-end gap-2 my-4">
                 <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                     Expandir Todo
                 </Button>

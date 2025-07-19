@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot } from "@/lib/types";
-import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -113,6 +113,8 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
     const supabase = createClient();
     try {
+        // For weekly commitments, we also log completion, but they don't have a daily impact.
+        // For one-off tasks/projects, we set their completion date.
         if (type === 'project' || type === 'task') {
             const { error: updateError } = await supabase
                 .from('habit_tasks')
@@ -214,6 +216,11 @@ export async function archiveHabitTask(id: string) {
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
+    // Weekly commitments are not active on specific days, they are handled separately.
+    if (task.is_weekly_commitment) {
+        return false;
+    }
+
     if (!task.start_date) {
         return false; // No puede estar activa si no tiene fecha de inicio.
     }
@@ -348,15 +355,30 @@ export async function getDashboardData(selectedDateString: string) {
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
     if (progressLogsError) throw progressLogsError;
-
+    
+    // --- Daily Tasks ---
     const habitTasksForDay = await getHabitTasksForDate(selectedDate, allHabitTasks, allProgressLogs);
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
+
+    // --- Weekly Commitments ---
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+
+    const weeklyCommitments = allHabitTasks
+        .filter(task => task.is_weekly_commitment && !task.completion_date && task.start_date && isWithinInterval(selectedDate, { start: parseISO(task.start_date), end: task.due_date ? parseISO(task.due_date) : weekEnd }))
+        .map(task => {
+            // A weekly commitment is "completed today" if it has ANY log, regardless of date. We check its main `completion_date`.
+             const isCompleted = !!task.completion_date;
+             return { ...task, completedToday: isCompleted };
+        });
+
 
     return {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
+        weeklyCommitments: weeklyCommitments,
     };
 }
 

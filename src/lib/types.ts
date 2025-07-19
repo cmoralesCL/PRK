@@ -39,6 +39,7 @@ export interface HabitTask {
   completedToday?: boolean;
 
   is_critical: boolean; // Corresponds to is_critical
+  is_weekly_commitment: boolean; // NEW: To identify weekly commitments
 
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;
@@ -59,5 +60,3 @@ export interface DailyProgressSnapshot {
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
-
-    
