@@ -101,9 +101,13 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
     revalidatePath('/');
 }
 
-export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>) {
+export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at'>>) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('habit_tasks').insert([{ ...values }]);
+    const { data, error } = await supabase.from('habit_tasks').insert([{ 
+        ...values,
+        ...(values.measurement_type && { measurement_type: values.measurement_type }),
+        ...(values.measurement_goal && { measurement_goal: values.measurement_goal }),
+     }]);
 
     if(error) {
         console.error("Error adding Habit/Task:", error);
@@ -484,4 +488,7 @@ export async function endOfSemester(date: Date): Promise<Date> {
     return endOfMonth(endMonth);
 }
 
+    
+
+    
     
