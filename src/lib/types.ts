@@ -57,7 +57,6 @@ export interface ProgressLog {
   completion_date: string;
   
   progress_value?: number | null; // Corresponds to progress_value
-  completion_percentage?: number | null; // Corresponds to completion_percentage
 }
 
 export interface DailyProgressSnapshot {

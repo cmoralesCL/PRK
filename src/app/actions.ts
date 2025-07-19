@@ -163,9 +163,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         const { error: logError } = await supabase.from('progress_logs').upsert({
             habit_task_id: habitTaskId,
             completion_date: completionDate,
-            progress_value: progressValue,
-            // For binary, we set 100%. For quantitative, the calculation will be done based on progress_value vs goal.
-            completion_percentage: type === 'habit' && progressValue !== undefined ? null : 1.0, 
+            progress_value: progressValue, 
         }, {
             onConflict: 'habit_task_id, completion_date'
         });
