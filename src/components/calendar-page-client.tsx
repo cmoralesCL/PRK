@@ -27,7 +27,7 @@ interface CalendarPageClientProps {
     selectedDate: Date;
 }
 
-export function CalendarPageClient({ initialData, initialMonthString }: CalendarPageClientProps) {
+export function CalendarPageClient({ initialData, initialMonthString, selectedDate }: CalendarPageClientProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -55,7 +55,7 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
         setHabitTaskDialogOpen(true);
     };
 
-    const handleOpenAddCommitmentDialog = (frequency: 'weekly' | 'monthly') => {
+    const handleOpenAddCommitmentDialog = (frequency: 'weekly' | 'monthly' | 'quarterly') => {
         setEditingHabitTask(null);
         setSelectedDateForDialog(new Date()); 
         setDefaultHabitTaskValues({
