@@ -28,21 +28,20 @@ export interface HabitTask {
   created_at?: string;
   archived: boolean;
   
-  // Nuevos campos para hábitos
   startDate?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
   frequencyDays?: string[] | null; // Corresponds to frequency_days
   weight: number;
 
-  // Nuevo campo para tareas
   dueDate?: string | null; // Corresponds to due_date
   completionDate?: string | null; // Corresponds to completion_date
 
-  // Para saber si ya se completó hoy (solo para la UI)
   completedToday?: boolean;
 
-  // Fase 1: Nuevos campos
   isCritical: boolean; // Corresponds to is_critical
+
+  // Campos para la medición de hábitos
+  measurementType?: 'binary' | 'quantitative' | 'temporal' | null;
   measurementGoal?: { target: number; unit: string; } | null; // Corresponds to measurement_goal
 }
 
@@ -51,7 +50,6 @@ export interface ProgressLog {
   habitTaskId: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
   
-  // Fase 1: Nuevos campos
   progressValue?: number | null; // Corresponds to progress_value
   completionPercentage?: number | null; // Corresponds to completion_percentage
 }

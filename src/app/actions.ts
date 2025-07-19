@@ -85,6 +85,7 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         due_date: values.dueDate,
         weight: values.weight || 1,
         is_critical: values.isCritical,
+        measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal,
         user_id: user.id
     }]).select().single();
@@ -108,6 +109,7 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
         frequency_days: values.frequencyDays,
         weight: values.weight,
         is_critical: values.isCritical,
+        measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal
       })
       .eq('id', id)

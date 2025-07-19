@@ -47,6 +47,11 @@ const formSchema = z.object({
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
   weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
+  measurementType: z.enum(['binary', 'quantitative', 'temporal']).optional(),
+  measurementGoal: z.object({
+      target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0."),
+      unit: z.string().min(1, "La unidad es requerida."),
+  }).optional(),
 }).refine(data => {
     if (data.type === 'habit' && !data.frequency) {
         return false;
@@ -58,7 +63,19 @@ const formSchema = z.object({
         return false;
     }
     return true;
-}, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequencyDays'] });
+}, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequencyDays'] })
+.refine(data => {
+    if (data.type === 'habit' && !data.measurementType) {
+        return false;
+    }
+    return true;
+}, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurementType']})
+.refine(data => {
+    if (data.measurementType === 'quantitative' && !data.measurementGoal) {
+        return false;
+    }
+    return true;
+}, { message: "El objetivo y la unidad son requeridos para la medición cuantitativa.", path: ['measurementGoal'] });
 
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
@@ -95,6 +112,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       startDate: defaultDate || new Date(),
       areaPrkId: defaultAreaPrkId,
       weight: 1,
+      measurementType: 'binary',
     },
   });
 
@@ -110,6 +128,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
           weight: habitTask.weight || 1,
+          measurementType: habitTask.measurementType || 'binary',
+          measurementGoal: habitTask.measurementGoal || undefined,
         });
       } else {
         form.reset({
@@ -121,6 +141,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           frequency: undefined,
           areaPrkId: defaultAreaPrkId,
           weight: 1,
+          measurementType: 'binary',
+          measurementGoal: undefined,
         });
       }
     }
@@ -135,6 +157,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
 
   const type = form.watch('type');
   const frequency = form.watch('frequency');
+  const measurementType = form.watch('measurementType');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -357,6 +380,58 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                                         }}
                                         />
                                     ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+
+                    <FormField
+                        control={form.control}
+                        name="measurementType"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tipo de Medición</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona un tipo de medición" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="binary">Binario (Sí/No)</SelectItem>
+                                        <SelectItem value="quantitative">Cuantitativo (Numérico)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {measurementType === 'quantitative' && (
+                        <FormField
+                            control={form.control}
+                            name="measurementGoal"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Objetivo Cuantitativo</FormLabel>
+                                    <div className="flex gap-2">
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                placeholder="Objetivo" 
+                                                onChange={(e) => field.onChange({ ...field.value, target: e.target.value })}
+                                                value={field.value?.target || ''}
+                                            />
+                                        </FormControl>
+                                        <FormControl>
+                                            <Input 
+                                                placeholder="Unidad (ej: páginas)" 
+                                                onChange={(e) => field.onChange({ ...field.value, unit: e.target.value })} 
+                                                value={field.value?.unit || ''}
+                                            />
+                                        </FormControl>
                                     </div>
                                     <FormMessage />
                                 </FormItem>
