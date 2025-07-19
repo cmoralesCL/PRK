@@ -101,7 +101,7 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
     revalidatePath('/');
 }
 
-export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at'>>) {
+export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>) {
     const supabase = createClient();
     const { data, error } = await supabase.from('habit_tasks').insert([{ 
         ...values,
@@ -119,9 +119,25 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
 
 export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>): Promise<void> {
     const supabase = createClient();
+    
+    const updateData = { ...values };
+    
+    if (values.type !== 'habit') {
+        // Ensure habit-specific fields are nulled out if type is not habit
+        updateData.frequency = null;
+        updateData.frequency_days = null;
+        updateData.measurement_type = null;
+        updateData.measurement_goal = null;
+    } else {
+        // If it is a habit but measurement is binary, null out goal
+        if (values.measurement_type === 'binary') {
+            updateData.measurement_goal = null;
+        }
+    }
+
     const { data, error } = await supabase
       .from('habit_tasks')
-      .update({ ...values })
+      .update(updateData)
       .eq('id', id);
   
     if (error) {
@@ -259,15 +275,17 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         const dueDate = task.due_date ? parseISO(task.due_date) : null;
         const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
 
-        if (completionDate && completionDate < targetDate) {
+        if (completionDate && startOfDay(completionDate) < targetDate) {
             return false;
         }
         
         if (!dueDate) {
+            // Tarea sin fecha de vencimiento es visible solo en la fecha de inicio
             return isSameDay(targetDate, startDate);
         }
 
-        if (targetDate >= startDate && targetDate <= addDays(dueDate, 1)) {
+        // Tarea es visible desde su inicio hasta un día después de su vencimiento (para poder marcarla tarde)
+        if (targetDate >= startDate && targetDate <= addDays(startOfDay(dueDate), 1)) {
             return true;
         }
         
@@ -313,12 +331,11 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
             isSameDay(parseISO(log.completion_date), date)
         );
         
-        const isCompleted = !!completionLog;
-        let completedToday = isCompleted;
+        let completedToday = !!completionLog;
 
         // For quantitative habits, completion depends on reaching the goal
         if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-            completedToday = isCompleted && (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
+            completedToday = completedToday && (completionLog?.progress_value ?? 0) >= task.measurement_goal.target;
         }
 
         return {
@@ -491,4 +508,6 @@ export async function endOfSemester(date: Date): Promise<Date> {
     
 
     
+    
+
     
