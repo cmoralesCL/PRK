@@ -1,7 +1,7 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,18 @@ export function HabitTaskListItem({
     selectedDate, 
     variant = 'dashboard' 
 }: HabitTaskListItemProps) {
-  const Icon = item.type === 'habit' ? Repeat : CheckSquare;
+  const getIcon = () => {
+    switch (item.type) {
+      case 'habit':
+        return Repeat;
+      case 'project':
+        return Layers;
+      case 'task':
+      default:
+        return CheckSquare;
+    }
+  };
+  const Icon = getIcon();
   const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
 
 
