@@ -174,12 +174,6 @@ export function AddHabitTaskDialog({
     }
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
-   useEffect(() => {
-    if (type === 'habit' && (frequency === 'weekly' || frequency === 'monthly')) {
-        form.setValue('measurement_type', 'quantitative');
-    }
-   }, [type, frequency, form]);
-
 
   const onSubmit = (values: HabitTaskFormValues) => {
     onSave(values);
@@ -439,7 +433,6 @@ export function AddHabitTaskDialog({
                                     }} 
                                     defaultValue={field.value} 
                                     value={field.value}
-                                    disabled={frequency === 'weekly' || frequency === 'monthly'}
                                 >
                                     <FormControl>
                                         <SelectTrigger>
