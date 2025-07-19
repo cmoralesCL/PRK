@@ -146,16 +146,6 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
         if (logError) throw logError;
 
-        const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
-            user_id_input: user.id,
-            date_input: completionDate
-        });
-
-        if (rpcError) {
-            console.error('Error calling RPC function:', rpcError);
-            throw rpcError;
-        }
-
         revalidatePath('/');
         revalidatePath('/calendar');
         revalidatePath('/journal');
@@ -188,16 +178,6 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
         if (error) {
             console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
-        }
-
-        const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
-            user_id_input: user.id,
-            date_input: completionDate
-        });
-
-        if (rpcError) {
-            console.error('Error calling RPC function:', rpcError);
-            throw rpcError;
         }
         
         revalidatePath('/');
@@ -242,4 +222,3 @@ export async function getLifePrkProgressData(options: { from: Date, to: Date, ti
 export async function getCalendarData(date: Date) {
     return getCalendarDataQuery(date);
 }
-
