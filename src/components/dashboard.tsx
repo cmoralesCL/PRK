@@ -240,7 +240,7 @@ export function Dashboard({
               <LifePrkSection
                 key={lp.id}
                 lifePrk={lp}
-                areaPrks={areaPrks.filter(kp => kp.lifePrkId === lp.id)}
+                areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
                 habitTasks={habitTasks}
                 onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
                 onAddHabitTask={handleOpenAddHabitTaskDialog}
@@ -275,3 +275,5 @@ export function Dashboard({
     </>
   );
 }
+
+    

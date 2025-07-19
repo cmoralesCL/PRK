@@ -9,11 +9,11 @@ export interface LifePrk {
 
 export interface AreaPrk {
   id: string;
-  lifePrkId: string; // Corresponds to life_prk_id in Supabase
+  life_prk_id: string; // Corresponds to life_prk_id in Supabase
   title: string;
   // targetValue y currentValue ya no son la fuente principal de progreso
-  targetValue: number; 
-  currentValue: number;
+  target_value: number; 
+  current_value: number;
   unit: string;
   created_at?: string;
   archived: boolean;
@@ -59,3 +59,5 @@ export interface DailyProgressSnapshot {
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
+
+    
