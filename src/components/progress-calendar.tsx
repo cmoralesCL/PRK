@@ -102,10 +102,10 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
                 className={cn(
                   "h-40 border rounded-lg p-2 flex flex-col cursor-pointer transition-colors hover:bg-accent/50",
                   !isCurrentMonth && view === 'month' && "bg-muted/30 text-muted-foreground",
-                  isToday(day) && "bg-accent/80 border-primary"
+                  isToday(day) && "bg-accent/80 border-primary text-accent-foreground"
                 )}
               >
-                <div className={cn("font-semibold", isToday(day) && "text-primary")}>
+                <div className={cn("font-semibold", isToday(day) && "text-accent-foreground")}>
                   {format(day, 'd')}
                 </div>
                 { (isCurrentMonth || view === 'week') && (

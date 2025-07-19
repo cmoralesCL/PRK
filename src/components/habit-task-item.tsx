@@ -32,18 +32,18 @@ export function HabitTaskItem({ item, onToggle, selectedDate }: HabitTaskItemPro
   }
 
   const content = (
-     <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
+     <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50 text-secondary-foreground group-hover:bg-accent-foreground/20 group-hover:text-secondary-foreground">
         <Checkbox
             id={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
             checked={isCompleted}
             onCheckedChange={handleToggle}
-            className="h-3.5 w-3.5"
+            className="h-3.5 w-3.5 border-secondary-foreground/50 group-hover:border-secondary-foreground data-[state=checked]:border-primary-foreground"
             disabled={!onToggle}
         />
-        <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <Icon className="h-3.5 w-3.5 text-current/80 flex-shrink-0" />
         <Label 
             htmlFor={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
-            className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
+            className={cn("text-xs truncate flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
         >
             {item.title}
         </Label>
@@ -54,7 +54,9 @@ export function HabitTaskItem({ item, onToggle, selectedDate }: HabitTaskItemPro
     <TooltipProvider>
         <Tooltip delayDuration={300}>
             <TooltipTrigger asChild>
-                {content}
+                <div className="group">
+                    {content}
+                </div>
             </TooltipTrigger>
             <TooltipContent>
             <p>{item.title}</p>
