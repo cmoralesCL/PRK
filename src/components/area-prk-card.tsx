@@ -26,7 +26,7 @@ interface AreaPrkCardProps {
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (areaPrk: AreaPrk) => void;
-  onArchiveHabitTask: (id: string) => void;
+  onArchiveHabitTask: (id: string, date: Date) => void;
   selectedDate: Date;
 }
 

@@ -33,7 +33,7 @@ interface LifePrkSectionProps {
   onArchive: (id: string) => void;
   onEdit: (lifePrk: LifePrk) => void;
   onArchiveAreaPrk: (id: string) => void;
-  onArchiveHabitTask: (id: string) => void;
+  onArchiveHabitTask: (id: string, date: Date) => void;
   selectedDate: Date;
 }
 
@@ -138,4 +138,3 @@ export function LifePrkSection({
     </AccordionItem>
   );
 }
-

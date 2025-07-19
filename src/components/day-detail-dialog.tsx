@@ -27,7 +27,7 @@ interface DayDetailDialogProps {
   tasks: HabitTask[];
   onAddTask: (date: Date) => void;
   onEditTask: (task: HabitTask, date: Date) => void;
-  onArchiveTask: (id: string) => void;
+  onArchiveTask: (id: string, date: Date) => void;
 }
 
 export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, onEditTask, onArchiveTask }: DayDetailDialogProps) {
@@ -61,7 +61,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
   }
 
   const handleArchive = (id: string) => {
-    onArchiveTask(id);
+    onArchiveTask(id, day);
   }
 
   return (

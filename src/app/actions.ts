@@ -213,11 +213,11 @@ export async function archiveAreaPrk(id: string) {
     revalidatePath('/calendar');
 }
 
-export async function archiveHabitTask(id: string) {
+export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
     try {
-        // Set archived_at to the current timestamp
-        const { error } = await supabase.from('habit_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);
+        // Set archived_at to the provided date
+        const { error } = await supabase.from('habit_tasks').update({ archived_at: archiveDate }).eq('id', id);
         if(error) throw error;
     } catch (error) {
         console.error("Error archiving habit/task:", error);
@@ -237,10 +237,10 @@ export async function archiveHabitTask(id: string) {
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
 
-    // Si la tarea fue archivada, no está activa en los días posteriores a la fecha de archivado.
+    // Si la tarea fue archivada, no está activa en el día del archivado ni en los días posteriores.
     if (task.archived_at) {
         const archivedDate = startOfDay(parseISO(task.archived_at));
-        if (targetDate > archivedDate) {
+        if (targetDate >= archivedDate) {
             return false;
         }
     }

@@ -79,10 +79,10 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
         });
     };
 
-    const handleArchiveHabitTask = (id: string) => {
+    const handleArchiveHabitTask = (id: string, date: Date) => {
         startTransition(async () => {
             try {
-                await archiveHabitTask(id);
+                await archiveHabitTask(id, date.toISOString());
                 toast({ title: 'Acción Archivada' });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la acción.' });

@@ -21,7 +21,7 @@ import {
 interface HabitTaskListItemProps {
   item: HabitTask;
   onToggle?: (id: string, completed: boolean, date: Date) => void;
-  onArchive?: (id: string) => void;
+  onArchive?: (id: string, date: Date) => void;
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog';
@@ -102,7 +102,7 @@ export function HabitTaskListItem({
                             </DropdownMenuItem>
                         )}
                         {onArchive && (
-                            <DropdownMenuItem onClick={() => onArchive(item.id)}>
+                            <DropdownMenuItem onClick={() => onArchive(item.id, selectedDate)}>
                                 <Archive className="mr-2 h-4 w-4" />
                                 Archivar
                             </DropdownMenuItem>
@@ -151,7 +151,7 @@ export function HabitTaskListItem({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => onArchive(item.id)}
+                        onClick={() => onArchive(item.id, selectedDate)}
                     >
                         <Archive className="h-4 w-4 text-muted-foreground" />
                     </Button>

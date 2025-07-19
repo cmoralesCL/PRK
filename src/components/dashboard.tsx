@@ -260,10 +260,10 @@ export function Dashboard({
     });
   };
 
-  const handleArchiveHabitTask = (id: string) => {
+  const handleArchiveHabitTask = (id: string, date: Date) => {
     startTransition(async () => {
         try {
-          await archiveHabitTask(id);
+          await archiveHabitTask(id, date.toISOString());
           toast({ title: 'Hábito/Tarea Archivado' });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });

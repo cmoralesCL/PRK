@@ -24,7 +24,7 @@ interface ProgressCalendarProps {
   habitTasksData: Record<string, HabitTask[]>;
   onAddTask: (date: Date) => void;
   onEditTask: (task: HabitTask, date: Date) => void;
-  onArchiveTask: (id: string) => void;
+  onArchiveTask: (id: string, date: Date) => void;
 }
 
 export function ProgressCalendar({ currentMonth, onMonthChange, dailyProgressData, habitTasksData, onAddTask, onEditTask, onArchiveTask }: ProgressCalendarProps) {
