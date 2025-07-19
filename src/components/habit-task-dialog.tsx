@@ -434,14 +434,14 @@ export function HabitTaskDialog({
                                             <Input 
                                                 type="number" 
                                                 placeholder="Objetivo" 
-                                                onChange={(e) => field.onChange({ ...field.value, target: e.target.value })}
+                                                onChange={(e) => field.onChange({ target: e.target.value, unit: field.value?.unit || '' })}
                                                 value={field.value?.target || ''}
                                             />
                                         </FormControl>
                                         <FormControl>
                                             <Input 
                                                 placeholder="Unidad (ej: páginas)" 
-                                                onChange={(e) => field.onChange({ ...field.value, unit: e.target.value })} 
+                                                onChange={(e) => field.onChange({ target: field.value?.target || 0, unit: e.target.value })} 
                                                 value={field.value?.unit || ''}
                                             />
                                         </FormControl>
