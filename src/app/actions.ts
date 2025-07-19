@@ -579,21 +579,17 @@ export async function getCalendarData(monthDate: Date) {
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
         // Daily progress average for the week, only considering days with tasks
-        const weekDailyProgressValues = weekDays
+        const dailyTasksWithProgress = weekDays
             .map(d => {
                 const dayString = format(d, 'yyyy-MM-dd');
-                const hasTasks = (habitTasksByDay[dayString] ?? []).length > 0;
-                if (!hasTasks) {
-                    return null; // Exclude this day from average calculation
+                const tasks = habitTasksByDay[dayString] ?? [];
+                if (tasks.length === 0) {
+                    return null; // Exclude this day
                 }
                 const progress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress;
-                return progress;
+                return { progress: progress ?? 0 };
             })
-            .filter((p): p is number => p !== undefined && p !== null);
-
-        const avgDailyProgress = weekDailyProgressValues.length > 0
-            ? weekDailyProgressValues.reduce((sum, p) => sum + p, 0) / (weekDailyProgressValues.length || 1)
-            : 0;
+            .filter((p): p is { progress: number } => p !== null);
 
         // Commitments progress for the week
         const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' && areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: parseISO(c.start_date!), end: c.archived_at ? parseISO(c.archived_at) : new Date(8640000000000000)}));
@@ -611,19 +607,17 @@ export async function getCalendarData(monthDate: Date) {
             }
             return 0; // Should not happen if goal is set
         });
+        
+        // Combine progresses with weighting by number of items
+        const totalDailyProgress = dailyTasksWithProgress.reduce((sum, p) => sum + p.progress, 0);
+        const totalCommitmentProgress = commitmentProgressValues.reduce((sum, p) => sum + p, 0);
 
-        const avgCommitmentProgress = commitmentProgressValues.length > 0
-            ? commitmentProgressValues.reduce((sum, p) => sum + p, 0) / commitmentProgressValues.length
+        const totalItems = dailyTasksWithProgress.length + commitmentProgressValues.length;
+
+        const combinedAvgProgress = totalItems > 0
+            ? (totalDailyProgress + totalCommitmentProgress) / totalItems
             : 0;
 
-        // Combine progresses
-        const progressSources: number[] = [];
-        if (weekDailyProgressValues.length > 0) progressSources.push(avgDailyProgress);
-        if (commitmentProgressValues.length > 0) progressSources.push(avgCommitmentProgress);
-
-        const combinedAvgProgress = progressSources.length > 0
-            ? progressSources.reduce((sum, p) => sum + p, 0) / progressSources.length
-            : 0;
 
         weeklyProgress.push({
             id: format(weekStart, 'yyyy-MM-dd'),
@@ -673,5 +667,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    
