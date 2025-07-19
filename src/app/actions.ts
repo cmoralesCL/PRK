@@ -33,12 +33,12 @@ export async function addLifePrk(values: { title: string; description?: string }
     revalidatePath('/');
 }
 
-export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
+export async function addAreaPrk(values: { title: string; unit: string; life_prk_id: string }) {
     const supabase = createClient();
     const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
-        life_prk_id: values.lifePrkId,
+        life_prk_id: values.life_prk_id,
         target_value: 100,
         current_value: 0,
      }]);
@@ -204,7 +204,10 @@ export async function archiveHabitTask(id: string) {
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
-    const startDate = parseISO(task.startDate!);
+    if (!task.startDate) {
+        return false; // No puede estar activa si no tiene fecha de inicio.
+    }
+    const startDate = parseISO(task.startDate);
     const targetDate = startOfDay(date);
 
     if (targetDate < startOfDay(startDate)) {
@@ -300,7 +303,7 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
     });
 
     const lifePrksWithProgress = lifePrks.map(lifePrk => {
-        const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.lifePrkId === lifePrk.id && ap.progress !== null);
+        const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.life_prk_id === lifePrk.id && ap.progress !== null);
         
         if (relevantAreaPrks.length === 0) {
             return { ...lifePrk, progress: null }; // Sin medición
