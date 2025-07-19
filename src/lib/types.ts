@@ -4,7 +4,7 @@ export interface LifePrk {
   description: string;
   created_at?: string;
   archived: boolean;
-  progress?: number; // Añadido para el nuevo cálculo
+  progress?: number; // Representa el progreso general del día, para la UI.
 }
 
 export interface AreaPrk {
@@ -17,7 +17,7 @@ export interface AreaPrk {
   unit: string;
   created_at?: string;
   archived: boolean;
-  progress?: number | null; // Añadido para el nuevo cálculo, puede ser null
+  progress?: number | null; // El progreso ahora se calcula a nivel de LifePrk/Día.
 }
 
 export interface HabitTask {
@@ -27,7 +27,6 @@ export interface HabitTask {
   type: 'habit' | 'task';
   created_at?: string;
   archived: boolean;
-  progress?: number; // Añadido para el nuevo cálculo
   
   // Nuevos campos para hábitos
   startDate?: string; // Corresponds to start_date
@@ -56,6 +55,14 @@ export interface ProgressLog {
   progressValue?: number | null; // Corresponds to progress_value
   completionPercentage?: number | null; // Corresponds to completion_percentage
 }
+
+export interface DailyProgressSnapshot {
+  id: string;
+  userId: string;
+  snapshot_date: string;
+  progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
+}
+
 
 // Para el Diario Evolutivo
 export interface JournalEntry {

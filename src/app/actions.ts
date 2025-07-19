@@ -131,14 +131,30 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             .update({ completion_date: completionDate })
             .eq('id', habitTaskId);
         if (error) throw error;
-    } else {
-        const { error } = await supabase.from('progress_logs').insert([{
-            habit_task_id: habitTaskId,
-            completion_date: completionDate,
-            user_id: user.id
-        }]);
-        if (error) throw error;
+    } 
+
+    // For both tasks and habits, log the progress
+    // For now, completion percentage is 100% for any log. This will be updated in Phase 2.
+    const { error: logError } = await supabase.from('progress_logs').insert([{
+        habit_task_id: habitTaskId,
+        completion_date: completionDate,
+        user_id: user.id,
+        completion_percentage: 1.0, // 100%
+    }]);
+
+    if (logError) throw logError;
+    
+    // After logging, call the RPC to update the daily summary
+    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+        user_id_input: user.id,
+        date_input: completionDate,
+    });
+
+    if (rpcError) {
+        console.error("Error calling RPC function to update daily summary:", rpcError);
+        // Decide if you want to throw or just log the error
     }
+
     revalidatePath('/');
     revalidatePath('/calendar');
     revalidatePath('/journal');
@@ -155,23 +171,36 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
             .update({ completion_date: null })
             .eq('id', habitTaskId);
         if (error) throw error;
-    } else {
-        const { error } = await supabase
-            .from('progress_logs')
-            .delete()
-            .eq('habit_task_id', habitTaskId)
-            .eq('completion_date', completionDate)
-            .eq('user_id', user.id);
+    }
+    
+    // For both types, remove the corresponding progress log
+    const { error } = await supabase
+        .from('progress_logs')
+        .delete()
+        .eq('habit_task_id', habitTaskId)
+        .eq('completion_date', completionDate)
+        .eq('user_id', user.id);
 
-        if (error) {
-            console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
-        }
+    if (error) {
+        console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
+    }
+    
+    // After removing log, call the RPC to update the daily summary
+    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+        user_id_input: user.id,
+        date_input: completionDate,
+    });
+
+    if (rpcError) {
+        console.error("Error calling RPC function to update daily summary:", rpcError);
+        // Decide if you want to throw or just log the error
     }
     
     revalidatePath('/');
     revalidatePath('/calendar');
     revalidatePath('/journal');
 }
+
 
 export async function archiveLifePrk(id: string) {
     const supabase = createClient();

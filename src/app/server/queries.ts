@@ -1,8 +1,8 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint } from "@/lib/types";
-import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay, eachMonthOfInterval, getMonth, getYear, lastDayOfMonth } from 'date-fns';
+import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint, DailyProgressSnapshot } from "@/lib/types";
+import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay, eachMonthOfInterval, getYear, lastDayOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { TimeRangeOption } from "../journal/page";
 
@@ -43,63 +43,6 @@ const mapLifePrkFromDb = (dbData: any): LifePrk => ({
     archived: dbData.archived,
 });
 
-const calculateHabitProgress = (habit: HabitTask, logs: ProgressLog[], selectedDate: Date): number => {
-    if (!habit.startDate) return 0;
-    
-    const startDate = startOfDay(parseISO(habit.startDate));
-    if (isAfter(startDate, selectedDate)) return 0;
-
-    const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-
-    switch (habit.frequency) {
-        case 'daily': {
-            const completedOnDay = logs.some(log => 
-                log.habitTaskId === habit.id && 
-                log.completion_date && 
-                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
-            );
-            return completedOnDay ? 100 : 0;
-        }
-        case 'weekly': {
-            const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
-            const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });   // Sunday
-
-            const completionInWeek = logs.some(log => {
-                if (!log.completion_date || log.habitTaskId !== habit.id) return false;
-                const logDate = startOfDay(parseISO(log.completion_date));
-                return !isBefore(logDate, weekStart) && !isAfter(logDate, weekEnd);
-            });
-            return completionInWeek ? 100 : 0;
-        }
-        case 'monthly': {
-             const monthStart = startOfMonth(selectedDate);
-             const monthEnd = endOfMonth(selectedDate); 
-             const completionInMonth = logs.some(log => {
-                 if (!log.completion_date || log.habitTaskId !== habit.id) return false;
-                 const logDate = startOfDay(parseISO(log.completion_date));
-                 return !isBefore(logDate, monthStart) && !isAfter(logDate, monthEnd);
-             });
-             return completionInMonth ? 100 : 0;
-        }
-        case 'specific_days': {
-             if (!habit.frequencyDays || habit.frequencyDays.length === 0) return 0;
-             const selectedDayOfWeek = getDay(selectedDate); // Sunday is 0, Monday is 1...
-             const requiredDays = habit.frequencyDays.map(day => dayOfWeekMap[day]);
-             if (!requiredDays.includes(selectedDayOfWeek)) {
-                return 0; // It's not a required day, so it doesn't count for/against progress
-             }
-             const completedOnDay = logs.some(log => 
-                log.habitTaskId === habit.id && 
-                log.completion_date && 
-                isEqual(startOfDay(parseISO(log.completion_date)), selectedDate)
-            );
-             return completedOnDay ? 100 : 0;
-        }
-        default:
-            return 0;
-    }
-}
-
 const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
     if (task.type !== 'task' || !task.startDate) return false;
 
@@ -131,90 +74,10 @@ const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
     return true;
 }
 
-async function calculateProgressForDate(selectedDate: Date, allLifePrks: LifePrk[], allAreaPrks: AreaPrk[], allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]) {
-
-    const areaPrksWithProgress = allAreaPrks.map(ap => {
-        const relevantHabitsAndTasks = allHabitTasks.filter(ht => {
-            if (ht.areaPrkId !== ap.id) return false;
-            
-            if (ht.type === 'task') {
-                return isTaskActiveOnDate(ht, selectedDate);
-            }
-
-            // For habits, check if the day is an active day for the habit.
-            if (!ht.startDate || isAfter(startOfDay(parseISO(ht.startDate)), selectedDate)) return false;
-
-            switch(ht.frequency) {
-                case 'daily': return true;
-                case 'weekly': return true; // Considered "active" for progress calc every day, logic handles scoring
-                case 'monthly': return true; // Same as weekly
-                case 'specific_days': {
-                     if (!ht.frequencyDays || ht.frequencyDays.length === 0) return false;
-                     const dayOfWeekMap: { [key: string]: number } = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-                     const selectedDayOfWeek = getDay(selectedDate);
-                     const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
-                     return requiredDays.includes(selectedDayOfWeek);
-                }
-                default: return false;
-            }
-        });
-
-        if (relevantHabitsAndTasks.length === 0) {
-            return { ...ap, progress: null };
-        }
-        
-        let totalWeightedProgress = 0;
-        let totalWeight = 0;
-
-        relevantHabitsAndTasks.forEach(item => {
-            const weight = item.weight || 1;
-            let progress = 0;
-
-            if (item.type === 'task') {
-                // A task's progress is 100 if completed, 0 if not.
-                // The visibility is handled by isTaskActiveOnDate.
-                const isCompleted = !!item.completionDate && !isAfter(selectedDate, startOfDay(parseISO(item.completionDate)));
-                progress = isCompleted ? 100 : 0;
-            } else {
-                progress = calculateHabitProgress(item, mappedProgressLogs, selectedDate);
-            }
-            
-            totalWeightedProgress += progress * weight;
-            totalWeight += weight;
-        });
-        
-        const progress = totalWeight > 0 ? totalWeightedProgress / totalWeight : 0;
-        
-        return { ...ap, progress };
-    });
-
-    const lifePrksWithProgress = allLifePrks.map(lp => {
-        const relevantAreaPrks = areaPrksWithProgress.filter(ap => 
-            ap.lifePrkId === lp.id && ap.progress !== null && !isNaN(ap.progress)
-        );
-        
-        if (relevantAreaPrks.length === 0) {
-            return { ...lp, progress: 0 }; // Return 0 instead of null for consistency
-        }
-
-        const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
-        const progress = totalProgress / relevantAreaPrks.length;
-        
-        return { ...lp, progress };
-    });
-
-    const allHabitTasksWithProgress = allHabitTasks.map(ht => ({
-        ...ht,
-        progress: calculateHabitProgress(ht, mappedProgressLogs, selectedDate)
-    }))
-
-    return { lifePrksWithProgress, areaPrksWithProgress, allHabitTasksWithProgress };
-}
-
-
 const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], mappedProgressLogs: ProgressLog[]): HabitTask[] => {
     return allHabitTasks
         .filter(ht => {
+            if (ht.archived) return false;
             if (ht.type === 'task') {
                 return isTaskActiveOnDate(ht, selectedDate);
             }
@@ -229,13 +92,7 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
                 const requiredDays = ht.frequencyDays.map(day => dayOfWeekMap[day]);
                 return requiredDays.includes(selectedDayOfWeek);
             }
-            if (ht.frequency === 'weekly') {
-                return true;
-            }
-            if(ht.frequency === 'monthly') {
-                return true;
-            }
-            if(ht.frequency === 'daily') {
+            if (ht.frequency === 'weekly' || ht.frequency === 'monthly' || ht.frequency === 'daily') {
                 return true;
             }
             
@@ -276,15 +133,40 @@ const getHabitTasksForDate = (selectedDate: Date, allHabitTasks: HabitTask[], ma
         });
 }
 
+// Simplified function to fetch progress from snapshots
+async function getProgressForDateRange(supabase: any, from: Date, to: Date): Promise<Map<string, number>> {
+    const fromStr = format(from, 'yyyy-MM-dd');
+    const toStr = format(to, 'yyyy-MM-dd');
+
+    const { data, error } = await supabase
+        .from('daily_progress_snapshots')
+        .select('snapshot_date, progress')
+        .gte('snapshot_date', fromStr)
+        .lte('snapshot_date', toStr);
+    
+    if (error) {
+        console.error("Error fetching daily progress snapshots:", error);
+        return new Map();
+    }
+
+    const progressMap = new Map<string, number>();
+    for (const snapshot of data) {
+        progressMap.set(snapshot.snapshot_date, parseFloat(snapshot.progress) * 100);
+    }
+    return progressMap;
+}
+
+
 export async function getDashboardData(selectedDateStr: string) {
     const supabase = createClient();
     const selectedDate = startOfDay(parseISO(selectedDateStr));
 
-    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
+    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult, dailySnapshotResult] = await Promise.all([
         supabase.from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
         supabase.from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
         supabase.from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true }),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date').eq('completion_date', selectedDateStr),
+        supabase.from('daily_progress_snapshots').select('progress').eq('snapshot_date', selectedDateStr).single()
     ]);
 
     const { data: lifePrksData, error: lifePrksError } = lifePrksResult;
@@ -295,9 +177,11 @@ export async function getDashboardData(selectedDateStr: string) {
 
     const { data: allHabitTasksData, error: habitTasksError } = allHabitTasksResult;
     if (habitTasksError) throw new Error("Could not fetch Habit/Tasks.");
-
+    
     const { data: allProgressLogsData, error: progressLogsError } = allProgressLogsResult;
-    if (progressLogsError) throw new Error("Could not fetch progress logs.");
+    if (progressLogsError) throw new Error("Could not fetch progress logs for today.");
+
+    const overallProgressToday = (dailySnapshotResult.data?.progress ?? 0) * 100;
 
     const allLifePrks = lifePrksData.map(mapLifePrkFromDb);
     const allAreaPrks = areaPrksData.map(mapAreaPrkFromDb);
@@ -306,13 +190,23 @@ export async function getDashboardData(selectedDateStr: string) {
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
-        progressValue: p.progress_value,
-        completionPercentage: p.completion_percentage,
     })).filter(p => p.completion_date);
-
-
-    const { lifePrksWithProgress, areaPrksWithProgress } = await calculateProgressForDate(selectedDate, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
     
+    // Note: The progress calculation is now simplified.
+    // We are assigning the overall daily progress to each Life PRK for display simplicity.
+    // A more granular approach would require storing progress per Life PRK in snapshots.
+    const lifePrksWithProgress = allLifePrks.map(lp => ({
+        ...lp,
+        progress: overallProgressToday
+    }));
+    
+    // Area PRK progress is not directly calculated here anymore.
+    // For now, we leave it as undefined. A more complex snapshot would be needed.
+    const areaPrksWithProgress = allAreaPrks.map(ap => ({
+        ...ap,
+        progress: null // Or fetch from a more granular snapshot if available
+    }));
+
     const habitTasksForDisplay = getHabitTasksForDate(selectedDate, allHabitTasks, mappedProgressLogs);
     
     return { 
@@ -327,62 +221,63 @@ export async function getLifePrkProgressData(options: { from: Date; to: Date; ti
     const { from, to, timeRange } = options;
 
     const supabase = createClient();
-
-    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
-        supabase.from('life_prks').select('id, title').eq('archived', false),
-        supabase.from('area_prks').select('*').eq('archived', false),
-        supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
-    ]);
-
-    if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
-        console.error("Error fetching data for chart:", lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error);
+    
+    const { data: lifePrksData, error: lifePrksError } = await supabase.from('life_prks').select('id, title').eq('archived', false);
+    if(lifePrksError) {
+        console.error("Error fetching life PRKs for chart", lifePrksError);
         return { chartData: [], lifePrkNames: {} };
     }
 
-    const allLifePrks = (lifePrksResult.data || []).map(mapLifePrkFromDb);
-    const allAreaPrks = (areaPrksResult.data || []).map(mapAreaPrkFromDb);
-    const allHabitTasks = (allHabitTasksResult.data || []).map(mapHabitTaskFromDb);
-    const mappedProgressLogs: ProgressLog[] = (allProgressLogsResult.data || []).map(p => ({
-        id: p.id,
-        habitTaskId: p.habit_task_id,
-        completion_date: p.completion_date,
-        progressValue: p.progress_value,
-        completionPercentage: p.completion_percentage,
-    })).filter(p => p.completion_date);
-
+    const allLifePrks = (lifePrksData || []).map(mapLifePrkFromDb);
     const lifePrkNames = allLifePrks.reduce((acc, lp) => {
         acc[lp.id] = lp.title;
         return acc;
     }, {} as Record<string, string>);
 
+    // Fetch pre-calculated progress from snapshots
+    const progressMap = await getProgressForDateRange(supabase, from, to);
+
     const chartData: LifePrkProgressPoint[] = [];
+    const intervalDays = eachDayOfInterval({ start: from, end: to });
 
     if (timeRange === '1y') {
-        const intervalMonths = eachMonthOfInterval({ start: from, end: to });
-        for (const monthStart of intervalMonths) {
-            const monthEnd = lastDayOfMonth(monthStart);
-            const { lifePrksWithProgress } = await calculateProgressForDate(monthEnd, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
-            const dataPoint: LifePrkProgressPoint = {
-                date: format(monthStart, 'MMM', { locale: es }),
-            };
-            lifePrksWithProgress.forEach(lp => {
-                dataPoint[lp.id] = lp.progress ?? 0;
+        const monthlyData: { [key: string]: { sum: number, count: number } } = {};
+        
+        intervalDays.forEach(day => {
+            const monthKey = format(day, 'MMM', { locale: es });
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { sum: 0, count: 0 };
+            }
+            const dayStr = format(day, 'yyyy-MM-dd');
+            if (progressMap.has(dayStr)) {
+                monthlyData[monthKey].sum += progressMap.get(dayStr)!;
+                monthlyData[monthKey].count += 1;
+            }
+        });
+
+        for (const monthKey in monthlyData) {
+            const avgProgress = monthlyData[monthKey].count > 0 ? monthlyData[monthKey].sum / monthlyData[monthKey].count : 0;
+            const dataPoint: LifePrkProgressPoint = { date: monthKey };
+            // Assign the same overall progress to all life PRKs for the chart
+            allLifePrks.forEach(lp => {
+                dataPoint[lp.id] = avgProgress;
             });
             chartData.push(dataPoint);
         }
+
     } else {
-        const intervalDays = eachDayOfInterval({ start: from, end: to });
-        for (const day of intervalDays) {
-            const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
+        intervalDays.forEach(day => {
+            const dayStr = format(day, 'yyyy-MM-dd');
+            const progress = progressMap.get(dayStr) ?? 0;
             const dataPoint: LifePrkProgressPoint = {
                 date: format(day, 'MMM d', { locale: es }),
             };
-            lifePrksWithProgress.forEach(lp => {
-                dataPoint[lp.id] = lp.progress ?? 0;
+             // Assign the same overall progress to all life PRKs for the chart
+            allLifePrks.forEach(lp => {
+                dataPoint[lp.id] = progress;
             });
             chartData.push(dataPoint);
-        }
+        });
     }
     
     return { chartData, lifePrkNames };
@@ -394,45 +289,40 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
     const monthStart = startOfMonth(date);
     const monthEnd = endOfMonth(date);
 
-    const [lifePrksResult, areaPrksResult, allHabitTasksResult, allProgressLogsResult] = await Promise.all([
-        supabase.from('life_prks').select('*').eq('archived', false),
-        supabase.from('area_prks').select('*').eq('archived', false),
+    // Fetch all necessary data in parallel
+    const [allHabitTasksResult, allProgressLogsResult, dailySnapshotsResult] = await Promise.all([
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
             .gte('completion_date', format(startOfDay(monthStart), 'yyyy-MM-dd'))
-            .lte('completion_date', format(endOfDay(monthEnd), 'yyyy-MM-dd'))
+            .lte('completion_date', format(endOfDay(monthEnd), 'yyyy-MM-dd')),
+        supabase.from('daily_progress_snapshots').select('snapshot_date, progress')
+            .gte('snapshot_date', format(startOfDay(monthStart), 'yyyy-MM-dd'))
+            .lte('snapshot_date', format(endOfDay(monthEnd), 'yyyy-MM-dd')),
     ]);
 
-     if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
-        console.error("Error fetching data for calendar:", lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error);
+    if (allHabitTasksResult.error || allProgressLogsResult.error || dailySnapshotsResult.error) {
+        console.error("Error fetching data for calendar:", allHabitTasksResult.error || allProgressLogsResult.error || dailySnapshotsResult.error);
         return [];
     }
-    
-    const allLifePrks = (lifePrksResult.data || []).map(mapLifePrkFromDb);
-    const allAreaPrks = (areaPrksResult.data || []).map(mapAreaPrkFromDb);
+
     const allHabitTasks = (allHabitTasksResult.data || []).map(mapHabitTaskFromDb);
     const mappedProgressLogs: ProgressLog[] = (allProgressLogsResult.data || []).map(p => ({
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
-        progressValue: p.progress_value,
-        completionPercentage: p.completion_percentage,
     })).filter(p => p.completion_date);
-
+    
+    const progressMap = new Map<string, number>();
+    for (const snapshot of dailySnapshotsResult.data || []) {
+        progressMap.set(snapshot.snapshot_date, parseFloat(snapshot.progress) * 100);
+    }
+    
     const intervalDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const calendarData: CalendarDataPoint[] = [];
 
-    if (allLifePrks.length === 0) {
-        return intervalDays.map(day => ({ date: day.toISOString(), progress: 0, tasks: [] }));
-    }
-
     for (const day of intervalDays) {
-        const { lifePrksWithProgress } = await calculateProgressForDate(day, allLifePrks, allAreaPrks, allHabitTasks, mappedProgressLogs);
-        
-        const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null && lp.progress > 0);
-        const totalProgress = relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0);
-        const overallProgress = relevantLifePrks.length > 0 ? totalProgress / relevantLifePrks.length : 0;
-        
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const overallProgress = progressMap.get(dayStr) ?? 0;
         const tasksForDay = getHabitTasksForDate(day, allHabitTasks, mappedProgressLogs);
 
         calendarData.push({
