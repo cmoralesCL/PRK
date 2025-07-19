@@ -46,6 +46,7 @@ const formSchema = z.object({
   dueDate: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
+  weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
 }).refine(data => {
     if (data.type === 'habit' && !data.frequency) {
         return false;
@@ -93,6 +94,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       frequencyDays: [],
       startDate: defaultDate || new Date(),
       areaPrkId: defaultAreaPrkId,
+      weight: 1,
     },
   });
 
@@ -107,6 +109,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           dueDate: habitTask.dueDate ? parseISO(habitTask.dueDate) : undefined,
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
+          weight: habitTask.weight || 1,
         });
       } else {
         form.reset({
@@ -116,7 +119,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           startDate: defaultDate || new Date(),
           dueDate: undefined,
           frequency: undefined,
-          areaPrkId: defaultAreaPrkId
+          areaPrkId: defaultAreaPrkId,
+          weight: 1,
         });
       }
     }
@@ -361,6 +365,18 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                     )}
                 </>
             )}
+
+            <FormField
+              control={form.control}
+              name="weight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nivel de Impacto (Peso)</FormLabel>
+                   <Input type="number" min="1" max="5" placeholder="1" {...field} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Acción'}</Button>
