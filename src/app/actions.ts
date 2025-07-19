@@ -21,9 +21,13 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
-        description: values.description || '' 
+        description: values.description || '',
+        user_id: user.id
     }]).select().single();
 
     if(error) throw error;
@@ -35,12 +39,16 @@ export async function addLifePrk(values: { title: string; description?: string }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
         target_value: 100,
-        current_value: 0
+        current_value: 0,
+        user_id: user.id
      }]).select().single();
 
     if(error) {
@@ -64,6 +72,9 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
@@ -74,7 +85,8 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         due_date: values.dueDate,
         weight: values.weight || 1,
         is_critical: values.isCritical,
-        measurement_goal: values.measurementGoal
+        measurement_goal: values.measurementGoal,
+        user_id: user.id
     }]).select().single();
 
     if(error) throw error;
@@ -110,6 +122,8 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
 
     if (type === 'task') {
         const { error } = await supabase
@@ -120,7 +134,8 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
     } else {
         const { error } = await supabase.from('progress_logs').insert([{
             habit_task_id: habitTaskId,
-            completion_date: completionDate
+            completion_date: completionDate,
+            user_id: user.id
         }]);
         if (error) throw error;
     }
@@ -131,6 +146,8 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
 
     if (type === 'task') {
         const { error } = await supabase
@@ -143,7 +160,8 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
             .from('progress_logs')
             .delete()
             .eq('habit_task_id', habitTaskId)
-            .eq('completion_date', completionDate);
+            .eq('completion_date', completionDate)
+            .eq('user_id', user.id);
 
         if (error) {
             console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
