@@ -523,10 +523,13 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     // --- Commitments ---
+    const weekForCommitments = startOfWeek(monthDate, { weekStartsOn: 1 });
     const commitments = allHabitTasks.filter(task => 
-        task.type === 'habit' && 
-        (task.frequency === 'weekly' || task.frequency === 'monthly') &&
-        isTaskActiveOnDate(task, monthDate)
+        task.type === 'habit' &&
+        (
+            (task.frequency === 'weekly' && isTaskActiveOnDate(task, weekForCommitments)) ||
+            (task.frequency === 'monthly' && isTaskActiveOnDate(task, monthDate))
+        )
     );
 
     const weeklyProgress: WeeklyProgressSnapshot[] = [];
@@ -592,3 +595,4 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
