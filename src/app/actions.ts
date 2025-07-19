@@ -461,8 +461,12 @@ export async function getDashboardData(selectedDateString: string) {
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
-    // --- Commitments (Weekly, Monthly, etc.) ---
-    const commitments: HabitTask[] = [];
+    // --- Commitments ---
+    const commitments = allHabitTasks.filter(task => 
+        task.type === 'habit' && 
+        (task.frequency === 'weekly' || task.frequency === 'monthly') && // Add other frequencies as needed
+        isTaskActiveOnDate(task, selectedDate)
+    );
 
 
     return {

@@ -28,8 +28,6 @@ interface DayDetailDialogProps {
   onAddTask: (date: Date) => void;
   onEditTask: (task: HabitTask, date: Date) => void;
   onArchiveTask: (id: string, date: Date) => void;
-  onOpenCommitments: (date: Date) => void;
-  showOverlay?: boolean;
 }
 
 export function DayDetailDialog({ 
@@ -40,8 +38,6 @@ export function DayDetailDialog({
   onAddTask, 
   onEditTask, 
   onArchiveTask,
-  onOpenCommitments,
-  showOverlay = true,
 }: DayDetailDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -74,14 +70,9 @@ export function DayDetailDialog({
     onArchiveTask(id, day);
   }
 
-  const handleOpenCommitmentsClick = () => {
-    onOpenChange(false);
-    onOpenCommitments(day);
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" showOverlay={showOverlay}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-headline">
             Tareas del {format(day, "d 'de' LLLL", { locale: es })}
@@ -107,8 +98,7 @@ export function DayDetailDialog({
                 )}
             </div>
         </ScrollArea>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={handleOpenCommitmentsClick}>Ver Compromisos Semanales</Button>
+        <DialogFooter>
             <Button onClick={() => onAddTask(day)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Acción

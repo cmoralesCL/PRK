@@ -5,45 +5,49 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ListTodo } from 'lucide-react';
-import type { HabitTask, CommitmentPeriod } from '@/lib/types';
+import type { HabitTask } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CommitmentsCardProps {
   commitments: HabitTask[];
   selectedDate: Date;
-  onToggle: (id: string, completed: boolean, date: Date) => void;
+  onToggle: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onEdit: (task: HabitTask) => void;
   onArchive: (id: string) => void;
 }
 
-// const periodLabels: Record<CommitmentPeriod, string> = {
-//   weekly: 'Semanales',
-//   monthly: 'Mensuales',
-//   quarterly: 'Trimestrales',
-//   semi_annually: 'Semestrales',
-//   annually: 'Anuales',
-// };
 
 export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, onArchive }: CommitmentsCardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
+  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly');
+  const monthlyCommitments = commitments.filter(c => c.frequency === 'monthly');
+  // Add other periods as needed
+
   if (commitments.length === 0) {
     return null;
   }
-
-  // Determine the highest-level commitment type present for the title
-  const getCardTitle = () => {
-    // const periods = new Set(commitments.map(c => c.commitment_period).filter((p): p is CommitmentPeriod => !!p));
-    // if (periods.size === 0) return "Compromisos";
-    
-    // const periodOrder: CommitmentPeriod[] = ['annually', 'semi_annually', 'quarterly', 'monthly', 'weekly'];
-    // const presentPeriods = periodOrder.filter(p => periods.has(p));
-    
-    // if (presentPeriods.length === 0) return "Compromisos";
-
-    // // Show the labels for all present commitment types
-    // return "Compromisos: " + presentPeriods.map(p => periodLabels[p]).join(' / ');
-    return "Compromisos"
+  
+  const renderCommitmentList = (tasks: HabitTask[]) => {
+    if (tasks.length === 0) {
+        return <p className="text-sm text-muted-foreground text-center py-4">No hay compromisos para este período.</p>;
+    }
+    return (
+         <div className="space-y-2">
+            {tasks.map((commitment) => (
+              <HabitTaskListItem
+                key={commitment.id}
+                item={commitment}
+                onToggle={onToggle}
+                onEdit={onEdit}
+                onArchive={onArchive}
+                selectedDate={selectedDate}
+                variant="dashboard"
+              />
+            ))}
+          </div>
+    )
   }
 
   return (
@@ -55,7 +59,7 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, o
               <div>
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <ListTodo className="h-5 w-5 text-primary" />
-                  {getCardTitle()}
+                  Compromisos
                 </CardTitle>
                 <CardDescription>Tareas importantes sin día fijo. ¡No las olvides!</CardDescription>
               </div>
@@ -64,18 +68,23 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, o
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="space-y-2">
-            {commitments.map((commitment) => (
-              <HabitTaskListItem
-                key={commitment.id}
-                item={commitment}
-                onToggle={onToggle}
-                onEdit={onEdit}
-                onArchive={onArchive}
-                selectedDate={selectedDate}
-                variant="dashboard"
-              />
-            ))}
+          <CardContent>
+            <Tabs defaultValue="weekly" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="weekly">Semanal</TabsTrigger>
+                <TabsTrigger value="monthly">Mensual</TabsTrigger>
+                {/* <TabsTrigger value="quarterly">Trimestral</TabsTrigger> */}
+              </TabsList>
+              <TabsContent value="weekly">
+                {renderCommitmentList(weeklyCommitments)}
+              </TabsContent>
+              <TabsContent value="monthly">
+                 {renderCommitmentList(monthlyCommitments)}
+              </TabsContent>
+              {/* <TabsContent value="quarterly">
+                {renderCommitmentList([])}
+              </TabsContent> */}
+            </Tabs>
           </CardContent>
         </CollapsibleContent>
       </Card>
