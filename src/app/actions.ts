@@ -33,6 +33,23 @@ export async function addLifePrk(values: { title: string; description?: string }
     revalidatePath('/');
 }
 
+export async function updateLifePrk(id: string, values: { title: string; description?: string }) {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from('life_prks')
+        .update({ 
+            title: values.title, 
+            description: values.description || '',
+        })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error updating Life PRK:", error);
+        throw error;
+    }
+    revalidatePath('/');
+}
+
 export async function addAreaPrk(values: { title: string; unit: string; life_prk_id: string }) {
     const supabase = createClient();
     const { data, error } = await supabase.from('area_prks').insert([{ 
@@ -45,6 +62,23 @@ export async function addAreaPrk(values: { title: string; unit: string; life_prk
 
     if(error) {
         console.error('Supabase error adding Area PRK:', error);
+        throw error;
+    }
+    revalidatePath('/');
+}
+
+export async function updateAreaPrk(id: string, values: { title: string; unit: string; }) {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from('area_prks')
+        .update({ 
+            title: values.title,
+            unit: values.unit,
+        })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Supabase error updating Area PRK:', error);
         throw error;
     }
     revalidatePath('/');

@@ -5,16 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
-import { AddAreaPrkDialog } from './add-area-prk-dialog';
+import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
 import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
     addAreaPrk, 
+    updateAreaPrk,
     addHabitTask, 
     updateHabitTask,
     addLifePrk, 
+    updateLifePrk,
     logHabitTaskCompletion,
     removeHabitTaskCompletion,
     archiveLifePrk,
@@ -52,19 +54,28 @@ export function Dashboard({
 
   useEffect(() => {
     // Cuando los lifePrks cambian (por ej. al agregar uno nuevo), lo expandimos por defecto.
-    setOpenLifePrkIds(lifePrks.map(lp => lp.id));
+    setOpenLifePrkIds(currentOpenIds => {
+      const newLifePrkIds = lifePrks.map(lp => lp.id);
+      const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
+      return Array.from(allIds);
+    });
   }, [lifePrks]);
 
 
-  const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
-  const [isAddAreaPrkOpen, setAddAreaPrkOpen] = useState(false);
+  // State for dialogs
+  const [isLifePrkDialogOpen, setLifePrkDialogOpen] = useState(false);
+  const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
 
-  const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
-  const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
-  const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  // State for editing items
+  const [editingLifePrk, setEditingLifePrk] = useState<LifePrk | null>(null);
+  const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
+  
+  // State for context when adding new items
+  const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
+  const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -76,38 +87,73 @@ export function Dashboard({
     });
   }
 
-  const handleAddLifePrk = (values: { title: string; description?: string }) => {
-    startTransition(async () => {
-        try {
-          await addLifePrk(values);
-          toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Vida.' });
-        }
-    });
+  // --- Life PRK Handlers ---
+  const handleOpenAddLifePrkDialog = () => {
+    setEditingLifePrk(null);
+    setLifePrkDialogOpen(true);
+  };
+
+  const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
+    setEditingLifePrk(lifePrk);
+    setLifePrkDialogOpen(true);
   };
   
-  const handleAddAreaPrk = (values: { title: string; unit: string }) => {
-    if (!activeLifePrkId) return;
-     startTransition(async () => {
+  const handleSaveLifePrk = (values: { title: string; description?: string }) => {
+    startTransition(async () => {
         try {
-          await addAreaPrk({ ...values, life_prk_id: activeLifePrkId });
-          toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
+          if (editingLifePrk) {
+            await updateLifePrk(editingLifePrk.id, values);
+            toast({ title: '¡PRK de Vida Actualizado!', description: `Se ha actualizado "${values.title}".` });
+          } else {
+            await addLifePrk(values);
+            toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+          }
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar el PRK de Área.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el PRK de Vida.' });
         }
     });
   };
 
+  // --- Area PRK Handlers ---
+  const handleOpenAddAreaPrkDialog = (lifePrkId: string) => {
+    setActiveLifePrkId(lifePrkId);
+    setEditingAreaPrk(null);
+    setAreaPrkDialogOpen(true);
+  }
+
+  const handleOpenEditAreaPrkDialog = (areaPrk: AreaPrk) => {
+    setActiveLifePrkId(areaPrk.life_prk_id);
+    setEditingAreaPrk(areaPrk);
+    setAreaPrkDialogOpen(true);
+  }
+
+  const handleSaveAreaPrk = (values: AreaPrkFormValues) => {
+    if (!activeLifePrkId && !editingAreaPrk) return;
+     startTransition(async () => {
+        try {
+          if (editingAreaPrk) {
+            await updateAreaPrk(editingAreaPrk.id, values);
+            toast({ title: '¡PRK de Área Actualizado!', description: `Se ha actualizado "${values.title}".` });
+          } else if (activeLifePrkId) {
+            await addAreaPrk({ ...values, life_prk_id: activeLifePrkId });
+            toast({ title: '¡PRK de Área Establecido!', description: `Ahora estás siguiendo "${values.title}".` });
+          }
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el PRK de Área.' });
+        }
+    });
+  };
+
+  // --- Habit/Task Handlers ---
   const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
-    setActiveAreaPrkId(areaPrkId);
+    setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
     setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
   };
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
-    setActiveAreaPrkId(habitTask.area_prk_id);
+    setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
     setHabitTaskDialogOpen(true);
   };
 
@@ -186,6 +232,7 @@ export function Dashboard({
     });
   };
   
+  // --- Archive Handlers ---
   const handleArchiveLifePrk = (id: string) => {
     startTransition(async () => {
         try {
@@ -231,7 +278,7 @@ export function Dashboard({
   return (
     <>
       <Header 
-        onAddLifePrk={() => setAddLifePrkOpen(true)}
+        onAddLifePrk={handleOpenAddLifePrkDialog}
         selectedDate={selectedDate}
         onDateChange={handleDateChange} 
       />
@@ -240,7 +287,7 @@ export function Dashboard({
             <div className="text-center py-24">
                 <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
                 <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                <Button className="mt-6" onClick={() => setAddLifePrkOpen(true)}>Crear un PRK de Vida</Button>
+                <Button className="mt-6" onClick={handleOpenAddLifePrkDialog}>Crear un PRK de Vida</Button>
             </div>
         )}
         {isPending && (
@@ -270,12 +317,14 @@ export function Dashboard({
                   lifePrk={lp}
                   areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
                   habitTasks={habitTasks}
-                  onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
+                  onAddAreaPrk={handleOpenAddAreaPrkDialog}
+                  onEditAreaPrk={handleOpenEditAreaPrkDialog}
                   onAddHabitTask={handleOpenAddHabitTaskDialog}
                   onEditHabitTask={handleOpenEditHabitTaskDialog}
                   onToggleHabitTask={handleToggleHabitTask}
                   onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
                   onArchive={handleArchiveLifePrk}
+                  onEdit={handleOpenEditLifePrkDialog}
                   onArchiveAreaPrk={handleArchiveAreaPrk}
                   onArchiveHabitTask={handleArchiveHabitTask}
                   selectedDate={selectedDate}
@@ -286,14 +335,24 @@ export function Dashboard({
         )}
       </main>
 
-      <AddLifePrkDialog isOpen={isAddLifePrkOpen} onOpenChange={setAddLifePrkOpen} onAdd={handleAddLifePrk} />
-      <AddAreaPrkDialog isOpen={isAddAreaPrkOpen} onOpenChange={setAddAreaPrkOpen} onAdd={handleAddAreaPrk} />
+      <AddLifePrkDialog 
+        isOpen={isLifePrkDialogOpen} 
+        onOpenChange={setLifePrkDialogOpen} 
+        onSave={handleSaveLifePrk}
+        lifePrk={editingLifePrk} 
+      />
+      <AddAreaPrkDialog 
+        isOpen={isAreaPrkDialogOpen} 
+        onOpenChange={setAreaPrkDialogOpen} 
+        onSave={handleSaveAreaPrk}
+        areaPrk={editingAreaPrk}
+      />
       <HabitTaskDialog 
         isOpen={isHabitTaskDialogOpen} 
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
-        defaultAreaPrkId={activeAreaPrkId || undefined}
+        defaultAreaPrkId={activeAreaPrk?.id}
         defaultDate={selectedDate}
         areaPrks={areaPrks}
        />

@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import type { AreaPrk } from '@/lib/types';
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -30,16 +32,19 @@ const formSchema = z.object({
   unit: z.string().min(1, { message: 'La unidad es requerida.' }),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type AreaPrkFormValues = z.infer<typeof formSchema>;
 
 interface AddAreaPrkDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onAdd: (values: FormValues) => void;
+  onSave: (values: AreaPrkFormValues) => void;
+  areaPrk: AreaPrk | null;
 }
 
-export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDialogProps) {
-  const form = useForm<FormValues>({
+export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddAreaPrkDialogProps) {
+  const isEditing = !!areaPrk;
+
+  const form = useForm<AreaPrkFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
@@ -47,8 +52,25 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
     },
   });
 
-  const onSubmit = (values: FormValues) => {
-    onAdd(values);
+  useEffect(() => {
+    if (isOpen) {
+        if (isEditing && areaPrk) {
+            form.reset({
+                title: areaPrk.title,
+                unit: areaPrk.unit,
+            });
+        } else {
+            form.reset({
+                title: '',
+                unit: '%',
+            });
+        }
+    }
+  }, [isOpen, isEditing, areaPrk, form]);
+
+
+  const onSubmit = (values: AreaPrkFormValues) => {
+    onSave(values);
     form.reset();
     onOpenChange(false);
   };
@@ -57,9 +79,14 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Establecer un PRK de Área</DialogTitle>
+          <DialogTitle className="font-headline">
+            {isEditing ? 'Editar PRK de Área' : 'Establecer un PRK de Área'}
+          </DialogTitle>
           <DialogDescription>
-            Este es un resultado medible que contribuye a tu PRK de Vida. Su progreso se calculará automáticamente.
+            {isEditing 
+                ? 'Actualiza los detalles de este resultado medible.'
+                : 'Este es un resultado medible que contribuye a tu PRK de Vida.'
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -91,7 +118,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onAdd }: AddAreaPrkDial
               )}
             />
             <DialogFooter>
-              <Button type="submit">Agregar PRK de Área</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar PRK de Área'}</Button>
             </DialogFooter>
           </form>
         </Form>

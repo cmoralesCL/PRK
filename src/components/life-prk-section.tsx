@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Target, Plus, Archive, MoreVertical, ChevronDown } from 'lucide-react';
+import { Target, Plus, Archive, MoreVertical, ChevronDown, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AreaPrkCard } from './area-prk-card';
@@ -25,11 +25,13 @@ interface LifePrkSectionProps {
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
+  onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
+  onEdit: (lifePrk: LifePrk) => void;
   onArchiveAreaPrk: (id: string) => void;
   onArchiveHabitTask: (id: string) => void;
   selectedDate: Date;
@@ -40,11 +42,13 @@ export function LifePrkSection({
   areaPrks,
   habitTasks,
   onAddAreaPrk,
+  onEditAreaPrk,
   onAddHabitTask,
   onEditHabitTask,
   onToggleHabitTask,
   onGetAiSuggestions,
   onArchive,
+  onEdit,
   onArchiveAreaPrk,
   onArchiveHabitTask,
   selectedDate
@@ -56,8 +60,8 @@ export function LifePrkSection({
     <AccordionItem value={lifePrk.id} className="border-b-0">
        <div className="py-4 bg-card rounded-lg shadow-sm px-6">
         <div className="flex justify-between items-start gap-4">
-            <AccordionTrigger className="w-full hover:no-underline p-0 rounded-md text-left flex-grow group">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-2">
+           <AccordionTrigger asChild className="p-0 hover:no-underline flex-grow cursor-pointer">
+              <div className="group flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-2">
                   <div className="flex-grow">
                       <div className="mb-4 sm:mb-0">
                           <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
@@ -83,6 +87,10 @@ export function LifePrkSection({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => onEdit(lifePrk)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar PRK de Vida
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onArchive(lifePrk.id)}>
                             <Archive className="mr-2 h-4 w-4" />
                             Archivar PRK de Vida
@@ -115,6 +123,7 @@ export function LifePrkSection({
                   onToggleHabitTask={onToggleHabitTask}
                   onGetAiSuggestions={onGetAiSuggestions}
                   onArchive={onArchiveAreaPrk}
+                  onEdit={onEditAreaPrk}
                   onArchiveHabitTask={onArchiveHabitTask}
                   selectedDate={selectedDate}
               />

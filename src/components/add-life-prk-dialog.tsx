@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import type { LifePrk } from '@/lib/types';
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -33,13 +35,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddLifePrkDialogProps {
+interface LifePrkDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onAdd: (values: FormValues) => void;
+  onSave: (values: FormValues) => void;
+  lifePrk: LifePrk | null;
 }
 
-export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDialogProps) {
+export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: LifePrkDialogProps) {
+  const isEditing = !!lifePrk;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,8 +53,24 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
     },
   });
 
+  useEffect(() => {
+    if(isOpen) {
+      if (isEditing && lifePrk) {
+        form.reset({
+          title: lifePrk.title,
+          description: lifePrk.description,
+        });
+      } else {
+        form.reset({
+          title: '',
+          description: '',
+        });
+      }
+    }
+  }, [isOpen, isEditing, lifePrk, form]);
+
   const onSubmit = (values: FormValues) => {
-    onAdd(values);
+    onSave(values);
     form.reset();
     onOpenChange(false);
   };
@@ -58,9 +79,14 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">Define un Nuevo PRK de Vida</DialogTitle>
+          <DialogTitle className="font-headline">
+            {isEditing ? 'Editar PRK de Vida' : 'Definir un Nuevo PRK de Vida'}
+          </DialogTitle>
           <DialogDescription>
-            Esta es una visión de vida a largo plazo, tu estrella guía. ¿Qué quieres lograr?
+            {isEditing
+              ? 'Actualiza los detalles de tu visión a largo plazo.'
+              : 'Esta es una visión de vida a largo plazo, tu estrella guía. ¿Qué quieres lograr?'
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -96,7 +122,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onAdd }: AddLifePrkDial
               )}
             />
             <DialogFooter>
-              <Button type="submit">Agregar PRK</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar PRK'}</Button>
             </DialogFooter>
           </form>
         </Form>

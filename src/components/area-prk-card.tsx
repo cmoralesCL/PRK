@@ -1,6 +1,6 @@
 'use client';
 
-import { Gauge, Plus, Sparkles, Archive, ChevronDown } from 'lucide-react';
+import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +25,7 @@ interface AreaPrkCardProps {
   onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
+  onEdit: (areaPrk: AreaPrk) => void;
   onArchiveHabitTask: (id: string) => void;
   selectedDate: Date;
 }
@@ -37,6 +38,7 @@ export function AreaPrkCard({
   onToggleHabitTask,
   onGetAiSuggestions,
   onArchive,
+  onEdit,
   onArchiveHabitTask,
   selectedDate,
 }: AreaPrkCardProps) {
@@ -67,6 +69,10 @@ export function AreaPrkCard({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar PRK de Área
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
                       <Archive className="mr-2 h-4 w-4" />
                       Archivar PRK de Área
