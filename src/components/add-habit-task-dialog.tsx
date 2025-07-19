@@ -47,6 +47,7 @@ const formSchema = z.object({
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
   frequencyDays: z.array(z.string()).optional(),
   weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
+  isCritical: z.boolean().default(false),
   measurementType: z.enum(['binary', 'quantitative', 'temporal']).optional(),
   measurementGoal: z.object({
       target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0."),
@@ -113,6 +114,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       areaPrkId: defaultAreaPrkId,
       weight: 1,
       measurementType: 'binary',
+      isCritical: false,
     },
   });
 
@@ -128,6 +130,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           frequency: habitTask.frequency || undefined,
           frequencyDays: habitTask.frequencyDays || [],
           weight: habitTask.weight || 1,
+          isCritical: habitTask.isCritical || false,
           measurementType: habitTask.measurementType || 'binary',
           measurementGoal: habitTask.measurementGoal || undefined,
         });
@@ -141,6 +144,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           frequency: undefined,
           areaPrkId: defaultAreaPrkId,
           weight: 1,
+          isCritical: false,
           measurementType: 'binary',
           measurementGoal: undefined,
         });
@@ -446,9 +450,28 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
               name="weight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nivel de Impacto (Peso)</FormLabel>
+                  <FormLabel>Nivel de Impacto (1-5)</FormLabel>
                    <Input type="number" min="1" max="5" placeholder="1" {...field} />
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isCritical"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>¿Es Crítico?</FormLabel>
+                    <FormMessage />
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
