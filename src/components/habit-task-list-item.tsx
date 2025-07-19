@@ -90,7 +90,7 @@ export function HabitTaskListItem({
             {(onEdit || onArchive) && (
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 transition-opacity">
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -135,7 +135,7 @@ export function HabitTaskListItem({
             >
                 {item.title}
             </Label>
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center transition-opacity">
                 {onEdit && (
                     <Button
                         variant="ghost"
