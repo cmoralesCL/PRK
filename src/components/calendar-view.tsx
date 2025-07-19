@@ -3,7 +3,7 @@
 
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, parse, startOfWeek } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import { Header } from '@/components/header';

@@ -347,11 +347,8 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             case 'daily':
                 return true;
             case 'weekly':
-                const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
-                const isTaskDateInSameWeek = isWithinInterval(startDate, { start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
-                return isTaskDateInSameWeek || targetDate >= startDate;
             case 'monthly':
-                return targetDate.getDate() === startDate.getDate();
+                return true;
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee', {locale: es}).toLowerCase(); 
                 return task.frequency_days?.includes(dayOfWeek) ?? false;
@@ -461,19 +458,10 @@ export async function getDashboardData(selectedDateString: string) {
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
-    // --- Commitments ---
-    const commitments = allHabitTasks.filter(task => 
-        task.type === 'habit' && 
-        (task.frequency === 'weekly' || task.frequency === 'monthly') && // Add other frequencies as needed
-        isTaskActiveOnDate(task, selectedDate)
-    );
-
-
     return {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
-        commitments: commitments,
     };
 }
 
@@ -505,7 +493,6 @@ export async function getCalendarData(monthDate: Date) {
     // Calculate progress for each day of the month
     const dailyProgress: DailyProgressSnapshot[] = [];
     const habitTasksByDay: Record<string, HabitTask[]> = {};
-    const weeklyCommitments: Record<string, HabitTask[]> = {};
 
     for (const day of daysInView) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
@@ -523,43 +510,19 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
-        
-        // Find weekly commitments for this day's week
-        const weekStartKey = format(startOfWeek(day, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        if (!weeklyCommitments[weekStartKey]) {
-            const weeklyTasks = allHabitTasks.filter(task => 
-                task.type === 'habit' && 
-                task.frequency === 'weekly' && 
-                isTaskActiveOnDate(task, day)
-            );
-
-            // Populate completion status for the entire week
-            const weekInterval = { start: startOfWeek(day, { weekStartsOn: 1 }), end: endOfWeek(day, { weekStartsOn: 1 }) };
-            
-            weeklyCommitments[weekStartKey] = weeklyTasks.map(task => {
-                const completionLog = allProgressLogs.find(log => 
-                    log.habit_task_id === task.id &&
-                    isWithinInterval(parseISO(log.completion_date), weekInterval)
-                );
-                 let completedThisWeek = !!completionLog;
-                 if (task.measurement_type === 'quantitative' && task.measurement_goal?.target && completionLog) {
-                    completedThisWeek = (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
-                }
-                return { 
-                    ...task, 
-                    completedToday: completedThisWeek, // Use 'completedToday' for consistency in the UI component
-                    current_progress_value: completionLog?.progress_value,
-                    completion_date: completionLog?.completion_date
-                };
-            });
-        }
     }
+    
+    // --- Commitments ---
+    const commitments = allHabitTasks.filter(task => 
+        task.type === 'habit' && 
+        (task.frequency === 'weekly' || task.frequency === 'monthly') &&
+        isTaskActiveOnDate(task, monthDate)
+    );
 
     const weeklyProgress: WeeklyProgressSnapshot[] = [];
-    const weeks = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     let weekIndex = 0;
-    while(weekIndex < weeks.length) {
-        const weekStart = weeks[weekIndex];
+    while(weekIndex < daysInView.length) {
+        const weekStart = daysInView[weekIndex];
         const weekEnd = addDays(weekStart, 6);
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
@@ -583,9 +546,9 @@ export async function getCalendarData(monthDate: Date) {
     return {
         dailyProgress,
         habitTasks: habitTasksByDay,
-        weeklyCommitments,
         weeklyProgress,
         areaPrks,
+        commitments,
     };
 }
 

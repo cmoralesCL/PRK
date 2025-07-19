@@ -27,13 +27,11 @@ import {
 import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
-import { CommitmentsCard } from './commitments-card';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  commitments: HabitTask[];
   initialSelectedDate: string;
 }
 
@@ -41,7 +39,6 @@ export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
-  commitments,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -206,8 +203,7 @@ export function Dashboard({
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const allTasks = [...habitTasks, ...commitments];
-    const task = allTasks.find(ht => ht.id === id);
+    const task = habitTasks.find(ht => ht.id === id);
     if (!task) return;
 
     const completionDate = date.toISOString().split('T')[0];
@@ -302,14 +298,6 @@ export function Dashboard({
         onDateChange={handleDateChange} 
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        
-        <CommitmentsCard
-          commitments={commitments}
-          selectedDate={selectedDate}
-          onToggle={handleToggleHabitTask}
-          onEdit={handleOpenEditHabitTaskDialog}
-          onArchive={handleArchiveHabitTask}
-        />
 
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
