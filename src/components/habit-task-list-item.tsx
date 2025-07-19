@@ -44,19 +44,12 @@ export function HabitTaskListItem({
   if (variant === 'calendar') {
     return (
         <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
-            <Checkbox
-                id={`cal-${item.id}`}
-                checked={isCompleted}
-                disabled // This disables the checkbox in calendar view
-                className="h-3.5 w-3.5"
-            />
             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <Label 
-                htmlFor={`cal-${item.id}`}
+            <p
                 className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal", isCompleted && "line-through")}
             >
                 {item.title}
-            </Label>
+            </p>
         </div>
     )
   }
