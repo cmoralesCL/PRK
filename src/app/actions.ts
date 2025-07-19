@@ -237,9 +237,12 @@ export async function archiveHabitTask(id: string) {
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
 
-    // Si la tarea fue archivada, no está activa en la fecha de archivado o después.
-    if (task.archived_at && targetDate >= startOfDay(parseISO(task.archived_at))) {
-        return false;
+    // Si la tarea fue archivada, no está activa en los días posteriores a la fecha de archivado.
+    if (task.archived_at) {
+        const archivedDate = startOfDay(parseISO(task.archived_at));
+        if (targetDate > archivedDate) {
+            return false;
+        }
     }
 
     if (!task.start_date) {
@@ -476,3 +479,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    
