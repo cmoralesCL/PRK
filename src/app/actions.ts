@@ -128,25 +128,27 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     revalidatePath('/calendar');
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
+export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     try {
-        // For weekly commitments, we also log completion, but they don't have a daily impact.
-        // For one-off tasks/projects, we set their completion date.
         if (type === 'project' || type === 'task') {
             const { error: updateError } = await supabase
                 .from('habit_tasks')
                 .update({ completion_date: completionDate })
                 .eq('id', habitTaskId);
             if (updateError) throw updateError;
-        } 
+        }
 
-        const { error: logError } = await supabase.from('progress_logs').insert([{
+        // Upsert operation: if a log exists for this task on this day, update it. Otherwise, insert a new one.
+        const { error: logError } = await supabase.from('progress_logs').upsert({
             habit_task_id: habitTaskId,
             completion_date: completionDate,
-            progress_value: null, 
-            completion_percentage: 1.0,
-        }]);
+            progress_value: progressValue,
+            // For binary, we set 100%. For quantitative, the calculation will be done based on progress_value vs goal.
+            completion_percentage: type === 'habit' && progressValue !== undefined ? null : 1.0, 
+        }, {
+            onConflict: 'habit_task_id, completion_date'
+        });
 
         if (logError) throw logError;
 
@@ -216,7 +218,6 @@ export async function archiveAreaPrk(id: string) {
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
     try {
-        // Set archived_at to the provided date
         const { error } = await supabase.from('habit_tasks').update({ archived_at: archiveDate }).eq('id', id);
         if(error) throw error;
     } catch (error) {
@@ -237,7 +238,6 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
 
-    // Si la tarea fue archivada, no está activa en el día del archivado ni en los días posteriores.
     if (task.archived_at) {
         const archivedDate = startOfDay(parseISO(task.archived_at));
         if (targetDate >= archivedDate) {
@@ -246,46 +246,40 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     }
 
     if (!task.start_date) {
-        return false; // No puede estar activa si no tiene fecha de inicio.
+        return false; 
     }
-    const startDate = parseISO(task.start_date);
+    const startDate = startOfDay(parseISO(task.start_date));
 
 
     if (task.type === 'task' || task.type === 'project') {
         const dueDate = task.due_date ? parseISO(task.due_date) : null;
         const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
 
-        // Si ya se completó antes del día que estamos viendo, no está activa.
         if (completionDate && completionDate < targetDate) {
             return false;
         }
         
-        // Si no tiene fecha de vencimiento, es activa solo en su fecha de inicio.
         if (!dueDate) {
             return isSameDay(targetDate, startDate);
         }
 
-        // Si tiene fecha de vencimiento, es activa si la fecha está entre el inicio y el fin (inclusive).
-        // Se permite el registro hasta un día después de la fecha de vencimiento.
-        if (targetDate >= startOfDay(startDate) && targetDate <= addDays(dueDate, 1)) {
+        if (targetDate >= startDate && targetDate <= addDays(dueDate, 1)) {
             return true;
         }
         
         return false;
 
     } else if (task.type === 'habit') {
-        if (targetDate < startOfDay(startDate)) {
-            return false; // El hábito aún no ha comenzado.
+        if (targetDate < startDate) {
+            return false; 
         }
 
         switch (task.frequency) {
             case 'daily':
                 return true;
             case 'weekly':
-                // Activo una vez por semana en el mismo día de la semana que la fecha de inicio.
                 return getDay(targetDate) === getDay(startDate);
             case 'monthly':
-                 // Activo una vez al mes en el mismo día del mes que la fecha de inicio.
                 return targetDate.getDate() === startDate.getDate();
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee').toLowerCase(); // mon, tue, wed...
@@ -312,13 +306,21 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
     return activeTasks.map(task => {
         const completionLog = allProgressLogs.find(log => 
             log.habit_task_id === task.id && 
-            format(parseISO(log.completion_date), 'yyyy-MM-dd') === dateString
+            isSameDay(parseISO(log.completion_date), date)
         );
+        
+        const isCompleted = !!completionLog;
+        let completedToday = isCompleted;
+
+        // For quantitative habits, completion depends on reaching the goal
+        if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+            completedToday = isCompleted && (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
+        }
 
         return {
             ...task,
-            completedToday: !!completionLog,
-            // Aseguramos que `completion_date` refleje el log del día si existe.
+            completedToday: completedToday,
+            current_progress_value: completionLog?.progress_value,
             completion_date: completionLog ? dateString : (task.type !== 'habit' ? task.completion_date : undefined),
         };
     });
@@ -342,6 +344,10 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
+             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+                const progressPercentage = Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1);
+                return sum + (progressPercentage * task.weight);
+            }
             return sum + (task.completedToday ? task.weight : 0);
         }, 0);
         
@@ -374,7 +380,6 @@ export async function getDashboardData(selectedDateString: string) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
-    // Fetch all habit tasks, including archived ones, to correctly calculate historical progress.
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) throw habitTasksError;
 
@@ -413,7 +418,6 @@ export async function getCalendarData(monthDate: Date) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
-    // Fetch all habit tasks, including archived ones, to let the logic handle visibility.
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) throw habitTasksError;
 

@@ -32,13 +32,14 @@ export interface HabitTask {
   
   start_date?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
-  frequency_days?: string[] | null; // Corresponds to frequency_days. ESTE ES EL CAMBIO CLAVE
+  frequency_days?: string[] | null; // Corresponds to frequency_days
   weight: number;
 
   due_date?: string | null; // Corresponds to due_date
   completion_date?: string | null; // Corresponds to completion_date
 
   completedToday?: boolean;
+  current_progress_value?: number | null;
 
   is_critical: boolean; // Corresponds to is_critical
   

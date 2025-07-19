@@ -192,7 +192,7 @@ export function Dashboard({
     });
   };
   
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date) => {
+  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
     const allTasks = [...habitTasks, ...commitments];
     const task = allTasks.find(ht => ht.id === id);
     if (!task) return;
@@ -202,8 +202,8 @@ export function Dashboard({
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate);
-          if (task.type === 'task' || task.type === 'project') {
+          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+          if (task.type !== 'habit') {
               toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
@@ -260,10 +260,11 @@ export function Dashboard({
     });
   };
 
-  const handleArchiveHabitTask = (id: string, date: Date) => {
+  const handleArchiveHabitTask = (id: string) => {
+    if (!selectedDate) return;
     startTransition(async () => {
         try {
-          await archiveHabitTask(id, date.toISOString());
+          await archiveHabitTask(id, selectedDate.toISOString());
           toast({ title: 'Hábito/Tarea Archivado' });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });

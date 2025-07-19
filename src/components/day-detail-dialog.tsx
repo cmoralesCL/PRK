@@ -36,20 +36,18 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
   
   if (!day) return null;
 
-  const handleToggleHabitTask = (id: string, completed: boolean) => {
+  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
     const task = tasks.find(ht => ht.id === id);
     if (!task) return;
-
-    const completionDate = day.toISOString().split('T')[0];
 
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate);
+          await logHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0], progressValue);
         } else {
-          await removeHabitTaskCompletion(id, task.type, completionDate);
+          await removeHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0]);
         }
-        toast({ title: completed ? '¡Acción completada!' : 'Completado deshecho.' });
+        toast({ title: completed ? '¡Acción registrada!' : 'Registro deshecho.' });
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
       }
@@ -81,11 +79,11 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
                     <HabitTaskListItem 
                         key={task.id} 
                         item={task} 
-                        onToggle={(id, completed) => handleToggleHabitTask(id, completed)}
+                        onToggle={handleToggleHabitTask}
                         onEdit={handleEdit}
-                        onArchive={handleArchive}
+                        onArchive={() => handleArchive(task.id)}
                         selectedDate={day}
-                        variant="dialog"
+                        variant="dashboard" // Use dashboard variant to show full controls
                     />
                 )) : (
                     <p className="text-sm text-muted-foreground text-center py-8">No hay tareas programadas para este día.</p>

@@ -28,12 +28,12 @@ interface LifePrkSectionProps {
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date) => void;
+  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (lifePrk: LifePrk) => void;
   onArchiveAreaPrk: (id: string) => void;
-  onArchiveHabitTask: (id: string, date: Date) => void;
+  onArchiveHabitTask: (id: string) => void;
   selectedDate: Date;
 }
 
