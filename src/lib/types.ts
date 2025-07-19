@@ -28,7 +28,7 @@ export interface HabitTask {
   title: string;
   type: 'habit' | 'project' | 'task';
   created_at?: string;
-  archived_at: string | null;
+  archived_at?: string | null;
   
   start_date?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;

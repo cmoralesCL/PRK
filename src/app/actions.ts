@@ -371,7 +371,8 @@ export async function getDashboardData(selectedDateString: string) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').is('archived_at', null);
+    // Fetch all habit tasks, including archived ones, to correctly calculate historical progress.
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) throw habitTasksError;
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
@@ -409,6 +410,7 @@ export async function getCalendarData(monthDate: Date) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
+    // Fetch all habit tasks, including archived ones, to let the logic handle visibility.
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) throw habitTasksError;
 
@@ -474,5 +476,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    
