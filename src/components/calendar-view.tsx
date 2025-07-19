@@ -3,7 +3,7 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import { Header } from '@/components/header';
@@ -13,14 +13,15 @@ import type { DailyProgressSnapshot, HabitTask, AreaPrk } from '@/lib/types';
 import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
 import { useState } from 'react';
 
+
 interface CalendarViewProps {
-    initialMonth: Date;
+    initialMonthString: string;
     dailyProgressData: DailyProgressSnapshot[];
     habitTasksData: Record<string, HabitTask[]>;
     areaPrks: AreaPrk[];
 }
 
-export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, areaPrks }: CalendarViewProps) {
+export function CalendarView({ initialMonthString, dailyProgressData, habitTasksData, areaPrks }: CalendarViewProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -54,6 +55,7 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
                     title: values.title,
                     type: values.type,
                     area_prk_id: values.area_prk_id,
+                    commitment_period: values.commitment_period,
                     start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : undefined,
                     due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
                     frequency: values.frequency,
@@ -89,6 +91,10 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
         });
     }
     
+    // Parse the date string into a Date object here.
+    // This happens on the client, avoiding hydration issues.
+    const currentMonth = parse(initialMonthString, 'yyyy-MM-dd', new Date());
+
     return (
         <>
             <Header 
@@ -100,7 +106,7 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
             />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <ProgressCalendar
-                  currentMonth={initialMonth}
+                  currentMonth={currentMonth}
                   onMonthChange={handleMonthChange}
                   dailyProgressData={dailyProgressData}
                   habitTasksData={habitTasksData}
