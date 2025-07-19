@@ -74,7 +74,7 @@ const formSchema = z.object({
     return true;
 }, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurement_type']})
 .refine(data => {
-    if (data.measurement_type === 'quantitative') {
+    if (data.type === 'habit' && data.measurement_type === 'quantitative') {
         return data.measurement_goal?.target !== undefined && data.measurement_goal?.unit !== undefined && data.measurement_goal?.unit !== '';
     }
     return true;
