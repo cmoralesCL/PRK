@@ -1,9 +1,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, getDay, addWeeks, subWeeks } from 'date-fns';
+import { useState } from 'react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addWeeks, subWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import {
 
 
 interface ProgressCalendarProps {
-  initialMonth: Date;
+  currentMonth: Date;
   onMonthChange: (date: Date) => void;
   dailyProgressData: DailyProgressSnapshot[];
   habitTasksData: Record<string, HabitTask[]>;
@@ -28,15 +27,10 @@ interface ProgressCalendarProps {
   onArchiveTask: (id: string) => void;
 }
 
-export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressData, habitTasksData, onAddTask, onEditTask, onArchiveTask }: ProgressCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(initialMonth);
+export function ProgressCalendar({ currentMonth, onMonthChange, dailyProgressData, habitTasksData, onAddTask, onEditTask, onArchiveTask }: ProgressCalendarProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [view, setView] = useState<'month' | 'week'>('month');
-
-  useEffect(() => {
-    setCurrentDate(initialMonth);
-  }, [initialMonth]);
 
   const handleDayClick = (day: Date) => {
     setSelectedDay(day);
@@ -45,14 +39,13 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
 
   const changePeriod = (offset: number) => {
     const newDate = view === 'month' 
-      ? (offset > 0 ? addMonths(currentDate, 1) : subMonths(currentDate, 1))
-      : (offset > 0 ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));
-    setCurrentDate(newDate);
+      ? (offset > 0 ? addMonths(currentMonth, 1) : subMonths(currentMonth, 1))
+      : (offset > 0 ? addWeeks(currentMonth, 1) : subWeeks(currentMonth, 1));
     onMonthChange(newDate);
   };
 
-  const monthStart = startOfMonth(currentDate);
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(currentMonth);
+  const weekStart = startOfWeek(currentMonth, { weekStartsOn: 1 });
 
   const days = view === 'month'
     ? eachDayOfInterval({ start: startOfWeek(monthStart, { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 }) })
@@ -61,7 +54,7 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
   const weekDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   const headerLabel = view === 'month' 
-    ? format(currentDate, 'LLLL yyyy', { locale: es }) 
+    ? format(currentMonth, 'LLLL yyyy', { locale: es }) 
     : `Semana del ${format(weekStart, 'd \'de\' LLLL', { locale: es })}`;
 
 
@@ -100,7 +93,7 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
             const dayString = format(day, 'yyyy-MM-dd');
             const progressInfo = dailyProgressData.find(p => p.snapshot_date === dayString);
             const tasks = habitTasksData[dayString] || [];
-            const isCurrentMonth = isSameMonth(day, currentDate);
+            const isCurrentMonth = isSameMonth(day, currentMonth);
 
             return (
               <div

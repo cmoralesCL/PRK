@@ -27,7 +27,8 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
     const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
 
     useEffect(() => {
-        setCurrentMonth(initialMonth);
+        // Hydrate the date on the client to avoid hydration mismatch
+        setCurrentMonth(new Date(initialMonth));
     }, [initialMonth]);
 
     const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
@@ -35,8 +36,10 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
     const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | undefined>(undefined);
 
     const handleMonthChange = (newMonth: Date) => {
-        setCurrentMonth(newMonth);
-        router.push(`/calendar?month=${format(newMonth, 'yyyy-MM')}`);
+        startTransition(() => {
+            setCurrentMonth(newMonth);
+            router.push(`/calendar?month=${format(newMonth, 'yyyy-MM')}`);
+        });
     }
 
     const handleOpenAddTaskDialog = (date: Date) => {
@@ -112,7 +115,7 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
             />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <ProgressCalendar
-                  initialMonth={currentMonth}
+                  currentMonth={currentMonth}
                   onMonthChange={handleMonthChange}
                   dailyProgressData={dailyProgressData}
                   habitTasksData={habitTasksData}
