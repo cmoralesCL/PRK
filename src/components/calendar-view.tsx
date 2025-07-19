@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { Header } from '@/components/header';
 import { ProgressCalendar } from '@/components/progress-calendar';
-import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
+import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk } from '@/lib/types';
 import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
 import { useState } from 'react';
@@ -114,7 +114,7 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
                   onArchiveTask={handleArchiveHabitTask}
                 />
             </main>
-            <HabitTaskDialog 
+            <AddHabitTaskDialog 
                 isOpen={isHabitTaskDialogOpen}
                 onOpenChange={setHabitTaskDialogOpen}
                 onSave={handleSaveHabitTask}

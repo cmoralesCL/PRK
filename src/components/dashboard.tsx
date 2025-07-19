@@ -164,7 +164,7 @@ export function Dashboard({
   const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-            const habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>> = {
+            const habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>> = {
                 title: values.title,
                 type: values.type,
                 area_prk_id: values.area_prk_id,
@@ -172,10 +172,10 @@ export function Dashboard({
                 is_critical: values.is_critical,
                 start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
                 due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
-                frequency: values.frequency,
-                frequency_days: values.frequency_days,
-                measurement_type: values.measurement_type,
-                measurement_goal: values.measurement_goal,
+                frequency: values.type === 'habit' ? values.frequency : undefined,
+                frequency_days: values.type === 'habit' ? values.frequency_days : undefined,
+                measurement_type: values.type === 'habit' ? values.measurement_type : undefined,
+                measurement_goal: values.type === 'habit' ? values.measurement_goal : undefined,
             };
 
             if (editingHabitTask) {

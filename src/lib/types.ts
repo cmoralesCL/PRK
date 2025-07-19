@@ -28,7 +28,7 @@ export interface HabitTask {
   title: string;
   type: 'habit' | 'project' | 'task';
   created_at?: string;
-  archived: boolean;
+  archived_at: string | null;
   
   start_date?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
@@ -47,7 +47,7 @@ export interface HabitTask {
 
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;
-  measurement_goal?: { target: number; unit: string; } | null; // Corresponds to measurement_goal
+  measurement_goal?: { target?: number; unit?: string; } | null; // Corresponds to measurement_goal
 }
 
 export interface ProgressLog {
