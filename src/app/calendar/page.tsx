@@ -1,6 +1,6 @@
 
 import { ProgressCalendar } from '@/components/progress-calendar';
-import { getCalendarData } from '@/app/server/queries';
+import { getCalendarData } from '@/app/actions';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 'use client';
 
-import { getLifePrkProgressData } from '@/app/server/queries';
+import { getLifePrkProgressData } from '@/app/actions';
 import { ProgressChart } from '@/components/progress-chart';
 import { Header } from '@/components/header';
 import { useEffect, useState } from 'react';

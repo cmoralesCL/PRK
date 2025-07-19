@@ -1,5 +1,5 @@
 import { Dashboard } from '@/components/dashboard';
-import { getDashboardData } from '@/app/server/queries';
+import { getDashboardData } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 

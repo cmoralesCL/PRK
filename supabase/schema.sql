@@ -1,88 +1,83 @@
--- supabase/schema.sql
+-- --- Esquema Inicial de la Base de Datos para Brújula de Resultados Personales ---
 
--- --- Borrado de Tablas Existentes (para empezar de cero) ---
--- Se eliminan en orden inverso a su creación para respetar las dependencias.
+-- Eliminar tablas existentes en orden inverso de dependencia para una recreación limpia
 DROP TABLE IF EXISTS public.daily_progress_snapshots;
 DROP TABLE IF EXISTS public.progress_logs;
 DROP TABLE IF EXISTS public.habit_tasks;
 DROP TABLE IF EXISTS public.area_prks;
 DROP TABLE IF EXISTS public.life_prks;
 
-
--- --- Creación de Tablas ---
-
--- Tabla 1: life_prks (Visión de Vida)
+-- Tabla 1: Life PRKs (PRK de Vida)
+-- Almacena las grandes visiones o metas a largo plazo.
 CREATE TABLE public.life_prks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    archived BOOLEAN NOT NULL DEFAULT false
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    archived BOOLEAN DEFAULT false NOT NULL
 );
-COMMENT ON TABLE public.life_prks IS 'Almacena las visiones de vida a largo plazo del usuario (ej: "Salud y Energía").';
+COMMENT ON TABLE public.life_prks IS 'Grandes visiones o metas a largo plazo.';
 
-
--- Tabla 2: area_prks (Áreas de Enfoque)
+-- Tabla 2: Area PRKs (PRK de Área)
+-- Almacena los resultados clave medibles que contribuyen a un PRK de Vida.
 CREATE TABLE public.area_prks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    life_prk_id UUID NOT NULL REFERENCES public.life_prks(id) ON DELETE CASCADE,
+    life_prk_id UUID REFERENCES public.life_prks(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
-    unit TEXT,
-    target_value INTEGER NOT NULL DEFAULT 100,
-    current_value INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    archived BOOLEAN NOT NULL DEFAULT false
+    target_value INTEGER DEFAULT 100 NOT NULL, -- Mantenido por si se usa en el futuro
+    current_value INTEGER DEFAULT 0 NOT NULL, -- Mantenido por si se usa en el futuro
+    unit TEXT DEFAULT '%' NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    archived BOOLEAN DEFAULT false NOT NULL
 );
-COMMENT ON TABLE public.area_prks IS 'Resultados medibles que contribuyen a un PRK de Vida (ej: "Mejorar salud cardiovascular").';
+COMMENT ON TABLE public.area_prks IS 'Resultados clave medibles para un PRK de Vida.';
 
-
--- Tabla 3: habit_tasks (Acciones: Hábitos, Tareas, Proyectos)
+-- Tabla 3: Habit Tasks (Hábitos y Tareas)
+-- Almacena las acciones concretas (hábitos, proyectos, tareas) asociadas a un PRK de Área.
 CREATE TABLE public.habit_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    area_prk_id UUID NOT NULL REFERENCES public.area_prks(id) ON DELETE CASCADE,
+    area_prk_id UUID REFERENCES public.area_prks(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('habit', 'project', 'task')),
-    start_date DATE,
+    start_date DATE DEFAULT now() NOT NULL,
     due_date DATE,
     completion_date DATE,
     frequency TEXT CHECK (frequency IN ('daily', 'weekly', 'monthly', 'specific_days')),
-    frequency_days TEXT[],
-    weight INTEGER NOT NULL DEFAULT 1,
-    is_critical BOOLEAN NOT NULL DEFAULT false,
+    frequency_days TEXT[], -- Array de strings, ej: ['mon', 'wed', 'fri']
+    weight INTEGER DEFAULT 1 NOT NULL CHECK (weight >= 1 AND weight <= 5),
+    is_critical BOOLEAN DEFAULT false NOT NULL,
     measurement_type TEXT CHECK (measurement_type IN ('binary', 'quantitative', 'temporal')),
-    measurement_goal JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    archived BOOLEAN NOT NULL DEFAULT false
+    measurement_goal JSONB, -- { "target": 10, "unit": "pages" }
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    archived BOOLEAN DEFAULT false NOT NULL
 );
-COMMENT ON TABLE public.habit_tasks IS 'Acciones específicas (hábitos, tareas, proyectos) ligadas a un PRK de Área.';
+COMMENT ON TABLE public.habit_tasks IS 'Acciones específicas (hábitos, proyectos, tareas).';
 
-
--- Tabla 4: progress_logs (Registros de Progreso)
+-- Tabla 4: Progress Logs (Registros de Progreso)
+-- Registra cada vez que se completa una tarea o hábito.
 CREATE TABLE public.progress_logs (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    habit_task_id UUID NOT NULL REFERENCES public.habit_tasks(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    habit_task_id UUID REFERENCES public.habit_tasks(id) ON DELETE CASCADE NOT NULL,
     completion_date DATE NOT NULL,
-    progress_value NUMERIC,
-    completion_percentage NUMERIC CHECK (completion_percentage >= 0 AND completion_percentage <= 1),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    progress_value NUMERIC, -- Para mediciones cuantitativas (ej: 10 páginas leídas)
+    completion_percentage NUMERIC DEFAULT 1.0 NOT NULL, -- 1.0 para completado, < 1.0 para parcial
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
-COMMENT ON TABLE public.progress_logs IS 'Registra cada vez que un hábito o tarea es completado.';
-
-
--- Tabla 5: daily_progress_snapshots (Resúmenes de Progreso Diario)
-CREATE TABLE public.daily_progress_snapshots (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    snapshot_date DATE NOT NULL UNIQUE,
-    progress NUMERIC NOT NULL CHECK (progress >= 0 AND progress <= 1),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-COMMENT ON TABLE public.daily_progress_snapshots IS 'Almacena el progreso ponderado total para cada día.';
-
-
--- --- Índices para Mejorar Rendimiento ---
-CREATE INDEX idx_area_prks_life_prk_id ON public.area_prks(life_prk_id);
-CREATE INDEX idx_habit_tasks_area_prk_id ON public.habit_tasks(area_prk_id);
-CREATE INDEX idx_progress_logs_habit_task_id ON public.progress_logs(habit_task_id);
+COMMENT ON TABLE public.progress_logs IS 'Log de completado para cada acción.';
+-- Índice para acelerar las consultas por fecha y tarea
 CREATE INDEX idx_progress_logs_completion_date ON public.progress_logs(completion_date);
-CREATE INDEX idx_daily_progress_snapshots_snapshot_date ON public.daily_progress_snapshots(snapshot_date);
+CREATE INDEX idx_progress_logs_habit_task_id ON public.progress_logs(habit_task_id);
 
+
+-- Tabla 5: Daily Progress Snapshots (Resumen de Progreso Diario)
+-- Almacena el progreso calculado para cada día. Podría ser calculado por un trigger o una función.
+CREATE TABLE public.daily_progress_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    snapshot_date DATE NOT NULL,
+    progress_data JSONB, -- { "life_prk_id": {"progress": 75, "area_prks": [...]}, ... }
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(snapshot_date)
+);
+COMMENT ON TABLE public.daily_progress_snapshots IS 'Almacena el resumen del progreso diario total.';
+
+-- --- Fin del Esquema ---
