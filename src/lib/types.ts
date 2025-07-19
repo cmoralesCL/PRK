@@ -41,12 +41,20 @@ export interface HabitTask {
 
   // Para saber si ya se completó hoy (solo para la UI)
   completedToday?: boolean;
+
+  // Fase 1: Nuevos campos
+  isCritical: boolean; // Corresponds to is_critical
+  measurementGoal?: { target: number; unit: string; } | null; // Corresponds to measurement_goal
 }
 
 export interface ProgressLog {
   id: string;
   habitTaskId: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
+  
+  // Fase 1: Nuevos campos
+  progressValue?: number | null; // Corresponds to progress_value
+  completionPercentage?: number | null; // Corresponds to completion_percentage
 }
 
 // Para el Diario Evolutivo
@@ -71,4 +79,14 @@ export interface CalendarDataPoint {
   date: string; // Changed to string for serialization
   progress: number;
   tasks: HabitTask[];
+}
+
+// Fase 1: Nueva tabla
+export interface EmotionalPulse {
+  id: string;
+  userId: string;
+  pulseDate: string;
+  emotionalStateTag: string;
+  notes?: string;
+  createdAt: string;
 }

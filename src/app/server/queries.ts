@@ -20,6 +20,8 @@ const mapHabitTaskFromDb = (dbData: any): HabitTask => ({
     frequency: dbData.frequency,
     frequencyDays: dbData.frequency_days,
     weight: dbData.weight || 1,
+    isCritical: dbData.is_critical,
+    measurementGoal: dbData.measurement_goal,
 });
 
 const mapAreaPrkFromDb = (dbData: any): AreaPrk => ({
@@ -282,7 +284,7 @@ export async function getDashboardData(selectedDateStr: string) {
         supabase.from('life_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
         supabase.from('area_prks').select('*').eq('archived', false).order('created_at', { ascending: true }),
         supabase.from('habit_tasks').select('*').eq('archived', false).order('created_at', { ascending: true }),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
     ]);
 
     const { data: lifePrksData, error: lifePrksError } = lifePrksResult;
@@ -304,6 +306,8 @@ export async function getDashboardData(selectedDateStr: string) {
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
+        progressValue: p.progress_value,
+        completionPercentage: p.completion_percentage,
     })).filter(p => p.completion_date);
 
 
@@ -328,7 +332,7 @@ export async function getLifePrkProgressData(options: { from: Date; to: Date; ti
         supabase.from('life_prks').select('id, title').eq('archived', false),
         supabase.from('area_prks').select('*').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
     ]);
 
     if (lifePrksResult.error || areaPrksResult.error || allHabitTasksResult.error || allProgressLogsResult.error) {
@@ -343,6 +347,8 @@ export async function getLifePrkProgressData(options: { from: Date; to: Date; ti
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
+        progressValue: p.progress_value,
+        completionPercentage: p.completion_percentage,
     })).filter(p => p.completion_date);
 
     const lifePrkNames = allLifePrks.reduce((acc, lp) => {
@@ -392,7 +398,7 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
         supabase.from('life_prks').select('*').eq('archived', false),
         supabase.from('area_prks').select('*').eq('archived', false),
         supabase.from('habit_tasks').select('*').eq('archived', false),
-        supabase.from('progress_logs').select('id, habit_task_id, completion_date')
+        supabase.from('progress_logs').select('id, habit_task_id, completion_date, progress_value, completion_percentage')
             .gte('completion_date', format(startOfDay(monthStart), 'yyyy-MM-dd'))
             .lte('completion_date', format(endOfDay(monthEnd), 'yyyy-MM-dd'))
     ]);
@@ -409,6 +415,8 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
         id: p.id,
         habitTaskId: p.habit_task_id,
         completion_date: p.completion_date,
+        progressValue: p.progress_value,
+        completionPercentage: p.completion_percentage,
     })).filter(p => p.completion_date);
 
     const intervalDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
