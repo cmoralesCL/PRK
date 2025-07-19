@@ -166,10 +166,10 @@ export function Dashboard({
   const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-            let habitTaskData: Partial<HabitTask> = {
+            let habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>> = {
                 title: values.title,
                 type: values.type,
-                area_prk_id: values.area_prk_id,
+                area_prk_id: editingHabitTask ? editingHabitTask.area_prk_id : values.area_prk_id,
                 weight: values.weight,
                 is_critical: values.is_critical,
                 commitment_period: values.commitment_period,
