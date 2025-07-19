@@ -23,7 +23,8 @@ import {
     endOfYear,
     startOfQuarter,
     endOfQuarter,
-    addMonths
+    addMonths,
+    areIntervalsOverlapping
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -481,6 +482,7 @@ export async function getCalendarData(monthDate: Date) {
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
+    const monthInterval = { start: monthStart, end: monthEnd };
 
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
@@ -523,28 +525,25 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     // --- Commitments ---
-    const weekForCommitmentsStart = startOfWeek(monthDate, { weekStartsOn: 1 });
-    const weekForCommitmentsEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
-    
-    const weeklyCommitments = allHabitTasks.filter(task => {
-        const isWeeklyHabit = task.type === 'habit' && task.frequency === 'weekly' && isTaskActiveOnDate(task, weekForCommitmentsStart);
+    const commitments = allHabitTasks.filter(task => {
+        if (task.type !== 'habit' || (task.frequency !== 'weekly' && task.frequency !== 'monthly')) {
+            return false;
+        }
+
+        if (!task.start_date) return false;
+
+        const taskStartDate = parseISO(task.start_date);
+        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); // Far future date
+
+        const taskInterval = { start: taskStartDate, end: taskEndDate };
         
-        const isTaskWithoutDueDateInWeek = task.type === 'task' && !task.due_date && task.start_date && isWithinInterval(parseISO(task.start_date), {
-            start: weekForCommitmentsStart,
-            end: weekForCommitmentsEnd
-        });
-
-        return isWeeklyHabit || isTaskWithoutDueDateInWeek;
-    });
-
-    const monthlyCommitments = allHabitTasks.filter(task => 
-        task.type === 'habit' && task.frequency === 'monthly' && isTaskActiveOnDate(task, monthDate)
-    );
-
-    const commitments = [...weeklyCommitments, ...monthlyCommitments].map(task => {
+        return areIntervalsOverlapping(taskInterval, monthInterval);
+    }).map(task => {
         // Find all progress logs for this task within the relevant period
         let logs;
         if (task.frequency === 'weekly') {
+            const weekForCommitmentsStart = startOfWeek(monthDate, { weekStartsOn: 1 });
+            const weekForCommitmentsEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
             logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: weekForCommitmentsStart, end: weekForCommitmentsEnd })
@@ -583,11 +582,12 @@ export async function getCalendarData(monthDate: Date) {
         const weekDailyProgressValues = weekDays
             .map(d => {
                 const dayString = format(d, 'yyyy-MM-dd');
-                const hasTasks = habitTasksByDay[dayString]?.length > 0;
+                const hasTasks = (habitTasksByDay[dayString] ?? []).length > 0;
                 if (!hasTasks) {
                     return null; // Exclude this day from average calculation
                 }
-                return dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress;
+                const progress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress;
+                return progress;
             })
             .filter((p): p is number => p !== undefined && p !== null);
 
