@@ -59,46 +59,44 @@ export function LifePrkSection({
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
        <div className="py-4 bg-card rounded-lg shadow-sm px-6">
-        <div className="flex justify-between items-start gap-4">
-            <AccordionTrigger className="p-0 hover:no-underline flex-grow cursor-pointer group w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-2">
-                    <div className="flex-grow">
-                        <div className="mb-4 sm:mb-0">
-                            <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-                                <Target className="h-8 w-8 text-primary" />
-                                {lifePrk.title}
-                            </h2>
-                            <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
-                        </div>
+        <AccordionTrigger asChild className="p-0 hover:no-underline flex-grow cursor-pointer group w-full">
+            <div className="flex justify-between items-start gap-4 p-2">
+                <div className="flex-grow">
+                    <div className="mb-4 sm:mb-0">
+                        <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
+                            <Target className="h-8 w-8 text-primary" />
+                            {lifePrk.title}
+                        </h2>
+                        <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
                     </div>
-                    <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </div>
-            </AccordionTrigger>
-            <div className="flex items-center gap-2 flex-shrink-0 self-center">
-                <Button variant="outline" onClick={() => onAddAreaPrk(lifePrk.id)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Agregar PRK de Área</span>
-                    <span className="inline sm:hidden">PRK Área</span>
-                </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-5 w-5" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(lifePrk)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar PRK de Vida
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(lifePrk.id)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archivar PRK de Vida
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-          </div>
+                <div className="flex items-center gap-2 flex-shrink-0 self-center">
+                    <Button variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        <span className="hidden sm:inline">Agregar PRK de Área</span>
+                        <span className="inline sm:hidden">PRK Área</span>
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                <MoreVertical className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(lifePrk); }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar PRK de Vida
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(lifePrk.id); }}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archivar PRK de Vida
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                     <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </div>
+              </div>
+        </AccordionTrigger>
         
         <div className="px-4">
             <div className="space-y-2 mt-4">
