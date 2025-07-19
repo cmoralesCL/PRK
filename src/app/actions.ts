@@ -21,28 +21,27 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
     
-    const { data, error } = await supabase.from('life_prks').insert([{ 
+    const { error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
         description: values.description || '',
-    }]).select().single();
+    }]);
 
     if(error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
     revalidatePath('/journal');
-    return data as LifePrk;
 }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
 
-    const { data, error } = await supabase.from('area_prks').insert([{ 
+    const { error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
         target_value: 100,
         current_value: 0,
-     }]).select().single();
+     }]);
 
     if(error) {
         console.error('Supabase error adding Area PRK:', error);
@@ -50,23 +49,12 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
     }
     revalidatePath('/');
     revalidatePath('/calendar');
-    const typedData: AreaPrk = {
-      id: data.id,
-      lifePrkId: data.life_prk_id,
-      title: data.title,
-      targetValue: data.target_value,
-      currentValue: data.current_value,
-      unit: data.unit,
-      created_at: data.created_at,
-      archived: data.archived
-    }
-    return typedData;
 }
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
 
-    const { data, error } = await supabase.from('habit_tasks').insert([{ 
+    const { error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
         type: values.type,
@@ -78,12 +66,11 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         is_critical: values.isCritical,
         measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal,
-    }]).select().single();
+    }]);
 
     if(error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
-    return data as HabitTask;
 }
 
 export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
