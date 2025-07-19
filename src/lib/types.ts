@@ -1,3 +1,4 @@
+
 export interface LifePrk {
   id: string;
   title: string;
@@ -56,7 +57,7 @@ export interface ProgressLog {
   habit_task_id: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
   progress_value?: number | null; // Corresponds to progress_value
-  completion_percentage?: number | null; // Corresponds to completion_percentage
+  completion_percentage: number | null;
 }
 
 export interface DailyProgressSnapshot {
@@ -65,3 +66,7 @@ export interface DailyProgressSnapshot {
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
 
+export interface WeeklyProgressSnapshot {
+  id: string; // Will be the start date of the week 'yyyy-MM-dd'
+  progress: number;
+}

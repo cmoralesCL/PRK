@@ -1,7 +1,7 @@
 
 'use client';
 
-import { format } from 'date-fns';
+import { format, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,9 +28,19 @@ interface DayDetailDialogProps {
   onAddTask: (date: Date) => void;
   onEditTask: (task: HabitTask, date: Date) => void;
   onArchiveTask: (id: string, date: Date) => void;
+  onOpenCommitments: (date: Date) => void;
 }
 
-export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, onEditTask, onArchiveTask }: DayDetailDialogProps) {
+export function DayDetailDialog({ 
+  isOpen, 
+  onOpenChange, 
+  day, 
+  tasks, 
+  onAddTask, 
+  onEditTask, 
+  onArchiveTask,
+  onOpenCommitments
+}: DayDetailDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
@@ -62,6 +72,11 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
     onArchiveTask(id, day);
   }
 
+  const handleOpenCommitmentsClick = () => {
+    onOpenChange(false);
+    onOpenCommitments(day);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -90,7 +105,8 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
                 )}
             </div>
         </ScrollArea>
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleOpenCommitmentsClick}>Ver Compromisos Semanales</Button>
             <Button onClick={() => onAddTask(day)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Acción

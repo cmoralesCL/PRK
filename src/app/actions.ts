@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot } from "@/lib/types";
+import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot } from "@/lib/types";
 import { 
     format, 
     startOfDay, 
@@ -25,6 +25,7 @@ import {
     endOfQuarter,
     addMonths
 } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
 
 
@@ -182,7 +183,6 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
         let completionPercentage = 1.0; // Default to 100% for binary habits/tasks
 
-        // If it's a quantitative habit, calculate the percentage
         if (progressValue !== undefined) {
             const { data: task, error: taskError } = await supabase
                 .from('habit_tasks')
@@ -198,7 +198,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             if (typeof target === 'number' && target > 0) {
                 completionPercentage = Math.max(0, Math.min(1, progressValue / target));
             } else {
-                 completionPercentage = progressValue > 0 ? 1 : 0; // If goal is not set, any progress is 100%
+                 completionPercentage = progressValue > 0 ? 1 : 0;
             }
         }
 
@@ -209,7 +209,6 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             completion_percentage: completionPercentage,
         };
         
-        // Upsert operation: if a log exists for this task on this day, update it. Otherwise, insert a new one.
         const { error: logError } = await supabase.from('progress_logs').upsert(
             upsertData, 
             { onConflict: 'habit_task_id, completion_date' }
@@ -330,11 +329,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         }
         
         if (!dueDate) {
-            // Tarea sin fecha de vencimiento es visible solo en la fecha de inicio
             return isSameDay(targetDate, startDate);
         }
 
-        // Tarea es visible desde su inicio hasta un día después de su vencimiento (para poder marcarla tarde)
         if (targetDate >= startDate && targetDate <= addDays(startOfDay(dueDate), 1)) {
             return true;
         }
@@ -350,11 +347,13 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             case 'daily':
                 return true;
             case 'weekly':
-                return getDay(targetDate) === getDay(startDate);
+                const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
+                const isTaskDateInSameWeek = isWithinInterval(startDate, { start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
+                return isTaskDateInSameWeek || targetDate >= startDate;
             case 'monthly':
                 return targetDate.getDate() === startDate.getDate();
             case 'specific_days':
-                const dayOfWeek = format(targetDate, 'eee').toLowerCase(); // mon, tue, wed...
+                const dayOfWeek = format(targetDate, 'eee', {locale: es}).toLowerCase(); 
                 return task.frequency_days?.includes(dayOfWeek) ?? false;
             default:
                 return false;
@@ -383,9 +382,8 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
         
         let completedToday = !!completionLog;
 
-        // For quantitative habits, completion depends on reaching the goal
-        if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-            completedToday = completedToday && (completionLog?.progress_value ?? 0) >= task.measurement_goal.target;
+        if (task.measurement_type === 'quantitative' && task.measurement_goal?.target && completionLog) {
+            completedToday = (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
         }
 
         return {
@@ -396,6 +394,7 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
         };
     });
 }
+
 
 /**
  * Calcula el progreso en cascada para una fecha dada, desde las tareas hasta los PRK de Vida.
@@ -480,9 +479,13 @@ export async function getCalendarData(monthDate: Date) {
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
-    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    // Fetch all necessary data for the entire month once
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    
+    const daysInView = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+    // Fetch all necessary data for the entire view once
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) throw lifePrksError;
 
@@ -492,14 +495,15 @@ export async function getCalendarData(monthDate: Date) {
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) throw habitTasksError;
 
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(monthStart, 'yyyy-MM-dd')).lte('completion_date', format(monthEnd, 'yyyy-MM-dd'));
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
     if (progressLogsError) throw progressLogsError;
 
     // Calculate progress for each day of the month
     const dailyProgress: DailyProgressSnapshot[] = [];
     const habitTasksByDay: Record<string, HabitTask[]> = {};
+    const weeklyCommitments: Record<string, HabitTask[]> = {};
 
-    for (const day of daysInMonth) {
+    for (const day of daysInView) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
         
@@ -515,12 +519,69 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
+        
+        // Find weekly commitments for this day's week
+        const weekStartKey = format(startOfWeek(day, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        if (!weeklyCommitments[weekStartKey]) {
+            const weeklyTasks = allHabitTasks.filter(task => 
+                task.type === 'habit' && 
+                task.frequency === 'weekly' && 
+                isTaskActiveOnDate(task, day)
+            );
+
+            // Populate completion status for the entire week
+            const weekInterval = { start: startOfWeek(day, { weekStartsOn: 1 }), end: endOfWeek(day, { weekStartsOn: 1 }) };
+            
+            weeklyCommitments[weekStartKey] = weeklyTasks.map(task => {
+                const completionLog = allProgressLogs.find(log => 
+                    log.habit_task_id === task.id &&
+                    isWithinInterval(parseISO(log.completion_date), weekInterval)
+                );
+                 let completedThisWeek = !!completionLog;
+                 if (task.measurement_type === 'quantitative' && task.measurement_goal?.target && completionLog) {
+                    completedThisWeek = (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
+                }
+                return { 
+                    ...task, 
+                    completedToday: completedThisWeek, // Use 'completedToday' for consistency in the UI component
+                    current_progress_value: completionLog?.progress_value,
+                    completion_date: completionLog?.completion_date
+                };
+            });
+        }
     }
+
+    const weeklyProgress: WeeklyProgressSnapshot[] = [];
+    const weeks = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    let weekIndex = 0;
+    while(weekIndex < weeks.length) {
+        const weekStart = weeks[weekIndex];
+        const weekEnd = addDays(weekStart, 6);
+        const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+        const weekProgressValues = weekDays
+            .map(d => dailyProgress.find(dp => dp.snapshot_date === format(d, 'yyyy-MM-dd'))?.progress)
+            .filter((p): p is number => p !== undefined && p !== null);
+
+        const avgProgress = weekProgressValues.length > 0
+            ? weekProgressValues.reduce((sum, p) => sum + p, 0) / weekProgressValues.length
+            : 0;
+
+        weeklyProgress.push({
+            id: format(weekStart, 'yyyy-MM-dd'),
+            progress: avgProgress,
+        });
+
+        weekIndex += 7;
+    }
+
 
     return {
         dailyProgress,
         habitTasks: habitTasksByDay,
-        areaPrks, // Return areaPrks
+        weeklyCommitments,
+        weeklyProgress,
+        areaPrks,
     };
 }
 
@@ -554,5 +615,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    

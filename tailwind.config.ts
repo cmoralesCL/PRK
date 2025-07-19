@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -16,6 +17,10 @@ export default {
       },
     },
     extend: {
+      gridTemplateColumns: {
+        'calendar-week-sm': 'repeat(8, minmax(0, 1fr))',
+        'calendar-week-md': 'repeat(8, minmax(0, 1fr))',
+      },
       fontFamily: {
         headline: ['Space Grotesk', 'sans-serif'],
         body: ['Inter', 'sans-serif'],

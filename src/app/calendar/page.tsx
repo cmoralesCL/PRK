@@ -12,7 +12,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: { m
   // Ensure the date is set to the start of the day to avoid timezone issues.
   selectedDate.setHours(0, 0, 0, 0);
 
-  const { dailyProgress, habitTasks, areaPrks } = await getCalendarData(selectedDate);
+  const { dailyProgress, habitTasks, areaPrks, weeklyCommitments, weeklyProgress } = await getCalendarData(selectedDate);
 
   // Pass the date as a string to the client component to avoid hydration mismatches.
   const initialMonthString = format(selectedDate, 'yyyy-MM-dd');
@@ -23,6 +23,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: { m
       dailyProgressData={dailyProgress}
       habitTasksData={habitTasks}
       areaPrks={areaPrks || []}
+      weeklyCommitmentsData={weeklyCommitments || {}}
+      weeklyProgressData={weeklyProgress || []}
     />
   );
 }

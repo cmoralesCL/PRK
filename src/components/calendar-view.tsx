@@ -3,15 +3,16 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, parse } from 'date-fns';
+import { format, parse, startOfWeek } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import { Header } from '@/components/header';
 import { ProgressCalendar } from '@/components/progress-calendar';
 import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
-import type { DailyProgressSnapshot, HabitTask, AreaPrk } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
+import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
+import { addHabitTask, updateHabitTask, archiveHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 import { useState } from 'react';
+import { CommitmentsPanel } from './commitments-panel';
 
 
 interface CalendarViewProps {
@@ -19,9 +20,18 @@ interface CalendarViewProps {
     dailyProgressData: DailyProgressSnapshot[];
     habitTasksData: Record<string, HabitTask[]>;
     areaPrks: AreaPrk[];
+    weeklyCommitmentsData: Record<string, HabitTask[]>;
+    weeklyProgressData: WeeklyProgressSnapshot[];
 }
 
-export function CalendarView({ initialMonthString, dailyProgressData, habitTasksData, areaPrks }: CalendarViewProps) {
+export function CalendarView({ 
+    initialMonthString, 
+    dailyProgressData, 
+    habitTasksData, 
+    areaPrks,
+    weeklyCommitmentsData,
+    weeklyProgressData
+}: CalendarViewProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -29,6 +39,10 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
     const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
     const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
     const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | undefined>(undefined);
+    
+    const [isCommitmentPanelOpen, setCommitmentPanelOpen] = useState(false);
+    const [selectedWeek, setSelectedWeek] = useState<Date | null>(null);
+
 
     const handleMonthChange = (newMonth: Date) => {
         startTransition(() => {
@@ -47,6 +61,29 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
         setSelectedDateForDialog(date);
         setHabitTaskDialogOpen(true);
     };
+
+    const handleDayClick = (day: Date) => {
+        setSelectedWeek(startOfWeek(day, { weekStartsOn: 1 }));
+        setCommitmentPanelOpen(true);
+    }
+    
+    const handleToggleCommitment = (habitTaskId: string, completed: boolean, date: Date, progressValue?: number) => {
+        startTransition(async () => {
+            const task = weeklyCommitmentsData[format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd')]?.find(t => t.id === habitTaskId);
+            if (!task) return;
+
+            try {
+                if(completed) {
+                    await logHabitTaskCompletion(habitTaskId, task.type, date.toISOString().split('T')[0], progressValue);
+                } else {
+                    await removeHabitTaskCompletion(habitTaskId, task.type, date.toISOString().split('T')[0]);
+                }
+                toast({ title: completed ? "¡Compromiso registrado!" : "Registro deshecho."});
+            } catch(error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el compromiso.' });
+            }
+        });
+    }
 
     const handleSaveHabitTask = (values: HabitTaskFormValues) => {
         startTransition(async () => {
@@ -94,6 +131,9 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
     // This happens on the client, avoiding hydration issues.
     const currentMonth = parse(initialMonthString, 'yyyy-MM-dd', new Date());
 
+    const selectedWeekKey = selectedWeek ? format(selectedWeek, 'yyyy-MM-dd') : '';
+    const commitmentsForSelectedWeek = weeklyCommitmentsData[selectedWeekKey] || [];
+
     return (
         <>
             <Header 
@@ -112,6 +152,8 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
                   onAddTask={handleOpenAddTaskDialog}
                   onEditTask={handleOpenEditTaskDialog}
                   onArchiveTask={handleArchiveHabitTask}
+                  weeklyProgressData={weeklyProgressData}
+                  onDayClick={handleDayClick}
                 />
             </main>
             <AddHabitTaskDialog 
@@ -121,6 +163,16 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
                 habitTask={editingHabitTask}
                 defaultDate={selectedDateForDialog}
                 areaPrks={areaPrks}
+            />
+            <CommitmentsPanel
+                isOpen={isCommitmentPanelOpen}
+                onOpenChange={setCommitmentPanelOpen}
+                weekDate={selectedWeek}
+                commitments={commitmentsForSelectedWeek}
+                onToggle={handleToggleCommitment}
+                onEdit={(task) => handleOpenEditTaskDialog(task, selectedWeek!)}
+                onArchive={(id) => handleArchiveHabitTask(id, selectedWeek!)}
+                onAddTask={() => handleOpenAddTaskDialog(selectedWeek!)}
             />
         </>
     );
