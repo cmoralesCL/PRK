@@ -125,6 +125,10 @@ export function HabitTaskDialog({
       weight: 1,
       measurement_type: 'binary',
       is_critical: false,
+      measurement_goal: {
+          target: undefined,
+          unit: '',
+      }
     },
   });
 
@@ -142,7 +146,10 @@ export function HabitTaskDialog({
           weight: habitTask.weight || 1,
           is_critical: habitTask.is_critical || false,
           measurement_type: habitTask.measurement_type || 'binary',
-          measurement_goal: habitTask.measurement_goal || undefined,
+          measurement_goal: {
+            target: habitTask.measurement_goal?.target,
+            unit: habitTask.measurement_goal?.unit || '',
+          },
         });
       } else {
         form.reset({
@@ -156,7 +163,10 @@ export function HabitTaskDialog({
           weight: 1,
           is_critical: false,
           measurement_type: 'binary',
-          measurement_goal: undefined,
+          measurement_goal: {
+            target: undefined,
+            unit: '',
+          },
         });
       }
     }
@@ -439,6 +449,7 @@ export function HabitTaskDialog({
                                                     placeholder="Objetivo"
                                                     {...field}
                                                     onChange={event => field.onChange(+event.target.value)}
+                                                    value={field.value ?? ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -454,6 +465,7 @@ export function HabitTaskDialog({
                                                 <Input 
                                                     placeholder="Unidad (ej: páginas)" 
                                                     {...field}
+                                                    value={field.value ?? ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -472,7 +484,7 @@ export function HabitTaskDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nivel de Impacto (1-5)</FormLabel>
-                   <Input type="number" min="1" max="5" placeholder="1" {...field} />
+                   <Input type="number" min="1" max="5" placeholder="1" {...field} value={field.value ?? ''} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -507,6 +519,3 @@ export function HabitTaskDialog({
     </Dialog>
   );
 }
-
-
-    

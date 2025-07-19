@@ -7,7 +7,7 @@ import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
-import { HabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
+import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -361,7 +361,7 @@ export function Dashboard({
         onSave={handleSaveAreaPrk}
         areaPrk={editingAreaPrk}
       />
-      <HabitTaskDialog 
+      <AddHabitTaskDialog 
         isOpen={isHabitTaskDialogOpen} 
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}

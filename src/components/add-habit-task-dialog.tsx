@@ -38,6 +38,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
 import { useEffect } from 'react';
+import { Label } from './ui/label';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
@@ -102,7 +103,7 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
+export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
   const isEditing = !!habitTask;
 
   const form = useForm<HabitTaskFormValues>({
@@ -117,6 +118,10 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       weight: 1,
       measurement_type: 'binary',
       is_critical: false,
+      measurement_goal: {
+          target: undefined,
+          unit: '',
+      }
     },
   });
 
@@ -134,7 +139,10 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           weight: habitTask.weight || 1,
           is_critical: habitTask.is_critical || false,
           measurement_type: habitTask.measurement_type || 'binary',
-          measurement_goal: habitTask.measurement_goal || undefined,
+          measurement_goal: {
+            target: habitTask.measurement_goal?.target,
+            unit: habitTask.measurement_goal?.unit || '',
+          },
         });
       } else {
         form.reset({
@@ -148,7 +156,10 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           weight: 1,
           is_critical: false,
           measurement_type: 'binary',
-          measurement_goal: undefined,
+          measurement_goal: {
+            target: undefined,
+            unit: '',
+          },
         });
       }
     }
@@ -431,6 +442,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                                                     placeholder="Objetivo"
                                                     {...field}
                                                     onChange={event => field.onChange(+event.target.value)}
+                                                    value={field.value ?? ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -446,6 +458,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                                                 <Input 
                                                     placeholder="Unidad (ej: páginas)" 
                                                     {...field}
+                                                    value={field.value ?? ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -464,7 +477,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nivel de Impacto (1-5)</FormLabel>
-                   <Input type="number" min="1" max="5" placeholder="1" {...field} />
+                   <Input type="number" min="1" max="5" placeholder="1" {...field} value={field.value ?? ''} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -499,7 +512,3 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
     </Dialog>
   );
 }
-
-    
-
-    
