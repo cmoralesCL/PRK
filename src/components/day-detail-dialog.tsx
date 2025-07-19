@@ -64,7 +64,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, o
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-headline">
             Tareas del {format(day, "d 'de' LLLL", { locale: es })}
