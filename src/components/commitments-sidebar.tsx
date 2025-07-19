@@ -61,7 +61,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     });
   };
 
-  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly' || (c.type === 'task' && !c.due_date));
+  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly');
   const monthlyCommitments = commitments.filter(c => c.frequency === 'monthly');
   
   const renderCommitmentList = (tasks: HabitTask[]) => {

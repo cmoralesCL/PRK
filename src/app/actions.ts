@@ -348,6 +348,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             case 'daily':
                 return true;
             case 'weekly':
+                return true;
             case 'monthly':
                 return true;
             case 'specific_days':
@@ -539,7 +540,7 @@ export async function getCalendarData(monthDate: Date) {
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: weekForCommitmentsStart, end: weekForCommitmentsEnd })
             );
-        } else { 
+        } else { // This else block handles monthly
              logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
