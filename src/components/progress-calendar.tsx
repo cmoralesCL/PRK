@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskItem } from '@/components/habit-task-item';
-import { DayDetailDialog } from './day-detail-dialog';
 import { cn } from '@/lib/utils';
 import type { DailyProgressSnapshot, HabitTask, WeeklyProgressSnapshot } from '@/lib/types';
 import {
@@ -29,9 +28,6 @@ interface ProgressCalendarProps {
   dailyProgressData: DailyProgressSnapshot[];
   habitTasksData: Record<string, HabitTask[]>;
   weeklyProgressData: WeeklyProgressSnapshot[];
-  onAddTask: (date: Date) => void;
-  onEditTask: (task: HabitTask, date: Date) => void;
-  onArchiveTask: (id: string, date: Date) => void;
   onDayClick: (date: Date) => void;
 }
 
@@ -41,19 +37,9 @@ export function ProgressCalendar({
   dailyProgressData, 
   habitTasksData, 
   weeklyProgressData,
-  onAddTask, 
-  onEditTask, 
-  onArchiveTask,
   onDayClick,
 }: ProgressCalendarProps) {
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [isDetailOpen, setDetailOpen] = useState(false);
   const [view, setView] = useState<'month' | 'week'>('month');
-
-  const handleOpenDayDetail = (day: Date) => {
-    setSelectedDay(day);
-    setDetailOpen(true);
-  };
 
   const changePeriod = (offset: number) => {
     const newDate = view === 'month' 
@@ -130,7 +116,6 @@ export function ProgressCalendar({
                     <div
                       key={day.toString()}
                       onClick={() => onDayClick(day)}
-                      onDoubleClick={() => handleOpenDayDetail(day)}
                       className={cn(
                         "h-40 border rounded-lg p-2 flex flex-col cursor-pointer transition-colors hover:bg-accent/50",
                         !isCurrentMonth && view === 'month' && "bg-muted/30 text-muted-foreground",
@@ -184,22 +169,6 @@ export function ProgressCalendar({
           })}
         </div>
       </div>
-      <DayDetailDialog 
-        isOpen={isDetailOpen}
-        onOpenChange={setDetailOpen}
-        day={selectedDay}
-        tasks={selectedDay ? habitTasksData[format(selectedDay, 'yyyy-MM-dd')] || [] : []}
-        onAddTask={(date) => {
-          onAddTask(date);
-          setDetailOpen(false); // Cierra el modal de detalle para abrir el de creación
-        }}
-        onEditTask={(task, date) => {
-            onEditTask(task, date);
-            setDetailOpen(false);
-        }}
-        onArchiveTask={onArchiveTask}
-        onOpenCommitments={onDayClick}
-      />
     </TooltipProvider>
   );
 }
