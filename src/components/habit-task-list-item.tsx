@@ -84,66 +84,66 @@ export function HabitTaskListItem({
     )
   }
 
-  if (variant === 'dialog') {
-    // Simplified version for dialog, can be expanded if needed
+  // Dashboard & Dialog Variants
+  if (item.measurement_type === 'quantitative') {
     return (
-        <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/50 group">
-            <Checkbox
-                id={`dialog-${item.id}`}
-                checked={isCompleted}
-                onCheckedChange={handleToggle}
-                className="h-4 w-4"
-                disabled={!onToggle || item.measurement_type === 'quantitative'}
-            />
-            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <Label 
-                htmlFor={`dialog-${item.id}`}
-                className={cn("text-sm text-secondary-foreground flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through", !onToggle && "cursor-default")}
-            >
-                {item.title}
-            </Label>
-            {(onEdit || (onArchive && variant !== 'dialog')) && (
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 transition-opacity">
-                            <MoreVertical className="h-4 w-4" />
+        <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <Label
+                        className={cn(
+                            'text-sm font-medium leading-none flex-grow',
+                            isCompleted && 'line-through text-muted-foreground'
+                        )}
+                    >
+                        {item.title}
+                    </Label>
+                </div>
+                <div className="flex items-center transition-opacity">
+                    {onEdit && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {onEdit && (
-                            <DropdownMenuItem onClick={() => onEdit(item)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                            </DropdownMenuItem>
-                        )}
-                        {onArchive && (
-                            <DropdownMenuItem onClick={() => onArchive(item.id)}>
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archivar
-                            </DropdownMenuItem>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    )}
+                    {onArchive && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onArchive(item.id)}>
+                            <Archive className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+            {onToggle && (
+                <div className="pl-8 flex items-center gap-2">
+                    <Input
+                        type="number"
+                        value={progressValue}
+                        onChange={(e) => setProgressValue(e.target.value)}
+                        className="h-8 w-20"
+                        placeholder="Valor"
+                    />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        / {item.measurement_goal?.target} {item.measurement_goal?.unit}
+                    </span>
+                    <Button size="sm" className="h-8 ml-auto" onClick={handleSaveQuantitative}>Guardar</Button>
+                </div>
             )}
         </div>
     );
   }
 
-  // Dashboard variant
+  // Default binary/task item
   return (
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
-        <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-        <div className="flex flex-col flex-grow gap-2">
-            <div className="flex items-center space-x-3">
-                {item.measurement_type !== 'quantitative' ? (
-                    <Checkbox
-                        id={item.id}
-                        checked={isCompleted}
-                        onCheckedChange={handleToggle}
-                        disabled={!onToggle}
-                    />
-                ) : <div className="w-4 h-4" /> }
-
+        <Checkbox
+            id={item.id}
+            checked={isCompleted}
+            onCheckedChange={handleToggle}
+            disabled={!onToggle}
+            className="h-5 w-5"
+        />
+        <div className="flex flex-col flex-grow gap-1">
+            <div className="flex items-center justify-between">
                 <Label
                     htmlFor={item.id}
                     className={cn(
@@ -156,46 +156,20 @@ export function HabitTaskListItem({
                 </Label>
                 <div className="flex items-center transition-opacity">
                     {onEdit && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => onEdit(item)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
                             <Pencil className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
                     {onArchive && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => onArchive(item.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onArchive(item.id)}>
                             <Archive className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
                 </div>
             </div>
-
-            {item.measurement_type === 'quantitative' && onToggle && (
-                <div className="pl-8 flex items-center gap-2">
-                    <Input
-                        type="number"
-                        value={progressValue}
-                        onChange={(e) => setProgressValue(e.target.value)}
-                        className="h-8 w-20"
-                        placeholder="Valor"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                       / {item.measurement_goal?.target} {item.measurement_goal?.unit}
-                    </span>
-                    <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>Guardar</Button>
-                </div>
-            )}
             
             {item.type !== 'habit' && item.due_date && (
-                <div className="pl-8 pt-1 flex items-center gap-1.5">
+                <div className="pl-1 flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
                         Vence: {format(parseISO(item.due_date), 'd MMM yyyy', { locale: es })}
