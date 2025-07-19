@@ -584,12 +584,8 @@ export async function getCalendarData(monthDate: Date) {
             .map(d => dailyProgress.find(dp => dp.snapshot_date === format(d, 'yyyy-MM-dd'))?.progress)
             .filter((p): p is number => p !== undefined && p !== null);
 
-        // Divisor should be the number of days in the week that have passed or are today, up to 7
-        const today = startOfDay(new Date());
-        const daysInWeekToConsider = weekDays.filter(d => d <= today).length;
-
         const avgDailyProgress = weekDailyProgressValues.length > 0
-            ? weekDailyProgressValues.reduce((sum, p) => sum + p, 0) / (daysInWeekToConsider || 1) // Avoid division by zero
+            ? weekDailyProgressValues.reduce((sum, p) => sum + p, 0) / (weekDailyProgressValues.length || 1)
             : 0;
 
         // Commitments progress for the week
