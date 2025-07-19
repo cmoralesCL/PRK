@@ -56,7 +56,6 @@ export interface ProgressLog {
 
 export interface DailyProgressSnapshot {
   id: string;
-  user_id: string;
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
@@ -89,7 +88,6 @@ export interface CalendarDataPoint {
 // Fase 1: Nueva tabla
 export interface EmotionalPulse {
   id: string;
-  userId: string;
   pulseDate: string;
   emotionalStateTag: string;
   notes?: string;

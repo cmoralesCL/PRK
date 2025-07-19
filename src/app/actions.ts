@@ -20,13 +20,9 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
     const { error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
         description: values.description || '',
-        user_id: user.id
     }]);
 
     if(error) throw error;
@@ -37,16 +33,12 @@ export async function addLifePrk(values: { title: string; description?: string }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
     const { error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
         target_value: 100,
         current_value: 0,
-        user_id: user.id,
      }]);
 
     if(error) {
@@ -59,9 +51,6 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
     const { error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
@@ -74,7 +63,6 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         is_critical: values.isCritical,
         measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal,
-        user_id: user.id,
     }]);
 
     if(error) throw error;
@@ -108,8 +96,6 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>): P
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
     try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
         
         if (type === 'project' || type === 'task') {
             const { error } = await supabase
@@ -124,7 +110,6 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             completion_date: completionDate,
             progress_value: null, 
             completion_percentage: 1.0, // 100%
-            user_id: user.id,
         }]);
 
         if (logError) throw logError;
