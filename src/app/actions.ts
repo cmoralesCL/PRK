@@ -26,6 +26,7 @@ export async function addLifePrk(values: { title: string; description?: string }
     const { data, error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
         description: values.description || '',
+        user_id: user.id,
     }]).select().single();
 
     if(error) throw error;
