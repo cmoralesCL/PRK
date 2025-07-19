@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListTodo, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { useTransition, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { ListTodo, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
 import type { HabitTask } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,11 +18,13 @@ interface CommitmentsSidebarProps {
   selectedDate: Date;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  onAddCommitment: (frequency: 'weekly' | 'monthly') => void;
 }
 
-export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen }: CommitmentsSidebarProps) {
+export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen, onAddCommitment }: CommitmentsSidebarProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'quarterly'>('weekly');
 
   const handleToggle = (id: string, completed: boolean, date: Date, progressValue?: number) => {
      const task = commitments.find(ht => ht.id === id);
@@ -44,7 +46,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
   };
 
   const handleEdit = (task: HabitTask) => {
-    // TODO: Implement edit functionality
+    // TODO: Implement edit functionality for commitments
   };
 
   const handleArchive = (id: string) => {
@@ -105,23 +107,33 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
             </Button>
         </CardHeader>
         <CardContent className="flex-grow">
-        <Tabs defaultValue="weekly" className="w-full">
+        <Tabs 
+          defaultValue="weekly" 
+          className="w-full"
+          onValueChange={(value) => setActiveTab(value as 'weekly' | 'monthly' | 'quarterly')}
+        >
             <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="weekly">Semanal</TabsTrigger>
-            <TabsTrigger value="monthly">Mensual</TabsTrigger>
-            <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
+              <TabsTrigger value="weekly">Semanal</TabsTrigger>
+              <TabsTrigger value="monthly">Mensual</TabsTrigger>
+              <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
             </TabsList>
             <TabsContent value="weekly" className="mt-4">
-            {renderCommitmentList(weeklyCommitments)}
+              {renderCommitmentList(weeklyCommitments)}
             </TabsContent>
             <TabsContent value="monthly" className="mt-4">
                 {renderCommitmentList(monthlyCommitments)}
             </TabsContent>
             <TabsContent value="quarterly" className="mt-4">
-            {renderCommitmentList([])}
+              {renderCommitmentList([])}
             </TabsContent>
         </Tabs>
         </CardContent>
+         <CardFooter>
+            <Button className="w-full" onClick={() => onAddCommitment(activeTab as 'weekly' | 'monthly')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Compromiso
+            </Button>
+        </CardFooter>
       </Card>
   );
 }

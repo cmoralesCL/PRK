@@ -85,6 +85,7 @@ interface AddHabitTaskDialogProps {
   defaultAreaPrkId?: string;
   defaultDate?: Date;
   areaPrks: AreaPrk[];
+  defaultValues?: Partial<HabitTaskFormValues>;
 }
 
 const daysOfWeek = [
@@ -97,7 +98,16 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: AddHabitTaskDialogProps) {
+export function AddHabitTaskDialog({ 
+    isOpen, 
+    onOpenChange, 
+    onSave, 
+    habitTask, 
+    defaultAreaPrkId, 
+    defaultDate, 
+    areaPrks,
+    defaultValues
+}: AddHabitTaskDialogProps) {
   const isEditing = !!habitTask;
 
   const form = useForm<HabitTaskFormValues>({
@@ -109,6 +119,7 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
       area_prk_id: defaultAreaPrkId,
       weight: 1,
       is_critical: false,
+      ...defaultValues
     },
   });
 
@@ -153,10 +164,11 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
           area_prk_id: defaultAreaPrkId,
           weight: 1,
           is_critical: false,
+          ...defaultValues
         });
       }
     }
-  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate]);
+  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
 
   const onSubmit = (values: HabitTaskFormValues) => {
@@ -516,5 +528,3 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
     </Dialog>
   );
 }
-
-    
