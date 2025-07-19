@@ -43,11 +43,17 @@ export function Dashboard({
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [openLifePrkIds, setOpenLifePrkIds] = useState<string[]>(lifePrks.map(lp => lp.id));
   
   useEffect(() => {
     // Inicializar la fecha en el cliente para evitar errores de hidratación
     setSelectedDate(parseISO(initialSelectedDate));
   }, [initialSelectedDate]);
+
+  useEffect(() => {
+    // Cuando los lifePrks cambian (por ej. al agregar uno nuevo), lo expandimos por defecto.
+    setOpenLifePrkIds(lifePrks.map(lp => lp.id));
+  }, [lifePrks]);
 
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
@@ -229,7 +235,7 @@ export function Dashboard({
         selectedDate={selectedDate}
         onDateChange={handleDateChange} 
       />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
                 <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
@@ -242,26 +248,41 @@ export function Dashboard({
                  <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
             </div>
         )}
-        {!isPending && (
-          <Accordion type="multiple" className="w-full space-y-4" defaultValue={lifePrks.map(lp => lp.id)}>
-            {lifePrks.map((lp) => (
-              <LifePrkSection
-                key={lp.id}
-                lifePrk={lp}
-                areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                habitTasks={habitTasks}
-                onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
-                onAddHabitTask={handleOpenAddHabitTaskDialog}
-                onEditHabitTask={handleOpenEditHabitTaskDialog}
-                onToggleHabitTask={handleToggleHabitTask}
-                onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-                onArchive={handleArchiveLifePrk}
-                onArchiveAreaPrk={handleArchiveAreaPrk}
-                onArchiveHabitTask={handleArchiveHabitTask}
-                selectedDate={selectedDate}
-              />
-            ))}
-          </Accordion>
+        {!isPending && lifePrks.length > 0 && (
+          <>
+            <div className="flex justify-end gap-2 mb-4">
+                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
+                    Expandir Todo
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
+                    Contraer Todo
+                </Button>
+            </div>
+            <Accordion 
+              type="multiple" 
+              className="w-full space-y-4" 
+              value={openLifePrkIds}
+              onValueChange={setOpenLifePrkIds}
+            >
+              {lifePrks.map((lp) => (
+                <LifePrkSection
+                  key={lp.id}
+                  lifePrk={lp}
+                  areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
+                  habitTasks={habitTasks}
+                  onAddAreaPrk={(id) => { setActiveLifePrkId(id); setAddAreaPrkOpen(true); }}
+                  onAddHabitTask={handleOpenAddHabitTaskDialog}
+                  onEditHabitTask={handleOpenEditHabitTaskDialog}
+                  onToggleHabitTask={handleToggleHabitTask}
+                  onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                  onArchive={handleArchiveLifePrk}
+                  onArchiveAreaPrk={handleArchiveAreaPrk}
+                  onArchiveHabitTask={handleArchiveHabitTask}
+                  selectedDate={selectedDate}
+                />
+              ))}
+            </Accordion>
+          </>
         )}
       </main>
 
