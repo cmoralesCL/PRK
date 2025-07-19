@@ -82,40 +82,46 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     )
   }
 
+  if (!isOpen) {
+    return (
+        <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
+            <PanelRightOpen className="h-6 w-6" />
+        </Button>
+    )
+  }
+
   return (
-      <Card className="h-full flex flex-col transition-all duration-300 ease-in-out">
-        <CardHeader className="flex flex-row items-start justify-between">
-            <div className={cn(isOpen && "w-full")}>
+      <Card className="h-full w-full flex flex-col transition-all duration-300 ease-in-out">
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div className="w-full">
               <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <ListTodo className="h-5 w-5 text-primary" />
-                  {isOpen && 'Compromisos'}
+                  Compromisos
               </CardTitle>
-              {isOpen && <CardDescription>Metas sin día fijo.</CardDescription>}
+              <CardDescription>Metas sin día fijo.</CardDescription>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="flex-shrink-0">
-                {isOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+                <PanelRightClose className="h-5 w-5" />
             </Button>
         </CardHeader>
-        {isOpen && (
-            <CardContent className="flex-grow">
-            <Tabs defaultValue="weekly" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="weekly">Semanal</TabsTrigger>
-                <TabsTrigger value="monthly">Mensual</TabsTrigger>
-                <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
-                </TabsList>
-                <TabsContent value="weekly" className="mt-4">
-                {renderCommitmentList(weeklyCommitments)}
-                </TabsContent>
-                <TabsContent value="monthly" className="mt-4">
-                    {renderCommitmentList(monthlyCommitments)}
-                </TabsContent>
-                <TabsContent value="quarterly" className="mt-4">
-                {renderCommitmentList([])}
-                </TabsContent>
-            </Tabs>
-            </CardContent>
-        )}
+        <CardContent className="flex-grow">
+        <Tabs defaultValue="weekly" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="weekly">Semanal</TabsTrigger>
+            <TabsTrigger value="monthly">Mensual</TabsTrigger>
+            <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
+            </TabsList>
+            <TabsContent value="weekly" className="mt-4">
+            {renderCommitmentList(weeklyCommitments)}
+            </TabsContent>
+            <TabsContent value="monthly" className="mt-4">
+                {renderCommitmentList(monthlyCommitments)}
+            </TabsContent>
+            <TabsContent value="quarterly" className="mt-4">
+            {renderCommitmentList([])}
+            </TabsContent>
+        </Tabs>
+        </CardContent>
       </Card>
   );
 }

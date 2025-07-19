@@ -33,7 +33,10 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                     weeklyProgressData={initialData.weeklyProgress || []}
                 />
             </main>
-            <aside className={cn("hidden lg:block bg-card/50 border-l p-4 transition-all duration-300 ease-in-out", isSidebarOpen ? 'w-96' : 'w-20')}>
+            <aside className={cn(
+                "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
+                isSidebarOpen ? 'w-96 p-4' : 'w-16 p-2 items-center justify-center'
+            )}>
                 <CommitmentsSidebar
                     commitments={initialData.commitments || []}
                     selectedDate={selectedDate}
