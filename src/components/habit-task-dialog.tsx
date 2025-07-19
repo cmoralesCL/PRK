@@ -51,8 +51,8 @@ const formSchema = z.object({
   is_critical: z.boolean().default(false),
   measurement_type: z.enum(['binary', 'quantitative', 'temporal']).optional(),
   measurement_goal: z.object({
-      target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0."),
-      unit: z.string().min(1, "La unidad es requerida."),
+      target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
+      unit: z.string().min(1, "La unidad es requerida.").optional(),
   }).optional(),
 }).refine(data => {
     if (data.type === 'habit' && !data.frequency) {
@@ -73,7 +73,7 @@ const formSchema = z.object({
     return true;
 }, { message: "El tipo de medición es requerido para los hábitos.", path: ['measurement_type']})
 .refine(data => {
-    if (data.measurement_type === 'quantitative' && !data.measurement_goal) {
+    if (data.measurement_type === 'quantitative' && (!data.measurement_goal || !data.measurement_goal.target || !data.measurement_goal.unit)) {
         return false;
     }
     return true;
@@ -256,14 +256,14 @@ export function HabitTaskDialog({
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Tipo de Compromiso</FormLabel>
-                             <Select onValueChange={field.onChange} value={field.value || ''}>
+                             <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Ninguno (Tarea con fecha)" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Ninguno (Tarea con fecha)</SelectItem>
+                                    <SelectItem value="none">Ninguno (Tarea con fecha)</SelectItem>
                                     <SelectItem value="weekly">Semanal</SelectItem>
                                     <SelectItem value="monthly">Mensual</SelectItem>
                                     <SelectItem value="quarterly">Trimestral</SelectItem>
@@ -460,7 +460,7 @@ export function HabitTaskDialog({
                     />
 
                     {measurementType === 'quantitative' && (
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="measurement_goal"
                             render={({ field }) => (
@@ -471,14 +471,14 @@ export function HabitTaskDialog({
                                             <Input 
                                                 type="number" 
                                                 placeholder="Objetivo" 
-                                                onChange={(e) => field.onChange({ target: Number(e.target.value), unit: field.value?.unit || '' })}
+                                                onChange={(e) => field.onChange({ ...field.value, target: Number(e.target.value) || undefined })}
                                                 value={field.value?.target || ''}
                                             />
                                         </FormControl>
                                         <FormControl>
                                             <Input 
                                                 placeholder="Unidad (ej: páginas)" 
-                                                onChange={(e) => field.onChange({ target: field.value?.target || 0, unit: e.target.value })} 
+                                                onChange={(e) => field.onChange({ ...field.value, unit: e.target.value })} 
                                                 value={field.value?.unit || ''}
                                             />
                                         </FormControl>
