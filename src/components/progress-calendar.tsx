@@ -41,6 +41,12 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
+  const [today, setToday] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // This ensures new Date() is only called on the client side after hydration.
+    setToday(new Date());
+  }, []);
 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
@@ -137,7 +143,7 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
                 const progress = dayData?.progress ?? 0;
                 const tasks = dayData?.tasks ?? [];
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday = isSameDay(day, new Date());
+                const isToday = today ? isSameDay(day, today) : false;
 
                 return (
                   <div
