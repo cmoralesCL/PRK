@@ -4,12 +4,11 @@ import { getLifePrkProgressData } from '@/app/actions';
 import { ProgressChart } from '@/components/progress-chart';
 import { Header } from '@/components/header';
 import { useEffect, useState } from 'react';
-import type { LifePrkProgressPoint } from '@/lib/types';
+import type { LifePrkProgressPoint, TimeRangeOption } from '@/lib/types';
 import { DateRange } from "react-day-picker"
 import { subDays, subMonths, subYears } from "date-fns"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
 
 export default function JournalPage() {
   const [chartData, setChartData] = useState<LifePrkProgressPoint[]>([]);

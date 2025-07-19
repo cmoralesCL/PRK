@@ -1,10 +1,9 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint, DailyProgressSnapshot } from "@/lib/types";
+import type { LifePrk, AreaPrk, HabitTask, ProgressLog, LifePrkProgressPoint, CalendarDataPoint, DailyProgressSnapshot, TimeRangeOption } from "@/lib/types";
 import { startOfDay, parseISO, isEqual, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, format, endOfDay, getDay, eachMonthOfInterval, getYear, lastDayOfMonth, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { TimeRangeOption } from "../journal/page";
 
 // Helper to map snake_case to camelCase
 const mapHabitTaskFromDb = (dbData: any): HabitTask => ({

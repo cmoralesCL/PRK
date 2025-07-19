@@ -95,3 +95,5 @@ export interface EmotionalPulse {
   notes?: string;
   createdAt: string;
 }
+
+export type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
