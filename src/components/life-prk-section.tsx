@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -53,9 +54,9 @@ export function LifePrkSection({
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
        <div className="py-8 bg-card rounded-lg shadow-sm px-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-            <AccordionTrigger className="w-full hover:no-underline -mx-2 px-2 py-4 rounded-md hover:bg-muted/50 flex-grow text-left">
-              <div className="w-full">
+        <AccordionTrigger className="w-full hover:no-underline p-0 rounded-md hover:bg-muted/50 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-4">
+              <div className="flex-grow">
                   <div className="mb-4 sm:mb-0">
                       <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
                           <Target className="h-8 w-8 text-primary" />
@@ -64,13 +65,12 @@ export function LifePrkSection({
                       <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
                   </div>
               </div>
-            </AccordionTrigger>
-             <div className="flex items-center gap-2 flex-shrink-0 self-start mt-4 sm:self-center sm:mt-0">
+            <div className="flex items-center gap-2 flex-shrink-0 self-start mt-4 sm:self-center sm:mt-0">
                 <Button variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Agregar PRK de Área
                 </Button>
-                 <DropdownMenu>
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-5 w-5" />
@@ -83,10 +83,11 @@ export function LifePrkSection({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-             </div>
-        </div>
+            </div>
+          </div>
+        </AccordionTrigger>
         
-        <div className="px-2">
+        <div className="px-4">
             <div className="space-y-2 mt-4">
                 <div className="flex justify-between text-sm font-medium text-muted-foreground">
                     <span>Progreso General</span>
@@ -96,7 +97,7 @@ export function LifePrkSection({
             </div>
         </div>
 
-      <AccordionContent className="pt-6">
+      <AccordionContent className="pt-6 px-4">
         {areaPrks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {areaPrks.map((kp) => (
