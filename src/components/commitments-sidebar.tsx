@@ -19,9 +19,10 @@ interface CommitmentsSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAddCommitment: (frequency: 'weekly' | 'monthly') => void;
+  onEditCommitment: (task: HabitTask) => void;
 }
 
-export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen, onAddCommitment }: CommitmentsSidebarProps) {
+export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen, onAddCommitment, onEditCommitment }: CommitmentsSidebarProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'quarterly'>('weekly');
@@ -46,7 +47,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
   };
 
   const handleEdit = (task: HabitTask) => {
-    // TODO: Implement edit functionality for commitments
+    onEditCommitment(task);
   };
 
   const handleArchive = (id: string) => {
@@ -60,7 +61,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     });
   };
 
-  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly');
+  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly' || (c.type === 'task' && !c.due_date));
   const monthlyCommitments = commitments.filter(c => c.frequency === 'monthly');
   
   const renderCommitmentList = (tasks: HabitTask[]) => {

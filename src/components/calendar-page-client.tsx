@@ -48,10 +48,10 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
         setHabitTaskDialogOpen(true);
     };
 
-    const handleOpenEditTaskDialog = (habitTask: HabitTask, date: Date) => {
+    const handleOpenEditTaskDialog = (habitTask: HabitTask, date?: Date) => {
         setEditingHabitTask(habitTask);
         setDefaultHabitTaskValues(undefined);
-        setSelectedDateForDialog(date);
+        setSelectedDateForDialog(date || new Date());
         setHabitTaskDialogOpen(true);
     };
 
@@ -143,6 +143,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                     isOpen={isSidebarOpen}
                     setIsOpen={setSidebarOpen}
                     onAddCommitment={handleOpenAddCommitmentDialog}
+                    onEditCommitment={handleOpenEditTaskDialog}
                 />
             </aside>
             <DayDetailDialog 
@@ -159,7 +160,6 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                     handleOpenEditTaskDialog(task, date);
                 }}
                 onArchiveTask={handleArchiveHabitTask}
-                showOverlay={!wasCommitmentPanelOpen}
             />
              <AddHabitTaskDialog 
                 isOpen={isHabitTaskDialogOpen}
