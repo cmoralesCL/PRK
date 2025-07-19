@@ -44,7 +44,7 @@ const mapLifePrkFromDb = (dbData: any): LifePrk => ({
 });
 
 const isTaskActiveOnDate = (task: HabitTask, selectedDate: Date): boolean => {
-    if (task.type !== 'project' || !task.startDate) return false;
+    if (task.type === 'habit' || !task.startDate) return false;
 
     const startDate = startOfDay(parseISO(task.startDate));
 
@@ -106,7 +106,7 @@ const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> =>
     return allHabitTasks
         .filter(ht => {
             if (ht.archived) return false;
-            if (ht.type === 'project') {
+            if (ht.type === 'project' || ht.type === 'task') {
                 return isTaskActiveOnDate(ht, selectedDate);
             }
 
@@ -128,7 +128,7 @@ const getHabitTasksForDate = async (selectedDate: Date): Promise<HabitTask[]> =>
         })
         .map(ht => {
             let completedToday = false;
-            if (ht.type === 'project') {
+            if (ht.type === 'project' || ht.type === 'task') {
                 if (ht.completionDate && ht.startDate) {
                      completedToday = isEqual(startOfDay(parseISO(ht.completionDate)), selectedDate);
                 }
@@ -320,7 +320,7 @@ export async function getCalendarData(date: Date): Promise<CalendarDataPoint[]> 
     for (const day of intervalDays) {
         const dateStr = format(day, 'yyyy-MM-dd');
         const tasksForDay = mappedAllHabitTasks.filter(ht => {
-             if (ht.type === 'project') {
+             if (ht.type === 'project' || ht.type === 'task') {
                 return isTaskActiveOnDate(ht, day);
             }
              if (!ht.startDate) return false;

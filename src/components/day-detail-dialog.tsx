@@ -18,7 +18,7 @@ import type { AreaPrk, CalendarDataPoint, HabitTask } from '@/lib/types';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, addHabitTask } from '@/app/actions';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
-import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
+import { HabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import { getCalendarData } from '@/app/actions';
 
 interface DayDetailDialogProps {
@@ -148,7 +148,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
           <div className="space-y-2">
               <Button onClick={handleOpenAddDialog} className="w-full">
                   <Plus className="mr-2 h-4 w-4" />
-                  Agregar Hábito o Tarea
+                  Agregar Acción
               </Button>
           </div>
 

@@ -6,7 +6,7 @@ import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog } from './add-area-prk-dialog';
-import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
+import { HabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -148,8 +148,8 @@ export function Dashboard({
       try {
         if (completed) {
           await logHabitTaskCompletion(id, task.type, completionDate);
-          if (task.type === 'project') {
-              toast({ title: '¡Proyecto Completado!', description: '¡Excelente trabajo!' });
+          if (task.type === 'project' || task.type === 'task') {
+              toast({ title: '¡Acción Completada!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
           }
@@ -169,7 +169,7 @@ export function Dashboard({
             await addHabitTask({ 
                 areaPrkId, 
                 title, 
-                type: 'project',
+                type: 'task',
                 startDate
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
@@ -205,9 +205,9 @@ export function Dashboard({
     startTransition(async () => {
         try {
           await archiveHabitTask(id);
-          toast({ title: 'Hábito/Tarea Archivado' });
+          toast({ title: 'Acción Archivado' });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la Acción.' });
         }
     });
   };

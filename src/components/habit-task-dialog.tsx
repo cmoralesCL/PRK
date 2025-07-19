@@ -40,7 +40,7 @@ import { useEffect } from 'react';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
-  type: z.enum(['habit', 'project']),
+  type: z.enum(['habit', 'project', 'task']),
   areaPrkId: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
@@ -108,7 +108,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
-      type: 'project',
+      type: 'task',
       frequencyDays: [],
       startDate: defaultDate || new Date(),
       areaPrkId: defaultAreaPrkId,
@@ -137,7 +137,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       } else {
         form.reset({
           title: '',
-          type: 'project',
+          type: 'task',
           frequencyDays: [],
           startDate: defaultDate || new Date(),
           dueDate: undefined,
@@ -168,7 +168,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            {isEditing ? 'Editar Proyecto o Hábito' : 'Crear un Proyecto o Hábito'}
+            {isEditing ? 'Editar Acción' : 'Crear Acción'}
           </DialogTitle>
           <DialogDescription>
              Esta es una acción concreta que apoya tu PRK de Área.
@@ -203,7 +203,8 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="project">Proyecto (Acción única con posible desglose)</SelectItem>
+                      <SelectItem value="task">Tarea (Acción única)</SelectItem>
+                      <SelectItem value="project">Proyecto (Agrupa Tareas)</SelectItem>
                       <SelectItem value="habit">Hábito (Acción recurrente)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -274,7 +275,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
                 )}
             />
 
-            {type === 'project' && (
+            {type !== 'habit' && (
                 <FormField
                     control={form.control}
                     name="dueDate"

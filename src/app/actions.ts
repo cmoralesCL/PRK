@@ -122,13 +122,13 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
     return data as HabitTask;
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project', completionDate: string) {
+export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
     
-    if (type === 'project') {
+    if (type === 'project' || type === 'task') {
         const { error } = await supabase
             .from('habit_tasks')
             .update({ completion_date: completionDate })
@@ -163,13 +163,13 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
     revalidatePath('/journal');
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project', completionDate: string) {
+export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
 
-    if (type === 'project') {
+    if (type === 'project' || type === 'task') {
         const { error } = await supabase
             .from('habit_tasks')
             .update({ completion_date: null })

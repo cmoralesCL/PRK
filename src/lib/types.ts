@@ -24,7 +24,7 @@ export interface HabitTask {
   id: string;
   areaPrkId: string; // Corresponds to area_prk_id in Supabase
   title: string;
-  type: 'habit' | 'project';
+  type: 'habit' | 'project' | 'task';
   created_at?: string;
   archived: boolean;
   
@@ -66,7 +66,7 @@ export interface DailyProgressSnapshot {
 export interface JournalEntry {
   date: string;
   items: {
-    type: 'habit' | 'project';
+    type: 'habit' | 'project' | 'task';
     title: string;
     areaPrkTitle: string;
     lifePrkTitle: string;
