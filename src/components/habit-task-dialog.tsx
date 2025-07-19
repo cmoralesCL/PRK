@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +38,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
 import { useEffect } from 'react';
+import { Label } from './ui/label';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
@@ -149,7 +151,7 @@ export function HabitTaskDialog({
           frequency_days: [],
           start_date: defaultDate || new Date(),
           due_date: undefined,
-          frequency: undefined,
+          frequency: 'daily',
           area_prk_id: defaultAreaPrkId,
           weight: 1,
           is_critical: false,
@@ -423,33 +425,43 @@ export function HabitTaskDialog({
                     />
 
                     {measurementType === 'quantitative' && (
-                         <FormField
-                            control={form.control}
-                            name="measurement_goal"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Objetivo Cuantitativo</FormLabel>
-                                    <div className="flex gap-2">
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                placeholder="Objetivo" 
-                                                onChange={(e) => field.onChange({ ...field.value, target: Number(e.target.value) || undefined })}
-                                                value={field.value?.target || ''}
-                                            />
-                                        </FormControl>
-                                        <FormControl>
-                                            <Input 
-                                                placeholder="Unidad (ej: páginas)" 
-                                                onChange={(e) => field.onChange({ ...field.value, unit: e.target.value })} 
-                                                value={field.value?.unit || ''}
-                                            />
-                                        </FormControl>
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="space-y-2">
+                            <Label>Objetivo Cuantitativo</Label>
+                            <div className="flex gap-2">
+                                <FormField
+                                    control={form.control}
+                                    name="measurement_goal.target"
+                                    render={({ field }) => (
+                                        <FormItem className="flex-grow">
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    placeholder="Objetivo"
+                                                    {...field}
+                                                    onChange={event => field.onChange(+event.target.value)}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="measurement_goal.unit"
+                                    render={({ field }) => (
+                                        <FormItem className="flex-grow">
+                                            <FormControl>
+                                                <Input 
+                                                    placeholder="Unidad (ej: páginas)" 
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
                     )}
                 </>
             )}
@@ -495,3 +507,6 @@ export function HabitTaskDialog({
     </Dialog>
   );
 }
+
+
+    
