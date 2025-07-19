@@ -73,9 +73,9 @@ export async function addHabitTask(values: Partial<HabitTask>) {
     revalidatePath('/calendar');
 }
 
-export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
+export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<void> {
     const supabase = createClient();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('habit_tasks')
       .update({
         title: values.title,
@@ -89,14 +89,11 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
         measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal
       })
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
   
     if (error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
-    return data as HabitTask;
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
