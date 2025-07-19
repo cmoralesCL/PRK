@@ -383,9 +383,9 @@ export function AddHabitTaskDialog({
                             <SelectContent>
                                 <SelectItem value="daily">Diaria</SelectItem>
                                 <SelectItem value="specific_days">Días Específicos</SelectItem>
-                                <SelectItem value="every_x_days">Cada X Días</SelectItem>
-                                <SelectItem value="every_x_weeks">Cada X Semanas</SelectItem>
-                                <SelectItem value="every_x_months">Cada X Meses</SelectItem>
+                                <SelectItem value="every_x_days">Cada n / Días</SelectItem>
+                                <SelectItem value="every_x_weeks">Cada n / Semanas</SelectItem>
+                                <SelectItem value="every_x_months">Cada n / Meses</SelectItem>
                                 <SelectItem value="weekly">Acumulativo Semanal</SelectItem>
                                 <SelectItem value="monthly">Acumulativo Mensual</SelectItem>
                             </SelectContent>
@@ -402,7 +402,7 @@ export function AddHabitTaskDialog({
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>
-                                    Intervalo (Cada X...)
+                                    Intervalo (n)
                                 </FormLabel>
                                 <Input type="number" min="1" placeholder="Ej: 2" {...field} />
                                 <FormMessage />
