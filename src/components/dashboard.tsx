@@ -23,9 +23,11 @@ import {
     archiveLifePrk,
     archiveAreaPrk,
     archiveHabitTask,
+    startOfSemester,
+    endOfSemester,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, addQuarters, addMonths } from 'date-fns';
+import { parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { CommitmentsCard } from './commitments-card';
 
@@ -194,9 +196,8 @@ export function Dashboard({
                         dueDate = endOfQuarter(today);
                         break;
                     case 'semi_annually':
-                        startDate = addMonths(startOfYear(today), today.getMonth() < 6 ? 0 : 6);
-                        dueDate = addMonths(startDate, 5);
-                        dueDate = endOfMonth(dueDate);
+                        startDate = startOfSemester(today);
+                        dueDate = endOfSemester(today);
                         break;
                     case 'annually':
                         startDate = startOfYear(today);

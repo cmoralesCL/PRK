@@ -23,9 +23,6 @@ import {
     endOfYear,
     startOfQuarter,
     endOfQuarter,
-    addQuarters,
-    startOfSemester,
-    endOfSemester,
     addMonths
 } from 'date-fns';
 
@@ -457,4 +454,35 @@ export async function getCalendarData(monthDate: Date) {
         habitTasks: habitTasksByDay,
         areaPrks, // Return areaPrks
     };
+}
+
+
+/**
+ * Returns the start of the semester for a given date.
+ * January 1st for the first semester (months 0-5).
+ * July 1st for the second semester (months 6-11).
+ * @param date The date to check.
+ * @returns The start date of the semester.
+ */
+export function startOfSemester(date: Date): Date {
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    // First semester (Jan-Jun) starts in January (month 0).
+    // Second semester (Jul-Dec) starts in July (month 6).
+    const startMonth = month < 6 ? 0 : 6;
+    return new Date(year, startMonth, 1);
+}
+
+/**
+ * Returns the end of the semester for a given date.
+ * June 30th for the first semester.
+ * December 31st for the second semester.
+ * @param date The date to check.
+ * @returns The end date of the semester.
+ */
+export function endOfSemester(date: Date): Date {
+    const start = startOfSemester(date);
+    // Add 5 months to get to June or December, then get the end of that month.
+    const endMonth = addMonths(start, 5);
+    return endOfMonth(endMonth);
 }
