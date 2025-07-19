@@ -47,13 +47,13 @@ export function HabitTaskListItem({
             <Checkbox
                 id={`cal-${item.id}`}
                 checked={isCompleted}
-                onCheckedChange={handleToggle}
+                disabled // This disables the checkbox in calendar view
                 className="h-3.5 w-3.5"
             />
             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <Label 
                 htmlFor={`cal-${item.id}`}
-                className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
+                className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal", isCompleted && "line-through")}
             >
                 {item.title}
             </Label>
