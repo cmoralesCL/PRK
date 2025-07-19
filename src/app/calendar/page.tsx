@@ -1,4 +1,6 @@
 
+'use client';
+
 import { useState } from 'react';
 import { getCalendarData } from '@/app/actions';
 import { CalendarView } from '@/components/calendar-view';
@@ -20,8 +22,6 @@ interface CalendarPageClientProps {
 }
 
 function CalendarPageClient({ initialData, initialMonthString, selectedDate }: CalendarPageClientProps) {
-    'use client';
-    
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     return (
@@ -47,9 +47,9 @@ function CalendarPageClient({ initialData, initialMonthString, selectedDate }: C
     );
 }
 
-
 export const dynamic = 'force-dynamic';
 
+// This is the main page component, a Server Component
 export default async function CalendarPage({ searchParams }: { searchParams: { month?: string } }) {
   const selectedDate = searchParams.month ? new Date(searchParams.month) : new Date();
   selectedDate.setHours(0, 0, 0, 0);
