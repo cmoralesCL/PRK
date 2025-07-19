@@ -105,12 +105,18 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     const supabase = createClient();
     
     const dataToInsert = {
-        ...values,
+        title: values.title,
+        area_prk_id: values.area_prk_id,
+        weight: values.weight,
+        is_critical: values.is_critical,
+        start_date: values.start_date,
+        due_date: values.due_date,
+        type: values.type,
         ...(values.type === 'habit' && {
-            measurement_type: values.measurement_type,
-            measurement_goal: values.measurement_goal,
             frequency: values.frequency,
             frequency_days: values.frequency_days,
+            measurement_type: values.measurement_type,
+            measurement_goal: values.measurement_goal,
         }),
     };
 
@@ -166,11 +172,10 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             if (updateError) throw updateError;
         }
 
-        const upsertData: any = {
+        const upsertData: Omit<ProgressLog, 'id'> = {
             habit_task_id: habitTaskId,
             completion_date: completionDate,
-            progress_value: progressValue,
-             // Set completion_percentage to null for quantitative habits, 1.0 for others
+            progress_value: progressValue ?? null,
             completion_percentage: progressValue !== undefined ? null : 1.0,
         };
         
@@ -514,4 +519,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
