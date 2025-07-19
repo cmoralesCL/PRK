@@ -208,16 +208,15 @@ export function Dashboard({
             }
             
             if (values.type === 'habit') {
-              habitTaskData.measurement_type = values.measurement_type;
-              habitTaskData.measurement_goal = values.measurement_goal;
               habitTaskData.frequency = values.frequency;
               habitTaskData.frequency_days = values.frequency_days;
+              habitTaskData.measurement_type = values.measurement_type;
+              habitTaskData.measurement_goal = values.measurement_goal;
             } else {
-              // Ensure habit-specific fields are not sent for tasks/projects
-              habitTaskData.measurement_type = undefined;
-              habitTaskData.measurement_goal = undefined;
               habitTaskData.frequency = undefined;
               habitTaskData.frequency_days = undefined;
+              habitTaskData.measurement_type = undefined;
+              habitTaskData.measurement_goal = undefined;
             }
 
             if (editingHabitTask) {
@@ -422,5 +421,7 @@ export function Dashboard({
     </>
   );
 }
+
+    
 
     
