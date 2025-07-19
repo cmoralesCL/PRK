@@ -196,8 +196,8 @@ export function Dashboard({
                         dueDate = endOfQuarter(today);
                         break;
                     case 'semi_annually':
-                        startDate = startOfSemester(today);
-                        dueDate = endOfSemester(today);
+                        startDate = await startOfSemester(today);
+                        dueDate = await endOfSemester(today);
                         break;
                     case 'annually':
                         startDate = startOfYear(today);

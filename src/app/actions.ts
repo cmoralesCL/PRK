@@ -464,7 +464,7 @@ export async function getCalendarData(monthDate: Date) {
  * @param date The date to check.
  * @returns The start date of the semester.
  */
-export function startOfSemester(date: Date): Date {
+export async function startOfSemester(date: Date): Promise<Date> {
     const month = date.getMonth();
     const year = date.getFullYear();
     // First semester (Jan-Jun) starts in January (month 0).
@@ -480,8 +480,8 @@ export function startOfSemester(date: Date): Date {
  * @param date The date to check.
  * @returns The end date of the semester.
  */
-export function endOfSemester(date: Date): Date {
-    const start = startOfSemester(date);
+export async function endOfSemester(date: Date): Promise<Date> {
+    const start = await startOfSemester(date);
     // Add 5 months to get to June or December, then get the end of that month.
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
