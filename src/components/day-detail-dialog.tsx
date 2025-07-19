@@ -52,7 +52,11 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
     const newCalendarData = await getCalendarData(selectedDate);
     const updatedDayData = newCalendarData.find(d => parseISO(d.date).toDateString() === selectedDate.toDateString());
     if (updatedDayData) {
-        setCurrentDayData(updatedDayData);
+        const clientSideTasks = updatedDayData.tasks.map(task => ({
+          ...task,
+          completedToday: task.completionDate ? isSameDay(parseISO(task.completionDate), selectedDate) : false,
+        }));
+        setCurrentDayData({ ...updatedDayData, tasks: clientSideTasks });
     }
     onDataChange();
   }
@@ -61,23 +65,34 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
   const handleToggle = (id: string, completed: boolean) => {
     const task = currentDayData.tasks.find(t => t.id === id);
     if (!task) return;
+
+    // Optimistically update UI
+    const updatedTasks = currentDayData.tasks.map(t => 
+      t.id === id ? { ...t, completedToday: completed } : t
+    );
+    const updatedTask = updatedTasks.find(t => t.id === id);
+    if (!updatedTask) return;
+
+    setCurrentDayData(prev => ({ ...prev, tasks: updatedTasks }));
     
     startToggleTransition(async () => {
         try {
             if (completed) {
-                await logHabitTaskCompletion(id, task.type, selectedDate.toISOString().split('T')[0]);
+                await logHabitTaskCompletion(id, updatedTask.type, selectedDate.toISOString().split('T')[0]);
             } else {
-                await removeHabitTaskCompletion(id, task.type, selectedDate.toISOString().split('T')[0]);
+                await removeHabitTaskCompletion(id, updatedTask.type, selectedDate.toISOString().split('T')[0]);
             }
-            // Optimistically update UI
-            const updatedTasks = currentDayData.tasks.map(t => 
-              t.id === id ? { ...t, completedToday: completed } : t
-            );
-            setCurrentDayData(prev => ({ ...prev, tasks: updatedTasks }));
-            // Then refresh from server
+            // Then refresh from server to get the final progress value
             await refreshData();
         } catch(e) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la tarea.' });
+            // Revert optimistic update on error
+            setCurrentDayData(prev => ({
+                ...prev,
+                tasks: prev.tasks.map(t => 
+                    t.id === id ? { ...t, completedToday: !completed } : t
+                )
+            }));
         }
     });
   };
