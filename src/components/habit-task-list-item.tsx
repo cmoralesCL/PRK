@@ -40,14 +40,14 @@ export function HabitTaskListItem({
     return (
         <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
             <Checkbox
-                id={`cal-${item.id}`}
+                id={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
                 checked={isCompleted}
                 onCheckedChange={handleToggle}
                 className="h-3.5 w-3.5"
             />
             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <Label 
-                htmlFor={`cal-${item.id}`}
+                htmlFor={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
                 className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
             >
                 {item.title}

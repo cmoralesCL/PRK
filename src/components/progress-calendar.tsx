@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import {
   format,
   startOfMonth,
@@ -41,16 +41,6 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
   const [view, setView] = useState<'monthly' | 'weekly'>('monthly');
   const [data, setData] = useState<CalendarDataPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
-  const [today, setToday] = useState<Date | null>(null);
-
-  useEffect(() => {
-    // This ensures new Date() is only called on the client side after hydration,
-    // preventing server/client mismatch on what "today" is.
-    setToday(new Date());
-    // Also, we set the calendar's current date to today on initial client load
-    // to ensure the view is centered on the user's actual current date.
-    setCurrentDate(new Date());
-  }, []);
 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
@@ -147,7 +137,7 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
                 const progress = dayData?.progress ?? 0;
                 const tasks = dayData?.tasks ?? [];
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday = today ? isSameDay(day, today) : false;
+                const isToday = isSameDay(day, new Date());
 
                 return (
                   <div
