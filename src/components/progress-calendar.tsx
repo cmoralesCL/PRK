@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import {
   format,
   startOfMonth,
@@ -45,6 +45,15 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState<CalendarDataPoint | null>(null);
   const [areaPrks, setAreaPrks] = useState<AreaPrk[]>(initialAreaPrks);
+  
+  // State to track if the component has mounted on the client
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // This effect runs only on the client, after the initial render.
+    setIsClient(true);
+  }, []);
+
 
   const fetchNewData = (date: Date) => {
     startTransition(async () => {
@@ -137,7 +146,8 @@ export function ProgressCalendar({ initialData, initialDate, initialAreaPrks }: 
                 const progress = dayData?.progress ?? 0;
                 const tasks = dayData?.tasks ?? [];
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday = isSameDay(day, new Date());
+                // Only determine `isToday` on the client after mount
+                const isToday = isClient && isSameDay(day, new Date());
 
                 return (
                   <div

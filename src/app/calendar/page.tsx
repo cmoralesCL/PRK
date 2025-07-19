@@ -1,13 +1,14 @@
 
 import { ProgressCalendar } from '@/components/progress-calendar';
-import { getCalendarData } from '@/app/actions';
+import { getCalendarData } from '@/app/server/queries';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
-  const currentDate = new Date();
-  const calendarData = await getCalendarData(currentDate);
+  // Always use the server's current date for initial data fetching.
+  const serverDate = new Date();
+  const calendarData = await getCalendarData(serverDate);
   const supabase = createClient();
   const { data: areaPrks, error } = await supabase.from('area_prks').select('*').eq('archived', false);
 
@@ -19,7 +20,7 @@ export default async function CalendarPage() {
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <ProgressCalendar 
         initialData={calendarData} 
-        initialDate={currentDate.toISOString()}
+        initialDate={serverDate.toISOString()}
         initialAreaPrks={areaPrks || []}
       />
     </main>
