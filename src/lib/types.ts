@@ -32,7 +32,8 @@ export interface HabitTask {
   archived_at?: string | null;
   
   start_date?: string; // Corresponds to start_date
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | 'every_x_weeks' | 'every_x_months' | null;
+  frequency_interval?: number | null; // For 'every_x_weeks' or 'every_x_months'
   frequency_days?: string[] | null; // Corresponds to frequency_days
   weight: number;
 

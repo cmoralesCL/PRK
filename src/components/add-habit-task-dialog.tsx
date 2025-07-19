@@ -48,8 +48,9 @@ const formSchema = z.object({
     due_date: z.date().optional(),
     weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
     is_critical: z.boolean().default(false),
-    // Habit specific fields (optional at base level)
-    frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
+    // Habit specific fields
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days', 'every_x_weeks', 'every_x_months']).optional(),
+    frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
     measurement_type: z.enum(['binary', 'quantitative']).optional(),
     measurement_goal: z.object({
@@ -64,6 +65,15 @@ const formSchema = z.object({
 }, {
     message: "Debes seleccionar al menos un día para la frecuencia específica",
     path: ["frequency_days"],
+})
+.refine((data) => {
+    if (data.type === 'habit' && (data.frequency === 'every_x_weeks' || data.frequency === 'every_x_months')) {
+        return data.frequency_interval != null && data.frequency_interval > 0;
+    }
+    return true;
+}, {
+    message: "Debes especificar un intervalo mayor a 0.",
+    path: ["frequency_interval"],
 })
 .refine((data) => {
     if (data.type === 'habit' && data.measurement_type === 'quantitative') {
@@ -145,6 +155,7 @@ export function AddHabitTaskDialog({
                 ...baseValues,
                 frequency: habitTask.frequency || 'daily',
                 frequency_days: habitTask.frequency_days || [],
+                frequency_interval: habitTask.frequency_interval,
                 measurement_type: habitTask.measurement_type === 'quantitative' ? 'quantitative' : 'binary',
                 ...(habitTask.measurement_type === 'quantitative' && {
                     measurement_goal: {
@@ -168,6 +179,7 @@ export function AddHabitTaskDialog({
           area_prk_id: defaultAreaPrkId,
           weight: 1,
           is_critical: false,
+          frequency_interval: 1,
           ...defaultValues
         });
       }
@@ -359,12 +371,30 @@ export function AddHabitTaskDialog({
                                 <SelectItem value="weekly">Semanal (Acumulativa)</SelectItem>
                                 <SelectItem value="monthly">Mensual (Acumulativa)</SelectItem>
                                 <SelectItem value="specific_days">Días Específicos</SelectItem>
+                                <SelectItem value="every_x_weeks">Cada X Semanas</SelectItem>
+                                <SelectItem value="every_x_months">Cada X Meses</SelectItem>
                             </SelectContent>
                             </Select>
                             <FormMessage />
                         </FormItem>
                     )}
                     />
+
+                    {(frequency === 'every_x_weeks' || frequency === 'every_x_months') && (
+                         <FormField
+                            control={form.control}
+                            name="frequency_interval"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>
+                                    {frequency === 'every_x_weeks' ? 'Cada cuantas semanas' : 'Cada cuantos meses'}
+                                </FormLabel>
+                                <Input type="number" min="1" placeholder="Ej: 2" {...field} />
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                         />
+                    )}
 
                     {frequency === 'specific_days' && (
                         <FormField
