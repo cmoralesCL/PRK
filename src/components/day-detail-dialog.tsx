@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
@@ -135,7 +136,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
                               item={task} 
                               onToggle={handleToggle}
                               selectedDate={selectedDate}
-                              variant="calendar" 
+                              variant="dialog" 
                           />
                       ))
                   ) : (

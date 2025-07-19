@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, Calendar, GripVertical } from 'lucide-react';
@@ -17,7 +18,7 @@ interface HabitTaskListItemProps {
   onArchive?: (id: string) => void;
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
-  variant?: 'dashboard' | 'calendar';
+  variant?: 'dashboard' | 'calendar' | 'dialog';
 }
 
 export function HabitTaskListItem({ 
@@ -52,6 +53,26 @@ export function HabitTaskListItem({
             </p>
         </div>
     )
+  }
+
+  if (variant === 'dialog') {
+    return (
+        <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/50">
+            <Checkbox
+                id={`dialog-${item.id}`}
+                checked={isCompleted}
+                onCheckedChange={handleToggle}
+                className="h-4 w-4"
+            />
+            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Label 
+                htmlFor={`dialog-${item.id}`}
+                className={cn("text-sm text-secondary-foreground flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
+            >
+                {item.title}
+            </Label>
+        </div>
+    );
   }
 
   return (
