@@ -6,7 +6,7 @@ import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog } from './add-area-prk-dialog';
-import { HabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
+import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,7 @@ import {
     archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, isSameDay } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 
 interface DashboardProps {
@@ -35,7 +35,7 @@ interface DashboardProps {
 export function Dashboard({
   lifePrks,
   areaPrks,
-  habitTasks: initialHabitTasks,
+  habitTasks,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -43,17 +43,11 @@ export function Dashboard({
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [habitTasks, setHabitTasks] = useState<HabitTask[]>(initialHabitTasks);
   
   useEffect(() => {
-    const date = parseISO(initialSelectedDate);
-    setSelectedDate(date);
-    // Determine `completedToday` on the client side to avoid hydration mismatches
-    setHabitTasks(initialHabitTasks.map(task => ({
-      ...task,
-      completedToday: task.completionDate ? isSameDay(parseISO(task.completionDate), date) : false
-    })));
-  }, [initialSelectedDate, initialHabitTasks]);
+    // Inicializar la fecha en el cliente para evitar errores de hidratación
+    setSelectedDate(parseISO(initialSelectedDate));
+  }, [initialSelectedDate]);
 
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
@@ -115,18 +109,13 @@ export function Dashboard({
     startTransition(async () => {
         try {
             const habitTaskData: Partial<HabitTask> = {
-                areaPrkId,
                 title: values.title,
                 type: values.type,
-                startDate: values.startDate?.toISOString().split('T')[0],
-                weight: values.weight,
-                isCritical: values.isCritical,
-                // Only include these fields if they have a value to avoid sending `undefined`
-                ...(values.dueDate && { dueDate: values.dueDate.toISOString().split('T')[0] }),
-                ...(values.frequency && { frequency: values.frequency }),
-                ...(values.frequencyDays && values.frequencyDays.length > 0 && { frequencyDays: values.frequencyDays }),
-                ...(values.measurementType && { measurementType: values.measurementType }),
-                ...(values.measurementGoal && { measurementGoal: values.measurementGoal }),
+                areaPrkId: areaPrkId,
+                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : undefined,
+                dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
+                frequency: values.frequency,
+                frequencyDays: values.frequencyDays,
             };
             
             if (editingHabitTask) {
@@ -137,7 +126,6 @@ export function Dashboard({
                 toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
-          console.error("Error saving habit/task:", error);
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
         }
     });
@@ -153,8 +141,8 @@ export function Dashboard({
       try {
         if (completed) {
           await logHabitTaskCompletion(id, task.type, completionDate);
-          if (task.type === 'project' || task.type === 'task') {
-              toast({ title: '¡Acción Completada!', description: '¡Excelente trabajo!' });
+          if (task.type === 'task') {
+              toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
           }
@@ -210,9 +198,9 @@ export function Dashboard({
     startTransition(async () => {
         try {
           await archiveHabitTask(id);
-          toast({ title: 'Acción Archivado' });
+          toast({ title: 'Hábito/Tarea Archivado' });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la Acción.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
         }
     });
   };
@@ -277,7 +265,6 @@ export function Dashboard({
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
         defaultAreaPrkId={activeAreaPrkId || undefined}
-        areaPrks={areaPrks}
        />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 

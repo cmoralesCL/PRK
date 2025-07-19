@@ -40,7 +40,7 @@ export function AreaPrkCard({
   onArchiveHabitTask,
   selectedDate,
 }: AreaPrkCardProps) {
-  const progress = areaPrk.progress;
+  const progress = areaPrk.progress ?? 0;
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -77,19 +77,11 @@ export function AreaPrkCard({
             </div>
             
             <div className="pt-2">
-                {progress !== null ? (
-                    <>
-                        <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                            <span>Progreso</span>
-                            <span>{progress.toFixed(0)}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
-                    </>
-                ) : (
-                    <div className="text-sm text-muted-foreground text-center py-1">
-                        Sin medición
-                    </div>
-                )}
+              <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                <span>Progreso</span>
+                <span>{progress.toFixed(0)}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
             </div>
           </CardHeader>
         </CollapsibleTrigger>
