@@ -6,7 +6,28 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot } from "@/lib/types";
-import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { 
+    format, 
+    startOfDay, 
+    parseISO, 
+    getDay, 
+    addDays, 
+    startOfMonth, 
+    endOfMonth, 
+    eachDayOfInterval, 
+    isSameDay, 
+    startOfWeek, 
+    endOfWeek, 
+    isWithinInterval,
+    startOfYear,
+    endOfYear,
+    startOfQuarter,
+    endOfQuarter,
+    addQuarters,
+    startOfSemester,
+    endOfSemester,
+    addMonths
+} from 'date-fns';
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -216,8 +237,8 @@ export async function archiveHabitTask(id: string) {
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
-    // Weekly commitments are not active on specific days, they are handled separately.
-    if (task.is_weekly_commitment) {
+    // Commitments are not active on specific days, they are handled separately.
+    if (task.commitment_period) {
         return false;
     }
 
@@ -361,14 +382,20 @@ export async function getDashboardData(selectedDateString: string) {
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
-    // --- Weekly Commitments ---
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-
-    const weeklyCommitments = allHabitTasks
-        .filter(task => task.is_weekly_commitment && !task.completion_date && task.start_date && isWithinInterval(selectedDate, { start: parseISO(task.start_date), end: task.due_date ? parseISO(task.due_date) : weekEnd }))
+    // --- Commitments (Weekly, Monthly, etc.) ---
+    const commitments = allHabitTasks
+        .filter(task => {
+            if (!task.commitment_period || !task.start_date || !task.due_date) {
+                return false;
+            }
+            // A commitment is active if the selected date is within its period.
+            return isWithinInterval(selectedDate, { 
+                start: parseISO(task.start_date), 
+                end: parseISO(task.due_date) 
+            });
+        })
         .map(task => {
-            // A weekly commitment is "completed today" if it has ANY log, regardless of date. We check its main `completion_date`.
+            // A commitment is "completed" if it has ANY log within its period. We check its main `completion_date`.
              const isCompleted = !!task.completion_date;
              return { ...task, completedToday: isCompleted };
         });
@@ -378,7 +405,7 @@ export async function getDashboardData(selectedDateString: string) {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
-        weeklyCommitments: weeklyCommitments,
+        commitments: commitments,
     };
 }
 

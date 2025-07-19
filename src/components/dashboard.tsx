@@ -24,15 +24,15 @@ import {
     archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, format, startOfWeek, endOfWeek } from 'date-fns';
+import { parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, addQuarters, addMonths } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
-import { WeeklyCommitmentsCard } from './weekly-commitments-card';
+import { CommitmentsCard } from './commitments-card';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
-  weeklyCommitments: HabitTask[];
+  commitments: HabitTask[];
   initialSelectedDate: string;
 }
 
@@ -40,7 +40,7 @@ export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
-  weeklyCommitments,
+  commitments,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -169,17 +169,41 @@ export function Dashboard({
                 area_prk_id: values.area_prk_id,
                 weight: values.weight,
                 is_critical: values.is_critical,
-                is_weekly_commitment: values.is_weekly_commitment,
+                commitment_period: values.commitment_period,
                 measurement_type: values.type === 'habit' ? values.measurement_type : undefined,
                 measurement_goal: values.type === 'habit' ? values.measurement_goal : undefined,
                 frequency: values.type === 'habit' ? values.frequency : undefined,
                 frequency_days: values.type === 'habit' ? values.frequency_days : undefined,
             };
 
-            if (values.is_weekly_commitment) {
+            if (values.commitment_period) {
                 const today = new Date();
-                habitTaskData.start_date = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-                habitTaskData.due_date = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                let startDate, dueDate;
+                switch (values.commitment_period) {
+                    case 'weekly':
+                        startDate = startOfWeek(today, { weekStartsOn: 1 });
+                        dueDate = endOfWeek(today, { weekStartsOn: 1 });
+                        break;
+                    case 'monthly':
+                        startDate = startOfMonth(today);
+                        dueDate = endOfMonth(today);
+                        break;
+                    case 'quarterly':
+                        startDate = startOfQuarter(today);
+                        dueDate = endOfQuarter(today);
+                        break;
+                    case 'semi_annually':
+                        startDate = addMonths(startOfYear(today), today.getMonth() < 6 ? 0 : 6);
+                        dueDate = addMonths(startDate, 5);
+                        dueDate = endOfMonth(dueDate);
+                        break;
+                    case 'annually':
+                        startDate = startOfYear(today);
+                        dueDate = endOfYear(today);
+                        break;
+                }
+                habitTaskData.start_date = format(startDate, 'yyyy-MM-dd');
+                habitTaskData.due_date = format(dueDate, 'yyyy-MM-dd');
             } else {
                 habitTaskData.start_date = values.start_date ? values.start_date.toISOString().split('T')[0] : undefined;
                 habitTaskData.due_date = values.due_date ? values.due_date.toISOString().split('T')[0] : undefined;
@@ -200,7 +224,7 @@ export function Dashboard({
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean, date: Date) => {
-    const allTasks = [...habitTasks, ...weeklyCommitments];
+    const allTasks = [...habitTasks, ...commitments];
     const task = allTasks.find(ht => ht.id === id);
     if (!task) return;
 
@@ -235,7 +259,7 @@ export function Dashboard({
                 start_date: startDate,
                 weight: 1, // Default weight for suggestions
                 is_critical: false,
-                is_weekly_commitment: false,
+                commitment_period: null,
                 measurement_type: 'binary',
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
@@ -297,8 +321,8 @@ export function Dashboard({
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         
-        <WeeklyCommitmentsCard
-          commitments={weeklyCommitments}
+        <CommitmentsCard
+          commitments={commitments}
           selectedDate={selectedDate}
           onToggle={handleToggleHabitTask}
           onEdit={handleOpenEditHabitTaskDialog}

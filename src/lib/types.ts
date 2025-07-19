@@ -20,6 +20,8 @@ export interface AreaPrk {
   progress?: number | null; // El progreso ahora se calcula a nivel de LifePrk/Día.
 }
 
+export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
+
 export interface HabitTask {
   id: string;
   area_prk_id: string; // Corresponds to area_prk_id in Supabase
@@ -39,7 +41,9 @@ export interface HabitTask {
   completedToday?: boolean;
 
   is_critical: boolean; // Corresponds to is_critical
-  is_weekly_commitment: boolean; // NEW: To identify weekly commitments
+  
+  // NEW: Replaces is_weekly_commitment
+  commitment_period?: CommitmentPeriod | null; 
 
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;

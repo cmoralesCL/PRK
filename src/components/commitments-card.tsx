@@ -32,16 +32,16 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, o
 
   // Determine the highest-level commitment type present for the title
   const getCardTitle = () => {
-    const periods = new Set(commitments.map(c => c.commitment_period).filter(Boolean));
+    const periods = new Set(commitments.map(c => c.commitment_period).filter((p): p is CommitmentPeriod => !!p));
     if (periods.size === 0) return "Compromisos";
     
     const periodOrder: CommitmentPeriod[] = ['annually', 'semi_annually', 'quarterly', 'monthly', 'weekly'];
-    for(const period of periodOrder) {
-      if (periods.has(period)) {
-        return `Compromisos ${periodLabels[period]}`;
-      }
-    }
-    return "Compromisos de la Semana";
+    const presentPeriods = periodOrder.filter(p => periods.has(p));
+    
+    if (presentPeriods.length === 0) return "Compromisos";
+
+    // Show the labels for all present commitment types
+    return "Compromisos: " + presentPeriods.map(p => periodLabels[p]).join(' / ');
   }
 
   return (

@@ -35,14 +35,14 @@ import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { AreaPrk, HabitTask } from '@/lib/types';
+import type { AreaPrk, HabitTask, CommitmentPeriod } from '@/lib/types';
 import { useEffect } from 'react';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
   type: z.enum(['habit', 'project', 'task']),
   area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
-  is_weekly_commitment: z.boolean().default(false),
+  commitment_period: z.enum(['weekly', 'monthly', 'quarterly', 'semi_annually', 'annually']).optional().nullable(),
   start_date: z.date().optional(),
   due_date: z.date().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
@@ -124,7 +124,7 @@ export function HabitTaskDialog({
       weight: 1,
       measurement_type: 'binary',
       is_critical: false,
-      is_weekly_commitment: false,
+      commitment_period: null,
     },
   });
 
@@ -135,7 +135,7 @@ export function HabitTaskDialog({
           title: habitTask.title,
           type: habitTask.type,
           area_prk_id: habitTask.area_prk_id,
-          is_weekly_commitment: habitTask.is_weekly_commitment || false,
+          commitment_period: habitTask.commitment_period || null,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           frequency: habitTask.frequency || undefined,
@@ -150,7 +150,7 @@ export function HabitTaskDialog({
           title: '',
           type: 'task',
           frequency_days: [],
-          is_weekly_commitment: false,
+          commitment_period: null,
           start_date: defaultDate || new Date(),
           due_date: undefined,
           frequency: undefined,
@@ -174,7 +174,7 @@ export function HabitTaskDialog({
   const type = form.watch('type');
   const frequency = form.watch('frequency');
   const measurementType = form.watch('measurement_type');
-  const isWeeklyCommitment = form.watch('is_weekly_commitment');
+  const commitmentPeriod = form.watch('commitment_period');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -252,25 +252,32 @@ export function HabitTaskDialog({
             {type === 'task' && (
                  <FormField
                     control={form.control}
-                    name="is_weekly_commitment"
+                    name="commitment_period"
                     render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <div className="space-y-0.5">
-                                <FormLabel>¿Es un Compromiso Semanal?</FormLabel>
-                                <FormMessage />
-                            </div>
-                            <FormControl>
-                                <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
+                        <FormItem>
+                            <FormLabel>Tipo de Compromiso</FormLabel>
+                             <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Ninguno (Tarea con fecha)" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="">Ninguno (Tarea con fecha)</SelectItem>
+                                    <SelectItem value="weekly">Semanal</SelectItem>
+                                    <SelectItem value="monthly">Mensual</SelectItem>
+                                    <SelectItem value="quarterly">Trimestral</SelectItem>
+                                    <SelectItem value="semi_annually">Semestral</SelectItem>
+                                    <SelectItem value="annually">Anual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />
             )}
             
-            {!isWeeklyCommitment && (
+            {!commitmentPeriod && (
               <>
                 <FormField
                     control={form.control}
