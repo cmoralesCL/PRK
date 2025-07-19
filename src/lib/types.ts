@@ -24,7 +24,7 @@ export interface HabitTask {
   id: string;
   areaPrkId: string; // Corresponds to area_prk_id in Supabase
   title: string;
-  type: 'habit' | 'task';
+  type: 'habit' | 'project';
   created_at?: string;
   archived: boolean;
   
@@ -58,7 +58,7 @@ export interface ProgressLog {
 
 export interface DailyProgressSnapshot {
   id: string;
-  userId: string;
+  user_id: string;
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
@@ -68,7 +68,7 @@ export interface DailyProgressSnapshot {
 export interface JournalEntry {
   date: string;
   items: {
-    type: 'habit' | 'task';
+    type: 'habit' | 'project';
     title: string;
     areaPrkTitle: string;
     lifePrkTitle: string;

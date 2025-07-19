@@ -9,6 +9,7 @@ import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useState } from 'react';
 
 interface HabitTaskListItemProps {
   item: HabitTask;
@@ -28,9 +29,13 @@ export function HabitTaskListItem({
     variant = 'dashboard' 
 }: HabitTaskListItemProps) {
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
-  const isCompleted = item.completedToday ?? false;
+  // Since completedToday is no longer reliably calculated on the server, we manage a local state
+  // or derive it if possible. For now, we'll just use the prop.
+  const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
+
 
   const handleToggle = (checked: boolean) => {
+    setIsCompleted(checked);
     if (onToggle) {
         onToggle(item.id, !!checked, selectedDate);
     }
@@ -40,14 +45,14 @@ export function HabitTaskListItem({
     return (
         <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
             <Checkbox
-                id={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
+                id={`cal-${item.id}`}
                 checked={isCompleted}
                 onCheckedChange={handleToggle}
                 className="h-3.5 w-3.5"
             />
             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <Label 
-                htmlFor={`cal-${item.id}-${format(selectedDate, 'yyyy-MM-dd')}`}
+                htmlFor={`cal-${item.id}`}
                 className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
             >
                 {item.title}
@@ -98,19 +103,11 @@ export function HabitTaskListItem({
                 )}
             </div>
         </div>
-        {item.type === 'task' && item.dueDate && (
+        {item.type === 'project' && item.dueDate && (
             <div className="pl-8 pt-1 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
                     Vence: {format(parseISO(item.dueDate), 'd MMM yyyy', { locale: es })}
-                </span>
-            </div>
-        )}
-        {item.type === 'habit' && item.progress !== undefined && (
-            <div className='flex items-center gap-2 pl-8 pt-1'>
-                <Progress value={item.progress} className='h-1.5 w-full' />
-                <span className='text-xs text-muted-foreground font-mono w-12 text-right'>
-                    {item.progress.toFixed(0)}%
                 </span>
             </div>
         )}

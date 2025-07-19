@@ -21,9 +21,13 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
-        description: values.description || ''
+        description: values.description || '',
+        user_id: user.id
     }]).select().single();
 
     if(error) throw error;
@@ -35,12 +39,16 @@ export async function addLifePrk(values: { title: string; description?: string }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
         target_value: 100,
         current_value: 0,
+        user_id: user.id
      }]).select().single();
 
     if(error) {
@@ -64,6 +72,9 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const { data, error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
@@ -74,7 +85,8 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         due_date: values.dueDate,
         weight: values.weight || 1,
         is_critical: values.isCritical,
-        measurement_goal: values.measurementGoal
+        measurement_goal: values.measurementGoal,
+        user_id: user.id
     }]).select().single();
 
     if(error) throw error;
@@ -108,10 +120,13 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
     return data as HabitTask;
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
+export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project', completionDate: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     
-    if (type === 'task') {
+    if (type === 'project') {
         const { error } = await supabase
             .from('habit_tasks')
             .update({ completion_date: completionDate })
@@ -124,18 +139,35 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         completion_date: completionDate,
         progress_value: null, 
         completion_percentage: 1.0, // 100%
+        user_id: user.id
     }]);
 
     if (logError) throw logError;
+
+    // Llama a la función RPC para recalcular el snapshot
+    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+        user_id_input: user.id,
+        date_input: completionDate
+    });
+
+    if (rpcError) {
+        console.error('Error calling RPC function:', rpcError);
+        // Puedes decidir si quieres lanzar un error aquí o no
+    }
+
+
     revalidatePath('/');
     revalidatePath('/calendar');
     revalidatePath('/journal');
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
+export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project', completionDate: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
 
-    if (type === 'task') {
+
+    if (type === 'project') {
         const { error } = await supabase
             .from('habit_tasks')
             .update({ completion_date: null })
@@ -151,6 +183,16 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
     if (error) {
         console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
+    }
+
+    // Llama a la función RPC para recalcular el snapshot
+    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+        user_id_input: user.id,
+        date_input: completionDate
+    });
+
+    if (rpcError) {
+        console.error('Error calling RPC function:', rpcError);
     }
     
     revalidatePath('/');

@@ -22,7 +22,7 @@ import {
     archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO } from 'date-fns';
+import { parseISO, isSameDay } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 
 interface DashboardProps {
@@ -35,7 +35,7 @@ interface DashboardProps {
 export function Dashboard({
   lifePrks,
   areaPrks,
-  habitTasks,
+  habitTasks: initialHabitTasks,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -43,11 +43,17 @@ export function Dashboard({
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [habitTasks, setHabitTasks] = useState<HabitTask[]>(initialHabitTasks);
   
   useEffect(() => {
-    // Inicializar la fecha en el cliente para evitar errores de hidratación
-    setSelectedDate(parseISO(initialSelectedDate));
-  }, [initialSelectedDate]);
+    const date = parseISO(initialSelectedDate);
+    setSelectedDate(date);
+    // Determine `completedToday` on the client side to avoid hydration mismatches
+    setHabitTasks(initialHabitTasks.map(task => ({
+      ...task,
+      completedToday: task.completionDate ? isSameDay(parseISO(task.completionDate), date) : false
+    })));
+  }, [initialSelectedDate, initialHabitTasks]);
 
 
   const [isAddLifePrkOpen, setAddLifePrkOpen] = useState(false);
@@ -142,8 +148,8 @@ export function Dashboard({
       try {
         if (completed) {
           await logHabitTaskCompletion(id, task.type, completionDate);
-          if (task.type === 'task') {
-              toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
+          if (task.type === 'project') {
+              toast({ title: '¡Proyecto Completado!', description: '¡Excelente trabajo!' });
           } else {
               toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
           }
@@ -163,7 +169,7 @@ export function Dashboard({
             await addHabitTask({ 
                 areaPrkId, 
                 title, 
-                type: 'task',
+                type: 'project',
                 startDate
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });

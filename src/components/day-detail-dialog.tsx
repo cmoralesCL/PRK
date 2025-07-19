@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Plus } from 'lucide-react';
 import {
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import type { AreaPrk, CalendarDataPoint } from '@/lib/types';
+import type { AreaPrk, CalendarDataPoint, HabitTask } from '@/lib/types';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, addHabitTask } from '@/app/actions';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
@@ -33,18 +33,23 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
   const [currentDayData, setCurrentDayData] = useState(dayData);
   const [isToggling, startToggleTransition] = useTransition();
   const { toast } = useToast();
-  const selectedDate = useMemo(() => new Date(dayData.date), [dayData.date]);
+  const selectedDate = useMemo(() => parseISO(dayData.date), [dayData.date]);
   
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
 
   useEffect(() => {
-    setCurrentDayData(dayData);
-  }, [dayData]);
+    // We need to determine `completedToday` on the client side based on completion dates
+    const clientSideTasks = dayData.tasks.map(task => ({
+      ...task,
+      completedToday: task.completionDate ? isSameDay(parseISO(task.completionDate), selectedDate) : false,
+    }));
+    setCurrentDayData({ ...dayData, tasks: clientSideTasks });
+  }, [dayData, selectedDate]);
 
 
   const refreshData = async () => {
     const newCalendarData = await getCalendarData(selectedDate);
-    const updatedDayData = newCalendarData.find(d => new Date(d.date).toDateString() === selectedDate.toDateString());
+    const updatedDayData = newCalendarData.find(d => parseISO(d.date).toDateString() === selectedDate.toDateString());
     if (updatedDayData) {
         setCurrentDayData(updatedDayData);
     }
@@ -83,7 +88,7 @@ export function DayDetailDialog({ isOpen, onOpenChange, dayData, onDataChange, a
   const handleSaveHabitTask = (values: HabitTaskFormValues, areaPrkId: string) => {
     startToggleTransition(async () => {
         try {
-            const habitTaskData = {
+            const habitTaskData: Partial<HabitTask> = {
                 title: values.title,
                 type: values.type,
                 areaPrkId: areaPrkId,
