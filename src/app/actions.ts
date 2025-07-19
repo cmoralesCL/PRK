@@ -4,9 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import type { AreaPrk, HabitTask, LifePrk, TimeRangeOption } from "@/lib/types";
-import { getLifePrkProgressData as getLifePrkProgressDataQuery, getCalendarData as getCalendarDataQuery } from "./server/queries";
-
+import type { HabitTask } from "@/lib/types";
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
   try {
@@ -94,22 +92,21 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>): P
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
+    const supabase = createClient();
     try {
-        const supabase = createClient();
-        
         if (type === 'project' || type === 'task') {
-            const { error } = await supabase
+            const { error: updateError } = await supabase
                 .from('habit_tasks')
                 .update({ completion_date: completionDate })
                 .eq('id', habitTaskId);
-            if (error) throw error;
+            if (updateError) throw updateError;
         } 
 
         const { error: logError } = await supabase.from('progress_logs').insert([{
             habit_task_id: habitTaskId,
             completion_date: completionDate,
             progress_value: null, 
-            completion_percentage: 1.0, // 100%
+            completion_percentage: 1.0,
         }]);
 
         if (logError) throw logError;
@@ -124,9 +121,8 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 }
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
+    const supabase = createClient();
     try {
-        const supabase = createClient();
-
         if (type === 'project' || type === 'task') {
             const { error } = await supabase
                 .from('habit_tasks')
@@ -153,7 +149,6 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         throw new Error('Failed to remove task completion log.');
     }
 }
-
 
 export async function archiveLifePrk(id: string) {
     try {
@@ -193,12 +188,4 @@ export async function archiveHabitTask(id: string) {
         console.error('Error archiving Habit/Task:', error);
         throw new Error('Failed to archive Habit/Task.');
     }
-}
-
-export async function getLifePrkProgressData(options: { from: Date, to: Date, timeRange: TimeRangeOption }) {
-    return getLifePrkProgressDataQuery(options);
-}
-
-export async function getCalendarData(date: Date) {
-    return getCalendarDataQuery(date);
 }

@@ -17,10 +17,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { AreaPrk, CalendarDataPoint, HabitTask } from '@/lib/types';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, addHabitTask } from '@/app/actions';
+import { getCalendarData } from '@/app/server/queries';
 import { Progress } from './ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { HabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
-import { getCalendarData } from '@/app/actions';
 
 interface DayDetailDialogProps {
   isOpen: boolean;

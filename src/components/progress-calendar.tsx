@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, CalendarDataPoint } from '@/lib/types';
-import { getCalendarData } from '@/app/actions';
+import { getCalendarData } from '@/app/server/queries';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Header } from './header';
 import { DayDetailDialog } from './day-detail-dialog';
