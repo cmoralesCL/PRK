@@ -596,25 +596,30 @@ export async function getCalendarData(monthDate: Date) {
             : 0;
 
         // Commitments progress for the week
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' && areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: parseISO(c.start_date!), end: c.archived_at ? parseISO(c.archived_at) : new Date(8640000000000000)}));
         const commitmentProgressValues = weeklyCommitmentTasks.map(task => {
              if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-                return Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1) * 100;
+                const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
+                return Math.min((totalValue / task.measurement_goal.target), 1) * 100;
             }
-            if (task.measurement_type === 'binary' && task.measurement_goal?.target) {
-                return Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1) * 100;
+            if (task.measurement_type === 'binary') {
+                const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                const completions = logs.filter(l => l.completion_percentage === 1).length;
+                const target = task.measurement_goal?.target ?? 1; // Assume target is 1 for binary if not set
+                return Math.min((completions / target), 1) * 100;
             }
             return 0; // Should not happen if goal is set
-        }).filter(p => p > 0);
+        });
 
         const avgCommitmentProgress = commitmentProgressValues.length > 0
             ? commitmentProgressValues.reduce((sum, p) => sum + p, 0) / commitmentProgressValues.length
             : 0;
 
         // Combine progresses
-        const progressSources = [];
+        const progressSources: number[] = [];
         if (weekDailyProgressValues.length > 0) progressSources.push(avgDailyProgress);
-        if (avgCommitmentProgress > 0) progressSources.push(avgCommitmentProgress);
+        if (commitmentProgressValues.length > 0) progressSources.push(avgCommitmentProgress);
 
         const combinedAvgProgress = progressSources.length > 0
             ? progressSources.reduce((sum, p) => sum + p, 0) / progressSources.length
