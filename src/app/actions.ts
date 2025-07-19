@@ -234,11 +234,6 @@ export async function archiveHabitTask(id: string) {
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
-    // Commitments are not active on specific days, they are handled separately.
-    // if (task.commitment_period) {
-    //     return false;
-    // }
-
     if (!task.start_date) {
         return false; // No puede estar activa si no tiene fecha de inicio.
     }
@@ -380,7 +375,6 @@ export async function getDashboardData(selectedDateString: string) {
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
     // --- Commitments (Weekly, Monthly, etc.) ---
-    // Esta lógica está desactivada porque commitment_period no existe en la BD.
     const commitments: HabitTask[] = [];
 
 
@@ -472,3 +466,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    

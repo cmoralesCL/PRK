@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -109,6 +110,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
     defaultValues: {
       title: '',
       type: 'task',
+      frequency: 'daily',
       frequency_days: [],
       start_date: defaultDate || new Date(),
       area_prk_id: defaultAreaPrkId,
@@ -127,7 +129,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           area_prk_id: habitTask.area_prk_id,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
-          frequency: habitTask.frequency || undefined,
+          frequency: habitTask.frequency || 'daily',
           frequency_days: habitTask.frequency_days || [],
           weight: habitTask.weight || 1,
           is_critical: habitTask.is_critical || false,
@@ -141,7 +143,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
           frequency_days: [],
           start_date: defaultDate || new Date(),
           due_date: undefined,
-          frequency: undefined,
+          frequency: 'daily',
           area_prk_id: defaultAreaPrkId,
           weight: 1,
           is_critical: false,
@@ -487,3 +489,5 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
     </Dialog>
   );
 }
+
+    
