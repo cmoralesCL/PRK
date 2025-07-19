@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot } from "@/lib/types";
-import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, startOfDay, parseISO, getDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -220,27 +220,33 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const startDate = parseISO(task.start_date);
     const targetDate = startOfDay(date);
 
-    if (targetDate < startOfDay(startDate)) {
-        return false; // La tarea aún no ha comenzado.
-    }
-
     if (task.type === 'task' || task.type === 'project') {
         const dueDate = task.due_date ? parseISO(task.due_date) : null;
-        // La tarea es visible si está dentro de su rango O si no tiene fecha de vencimiento y ya empezó.
-        // Se muestra hasta un día después de su fecha de vencimiento o finalización para permitir el registro tardío.
         const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
-        
+
+        // Si ya se completó antes del día que estamos viendo, no está activa.
         if (completionDate && completionDate < targetDate) {
-            return false; // Ya se completó en un día anterior.
+            return false;
+        }
+        
+        // Si no tiene fecha de vencimiento, es activa solo en su fecha de inicio.
+        if (!dueDate) {
+            return isSameDay(targetDate, startDate);
         }
 
-        if (dueDate) {
-            return targetDate <= addDays(dueDate, 1);
+        // Si tiene fecha de vencimiento, es activa si la fecha está entre el inicio y el fin (inclusive).
+        // Se permite el registro hasta un día después de la fecha de vencimiento.
+        if (targetDate >= startOfDay(startDate) && targetDate <= addDays(dueDate, 1)) {
+            return true;
         }
-
-        return true; // Si no tiene fecha de vencimiento y ha comenzado, está activa hasta que se complete.
+        
+        return false;
 
     } else if (task.type === 'habit') {
+        if (targetDate < startOfDay(startDate)) {
+            return false; // El hábito aún no ha comenzado.
+        }
+
         switch (task.frequency) {
             case 'daily':
                 return true;
