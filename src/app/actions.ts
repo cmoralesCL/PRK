@@ -349,8 +349,6 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return true;
             case 'weekly':
             case 'monthly':
-                // For weekly/monthly habits, they are always considered "active" during their period.
-                // The actual progress calculation is handled separately.
                 return true;
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee').toLowerCase();
@@ -372,7 +370,6 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[]): Promise<HabitTask[]> {
     const dateString = format(date, 'yyyy-MM-dd');
     
-    // Filter tasks that are active AND are not weekly/monthly commitments, as they don't appear in daily views.
     const activeTasks = allHabitTasks.filter(task => 
         isTaskActiveOnDate(task, date) &&
         (task.type !== 'habit' || (task.type === 'habit' && task.frequency !== 'weekly' && task.frequency !== 'monthly'))
@@ -410,14 +407,13 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  */
 function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        // Filter out weekly/monthly habits from daily progress calculation
         const relevantTasks = habitTasks.filter(ht => 
             ht.area_prk_id === areaPrk.id &&
             (ht.type !== 'habit' || (ht.type === 'habit' && ht.frequency !== 'weekly' && ht.frequency !== 'monthly'))
         );
         
         if (relevantTasks.length === 0) {
-            return { ...areaPrk, progress: null }; // Sin medición
+            return { ...areaPrk, progress: null };
         }
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
@@ -437,7 +433,7 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.life_prk_id === lifePrk.id && ap.progress !== null);
         
         if (relevantAreaPrks.length === 0) {
-            return { ...lifePrk, progress: null }; // Sin medición
+            return { ...lifePrk, progress: null };
         }
 
         const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
@@ -464,7 +460,6 @@ export async function getDashboardData(selectedDateString: string) {
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
     if (progressLogsError) throw progressLogsError;
     
-    // --- Daily Tasks ---
     const habitTasksForDay = await getHabitTasksForDate(selectedDate, allHabitTasks, allProgressLogs);
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
@@ -489,7 +484,6 @@ export async function getCalendarData(monthDate: Date) {
     
     const daysInView = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    // Fetch all necessary data for the entire view once
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) throw lifePrksError;
 
@@ -502,7 +496,6 @@ export async function getCalendarData(monthDate: Date) {
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
     if (progressLogsError) throw progressLogsError;
 
-    // Calculate progress for each day of the month
     const dailyProgress: DailyProgressSnapshot[] = [];
     const habitTasksByDay: Record<string, HabitTask[]> = {};
 
@@ -524,7 +517,6 @@ export async function getCalendarData(monthDate: Date) {
         habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
     }
     
-    // --- Commitments ---
     const commitments = allHabitTasks.filter(task => {
         if (task.type !== 'habit' || (task.frequency !== 'weekly' && task.frequency !== 'monthly')) {
             return false;
@@ -533,13 +525,12 @@ export async function getCalendarData(monthDate: Date) {
         if (!task.start_date) return false;
 
         const taskStartDate = parseISO(task.start_date);
-        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); // Far future date
+        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
 
         const taskInterval = { start: taskStartDate, end: taskEndDate };
         
         return areIntervalsOverlapping(taskInterval, monthInterval);
     }).map(task => {
-        // Find all progress logs for this task within the relevant period
         let logs;
         if (task.frequency === 'weekly') {
             const weekForCommitmentsStart = startOfWeek(monthDate, { weekStartsOn: 1 });
@@ -548,7 +539,7 @@ export async function getCalendarData(monthDate: Date) {
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: weekForCommitmentsStart, end: weekForCommitmentsEnd })
             );
-        } else { // monthly
+        } else { 
              logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
@@ -558,9 +549,13 @@ export async function getCalendarData(monthDate: Date) {
         const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage === 1 ? 1 : 0)), 0);
         
         let completedToday = false;
-        const todayLog = logs.find(log => isSameDay(parseISO(log.completion_date), new Date()));
-        if(todayLog) {
-            completedToday = todayLog.completion_percentage === 1;
+        if (task.measurement_type === 'binary') {
+            const targetCompletions = task.measurement_goal?.target ?? 1;
+            const actualCompletions = logs.filter(l => l.completion_percentage === 1).length;
+            completedToday = actualCompletions >= targetCompletions;
+        } else if (task.measurement_type === 'quantitative') {
+            const targetValue = task.measurement_goal?.target ?? 0;
+            completedToday = totalProgressValue >= targetValue;
         }
 
         return {
@@ -570,7 +565,6 @@ export async function getCalendarData(monthDate: Date) {
         };
     });
 
-
     const weeklyProgress: WeeklyProgressSnapshot[] = [];
     let weekIndex = 0;
     while(weekIndex < daysInView.length) {
@@ -578,46 +572,43 @@ export async function getCalendarData(monthDate: Date) {
         const weekEnd = addDays(weekStart, 6);
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-        // Daily progress average for the week, only considering days with tasks
-        const dailyTasksWithProgress = weekDays
-            .map(d => {
-                const dayString = format(d, 'yyyy-MM-dd');
-                const tasks = habitTasksByDay[dayString] ?? [];
-                if (tasks.length === 0) {
-                    return null; // Exclude this day
-                }
-                const progress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress;
-                return { progress: progress ?? 0 };
-            })
-            .filter((p): p is { progress: number } => p !== null);
+        let totalWeightedProgress = 0;
+        let totalWeight = 0;
 
-        // Commitments progress for the week
+        // 1. Daily tasks progress (already weighted)
+        weekDays.forEach(d => {
+            const dayString = format(d, 'yyyy-MM-dd');
+            const tasks = habitTasksByDay[dayString] ?? [];
+            if (tasks.length > 0) {
+                const dayProgress = dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress ?? 0;
+                const dayWeight = tasks.reduce((sum, task) => sum + task.weight, 0);
+                totalWeightedProgress += (dayProgress / 100) * dayWeight;
+                totalWeight += dayWeight;
+            }
+        });
+
+        // 2. Weekly commitments progress (now with weight)
         const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' && areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: parseISO(c.start_date!), end: c.archived_at ? parseISO(c.archived_at) : new Date(8640000000000000)}));
-        const commitmentProgressValues = weeklyCommitmentTasks.map(task => {
-             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-                const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+        weeklyCommitmentTasks.forEach(task => {
+            let progressPercentage = 0;
+            const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+            
+            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                return Math.min((totalValue / task.measurement_goal.target), 1) * 100;
-            }
-            if (task.measurement_type === 'binary') {
-                const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                progressPercentage = Math.min((totalValue / task.measurement_goal.target), 1);
+            } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
-                const target = task.measurement_goal?.target ?? 1; // Assume target is 1 for binary if not set
-                return Math.min((completions / target), 1) * 100;
+                const target = task.measurement_goal?.target ?? 1;
+                progressPercentage = Math.min((completions / target), 1);
             }
-            return 0; // Should not happen if goal is set
+            
+            totalWeightedProgress += progressPercentage * task.weight;
+            totalWeight += task.weight;
         });
         
-        // Combine progresses with weighting by number of items
-        const totalDailyProgress = dailyTasksWithProgress.reduce((sum, p) => sum + p.progress, 0);
-        const totalCommitmentProgress = commitmentProgressValues.reduce((sum, p) => sum + p, 0);
-
-        const totalItems = dailyTasksWithProgress.length + commitmentProgressValues.length;
-
-        const combinedAvgProgress = totalItems > 0
-            ? (totalDailyProgress + totalCommitmentProgress) / totalItems
+        const combinedAvgProgress = totalWeight > 0
+            ? (totalWeightedProgress / totalWeight) * 100
             : 0;
-
 
         weeklyProgress.push({
             id: format(weekStart, 'yyyy-MM-dd'),
