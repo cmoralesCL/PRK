@@ -235,9 +235,9 @@ export async function archiveHabitTask(id: string) {
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     // Commitments are not active on specific days, they are handled separately.
-    if (task.commitment_period) {
-        return false;
-    }
+    // if (task.commitment_period) {
+    //     return false;
+    // }
 
     if (!task.start_date) {
         return false; // No puede estar activa si no tiene fecha de inicio.
@@ -380,22 +380,8 @@ export async function getDashboardData(selectedDateString: string) {
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
     // --- Commitments (Weekly, Monthly, etc.) ---
-    const commitments = allHabitTasks
-        .filter(task => {
-            if (!task.commitment_period || !task.start_date || !task.due_date) {
-                return false;
-            }
-            // A commitment is active if the selected date is within its period.
-            return isWithinInterval(selectedDate, { 
-                start: parseISO(task.start_date), 
-                end: parseISO(task.due_date) 
-            });
-        })
-        .map(task => {
-            // A commitment is "completed" if it has ANY log within its period. We check its main `completion_date`.
-             const isCompleted = !!task.completion_date;
-             return { ...task, completedToday: isCompleted };
-        });
+    // Esta lógica está desactivada porque commitment_period no existe en la BD.
+    const commitments: HabitTask[] = [];
 
 
     return {

@@ -32,7 +32,7 @@ export interface HabitTask {
   
   start_date?: string; // Corresponds to start_date
   frequency?: 'daily' | 'weekly' | 'monthly' | 'specific_days' | null;
-  frequency_days?: string[] | null; // Corresponds to frequency_days
+  frequency_days?: string[] | null; // Corresponds to frequency_days. ESTE ES EL CAMBIO CLAVE
   weight: number;
 
   due_date?: string | null; // Corresponds to due_date
@@ -42,8 +42,8 @@ export interface HabitTask {
 
   is_critical: boolean; // Corresponds to is_critical
   
-  // NEW: Replaces is_weekly_commitment
-  commitment_period?: CommitmentPeriod | null; 
+  // Este campo no existe en la BD, lo eliminamos.
+  // commitment_period?: CommitmentPeriod | null; 
 
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | 'temporal' | null;

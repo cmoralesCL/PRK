@@ -23,11 +23,9 @@ import {
     archiveLifePrk,
     archiveAreaPrk,
     archiveHabitTask,
-    startOfSemester,
-    endOfSemester,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { CommitmentsCard } from './commitments-card';
 
@@ -166,63 +164,19 @@ export function Dashboard({
   const handleSaveHabitTask = (values: HabitTaskFormValues) => {
     startTransition(async () => {
         try {
-            let habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>> = {
+            const habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived'>> = {
                 title: values.title,
                 type: values.type,
                 area_prk_id: values.area_prk_id,
                 weight: values.weight,
                 is_critical: values.is_critical,
-                commitment_period: null, // Default to null
+                start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
+                due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
+                frequency: values.frequency,
+                frequency_days: values.frequency_days,
+                measurement_type: values.measurement_type,
+                measurement_goal: values.measurement_goal,
             };
-
-            // This part is for tasks that might be periodic commitments
-            if (values.type === 'task' && values.commitment_period) {
-                const today = new Date();
-                let startDate, dueDate;
-                switch (values.commitment_period) {
-                    case 'weekly':
-                        startDate = startOfWeek(today, { weekStartsOn: 1 });
-                        dueDate = endOfWeek(today, { weekStartsOn: 1 });
-                        break;
-                    case 'monthly':
-                        startDate = startOfMonth(today);
-                        dueDate = endOfMonth(today);
-                        break;
-                    case 'quarterly':
-                        startDate = startOfQuarter(today);
-                        dueDate = endOfQuarter(today);
-                        break;
-                    case 'semi_annually':
-                        startDate = await startOfSemester(today);
-                        dueDate = await endOfSemester(today);
-                        break;
-                    case 'annually':
-                        startDate = startOfYear(today);
-                        dueDate = endOfYear(today);
-                        break;
-                }
-                habitTaskData.start_date = format(startDate, 'yyyy-MM-dd');
-                habitTaskData.due_date = format(dueDate, 'yyyy-MM-dd');
-                habitTaskData.commitment_period = values.commitment_period;
-            } else {
-                // This is for regular tasks/habits with specific dates
-                habitTaskData.start_date = values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined;
-                habitTaskData.due_date = values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined;
-            }
-            
-            // Habit-specific fields
-            if (values.type === 'habit') {
-              habitTaskData.frequency = values.frequency;
-              habitTaskData.frequency_days = values.frequency_days;
-              habitTaskData.measurement_type = values.measurement_type;
-              habitTaskData.measurement_goal = values.measurement_goal;
-            } else {
-              // Ensure these are not sent for non-habits
-              habitTaskData.frequency = undefined;
-              habitTaskData.frequency_days = undefined;
-              habitTaskData.measurement_type = undefined;
-              habitTaskData.measurement_goal = undefined;
-            }
 
             if (editingHabitTask) {
                 await updateHabitTask(editingHabitTask.id, habitTaskData);
@@ -274,7 +228,6 @@ export function Dashboard({
                 start_date: startDate,
                 weight: 1, // Default weight for suggestions
                 is_critical: false,
-                commitment_period: null,
                 measurement_type: 'binary',
             });
             toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });

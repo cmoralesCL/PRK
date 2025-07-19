@@ -16,13 +16,13 @@ interface CommitmentsCardProps {
   onArchive: (id: string) => void;
 }
 
-const periodLabels: Record<CommitmentPeriod, string> = {
-  weekly: 'Semanales',
-  monthly: 'Mensuales',
-  quarterly: 'Trimestrales',
-  semi_annually: 'Semestrales',
-  annually: 'Anuales',
-};
+// const periodLabels: Record<CommitmentPeriod, string> = {
+//   weekly: 'Semanales',
+//   monthly: 'Mensuales',
+//   quarterly: 'Trimestrales',
+//   semi_annually: 'Semestrales',
+//   annually: 'Anuales',
+// };
 
 export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, onArchive }: CommitmentsCardProps) {
   const [isOpen, setIsOpen] = useState(true);
@@ -33,16 +33,17 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, o
 
   // Determine the highest-level commitment type present for the title
   const getCardTitle = () => {
-    const periods = new Set(commitments.map(c => c.commitment_period).filter((p): p is CommitmentPeriod => !!p));
-    if (periods.size === 0) return "Compromisos";
+    // const periods = new Set(commitments.map(c => c.commitment_period).filter((p): p is CommitmentPeriod => !!p));
+    // if (periods.size === 0) return "Compromisos";
     
-    const periodOrder: CommitmentPeriod[] = ['annually', 'semi_annually', 'quarterly', 'monthly', 'weekly'];
-    const presentPeriods = periodOrder.filter(p => periods.has(p));
+    // const periodOrder: CommitmentPeriod[] = ['annually', 'semi_annually', 'quarterly', 'monthly', 'weekly'];
+    // const presentPeriods = periodOrder.filter(p => periods.has(p));
     
-    if (presentPeriods.length === 0) return "Compromisos";
+    // if (presentPeriods.length === 0) return "Compromisos";
 
-    // Show the labels for all present commitment types
-    return "Compromisos: " + presentPeriods.map(p => periodLabels[p]).join(' / ');
+    // // Show the labels for all present commitment types
+    // return "Compromisos: " + presentPeriods.map(p => periodLabels[p]).join(' / ');
+    return "Compromisos"
   }
 
   return (

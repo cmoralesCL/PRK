@@ -55,7 +55,6 @@ export function CalendarView({ initialMonthString, dailyProgressData, habitTasks
                     title: values.title,
                     type: values.type,
                     area_prk_id: values.area_prk_id,
-                    commitment_period: values.commitment_period,
                     start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : undefined,
                     due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
                     frequency: values.frequency,
