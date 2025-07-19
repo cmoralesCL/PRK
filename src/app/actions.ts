@@ -579,9 +579,16 @@ export async function getCalendarData(monthDate: Date) {
         const weekEnd = addDays(weekStart, 6);
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-        // Daily progress average for the week
+        // Daily progress average for the week, only considering days with tasks
         const weekDailyProgressValues = weekDays
-            .map(d => dailyProgress.find(dp => dp.snapshot_date === format(d, 'yyyy-MM-dd'))?.progress)
+            .map(d => {
+                const dayString = format(d, 'yyyy-MM-dd');
+                const hasTasks = habitTasksByDay[dayString]?.length > 0;
+                if (!hasTasks) {
+                    return null; // Exclude this day from average calculation
+                }
+                return dailyProgress.find(dp => dp.snapshot_date === dayString)?.progress;
+            })
             .filter((p): p is number => p !== undefined && p !== null);
 
         const avgDailyProgress = weekDailyProgressValues.length > 0
@@ -606,7 +613,7 @@ export async function getCalendarData(monthDate: Date) {
 
         // Combine progresses
         const progressSources = [];
-        if (avgDailyProgress > 0) progressSources.push(avgDailyProgress);
+        if (weekDailyProgressValues.length > 0) progressSources.push(avgDailyProgress);
         if (avgCommitmentProgress > 0) progressSources.push(avgCommitmentProgress);
 
         const combinedAvgProgress = progressSources.length > 0
