@@ -1,23 +1,26 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ListTodo, Plus } from 'lucide-react';
+import { ListTodo, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import type { HabitTask } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, archiveHabitTask } from '@/app/actions';
-import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
+import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
+
 
 interface CommitmentsSidebarProps {
   commitments: HabitTask[];
   selectedDate: Date;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-export function CommitmentsSidebar({ commitments, selectedDate }: CommitmentsSidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
+export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen }: CommitmentsSidebarProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -80,32 +83,39 @@ export function CommitmentsSidebar({ commitments, selectedDate }: CommitmentsSid
   }
 
   return (
-      <Card className="h-full flex flex-col">
-        <CardHeader>
-            <CardTitle className="font-headline text-lg flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-primary" />
-                Compromisos
-            </CardTitle>
-            <CardDescription>Metas sin día fijo.</CardDescription>
+      <Card className="h-full flex flex-col transition-all duration-300 ease-in-out">
+        <CardHeader className="flex flex-row items-start justify-between">
+            <div className={cn(isOpen && "w-full")}>
+              <CardTitle className="font-headline text-lg flex items-center gap-2">
+                  <ListTodo className="h-5 w-5 text-primary" />
+                  {isOpen && 'Compromisos'}
+              </CardTitle>
+              {isOpen && <CardDescription>Metas sin día fijo.</CardDescription>}
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="flex-shrink-0">
+                {isOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+            </Button>
         </CardHeader>
-        <CardContent className="flex-grow">
-        <Tabs defaultValue="weekly" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="weekly">Semanal</TabsTrigger>
-            <TabsTrigger value="monthly">Mensual</TabsTrigger>
-            <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
-            </TabsList>
-            <TabsContent value="weekly" className="mt-4">
-            {renderCommitmentList(weeklyCommitments)}
-            </TabsContent>
-            <TabsContent value="monthly" className="mt-4">
-                {renderCommitmentList(monthlyCommitments)}
-            </TabsContent>
-            <TabsContent value="quarterly" className="mt-4">
-            {renderCommitmentList([])}
-            </TabsContent>
-        </Tabs>
-        </CardContent>
+        {isOpen && (
+            <CardContent className="flex-grow">
+            <Tabs defaultValue="weekly" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="weekly">Semanal</TabsTrigger>
+                <TabsTrigger value="monthly">Mensual</TabsTrigger>
+                <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
+                </TabsList>
+                <TabsContent value="weekly" className="mt-4">
+                {renderCommitmentList(weeklyCommitments)}
+                </TabsContent>
+                <TabsContent value="monthly" className="mt-4">
+                    {renderCommitmentList(monthlyCommitments)}
+                </TabsContent>
+                <TabsContent value="quarterly" className="mt-4">
+                {renderCommitmentList([])}
+                </TabsContent>
+            </Tabs>
+            </CardContent>
+        )}
       </Card>
   );
 }
