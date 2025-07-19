@@ -15,15 +15,15 @@ import type { DailyProgressSnapshot, HabitTask } from '@/lib/types';
 
 interface ProgressCalendarProps {
   initialMonth: Date;
+  onMonthChange: (date: Date) => void;
   dailyProgressData: DailyProgressSnapshot[];
   habitTasksData: Record<string, HabitTask[]>;
 }
 
-export function ProgressCalendar({ initialMonth, dailyProgressData, habitTasksData }: ProgressCalendarProps) {
+export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressData, habitTasksData }: ProgressCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(initialMonth));
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
-  const router = useRouter();
 
   const handleDayClick = (day: Date) => {
     setSelectedDay(day);
@@ -33,7 +33,7 @@ export function ProgressCalendar({ initialMonth, dailyProgressData, habitTasksDa
   const changeMonth = (offset: number) => {
     const newMonth = offset > 0 ? addMonths(currentMonth, 1) : subMonths(currentMonth, 1);
     setCurrentMonth(newMonth);
-    router.push(`/calendar?month=${format(newMonth, 'yyyy-MM')}`);
+    onMonthChange(newMonth);
   };
 
   const monthStart = startOfMonth(currentMonth);
