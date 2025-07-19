@@ -523,14 +523,26 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     // --- Commitments ---
-    const weekForCommitments = startOfWeek(monthDate, { weekStartsOn: 1 });
-    const commitments = allHabitTasks.filter(task => 
-        task.type === 'habit' &&
-        (
-            (task.frequency === 'weekly' && isTaskActiveOnDate(task, weekForCommitments)) ||
-            (task.frequency === 'monthly' && isTaskActiveOnDate(task, monthDate))
-        )
+    const weekForCommitmentsStart = startOfWeek(monthDate, { weekStartsOn: 1 });
+    const weekForCommitmentsEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
+    
+    const weeklyCommitments = allHabitTasks.filter(task => {
+        const isWeeklyHabit = task.type === 'habit' && task.frequency === 'weekly' && isTaskActiveOnDate(task, weekForCommitmentsStart);
+        
+        const isTaskWithoutDueDateInWeek = task.type === 'task' && !task.due_date && task.start_date && isWithinInterval(parseISO(task.start_date), {
+            start: weekForCommitmentsStart,
+            end: weekForCommitmentsEnd
+        });
+
+        return isWeeklyHabit || isTaskWithoutDueDateInWeek;
+    });
+
+    const monthlyCommitments = allHabitTasks.filter(task => 
+        task.type === 'habit' && task.frequency === 'monthly' && isTaskActiveOnDate(task, monthDate)
     );
+
+    const commitments = [...weeklyCommitments, ...monthlyCommitments];
+
 
     const weeklyProgress: WeeklyProgressSnapshot[] = [];
     let weekIndex = 0;
