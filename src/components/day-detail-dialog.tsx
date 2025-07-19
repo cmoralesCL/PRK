@@ -81,7 +81,7 @@ export function DayDetailDialog({
             Este es tu plan para hoy. ¡A por ello!
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-64 pr-4 -mx-2">
+        <ScrollArea className="h-96 pr-4 -mx-2">
             <div className="space-y-2 p-2">
                 {tasks.length > 0 ? tasks.map((task) => (
                     <HabitTaskListItem 
