@@ -101,7 +101,15 @@ const daysOfWeek = [
     { id: 'sun', label: 'Domingo' },
 ]
 
-export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: HabitTaskDialogProps) {
+export function HabitTaskDialog({ 
+  isOpen, 
+  onOpenChange, 
+  onSave, 
+  habitTask, 
+  defaultAreaPrkId, 
+  defaultDate, 
+  areaPrks = [] 
+}: HabitTaskDialogProps) {
   const isEditing = !!habitTask;
 
   const form = useForm<HabitTaskFormValues>({
