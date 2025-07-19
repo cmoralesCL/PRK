@@ -242,3 +242,4 @@ export async function getLifePrkProgressData(options: { from: Date, to: Date, ti
 export async function getCalendarData(date: Date) {
     return getCalendarDataQuery(date);
 }
+
