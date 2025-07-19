@@ -38,7 +38,7 @@ export function HabitTaskListItem({
   const handleToggle = (checked: boolean) => {
     setIsCompleted(checked);
     if (onToggle) {
-        onToggle(item.id, !!checked, selectedDate);
+        onToggle(item.id, checked, selectedDate);
     }
   }
 
@@ -47,7 +47,7 @@ export function HabitTaskListItem({
         <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <p
-                className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal", isCompleted && "line-through")}
+                className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal", item.completedToday && "line-through")}
             >
                 {item.title}
             </p>
