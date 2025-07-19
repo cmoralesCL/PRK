@@ -58,6 +58,14 @@ export function ProgressCalendar({ currentMonth, onMonthChange, dailyProgressDat
     : `Semana del ${format(weekStart, 'd \'de\' LLLL', { locale: es })}`;
 
 
+  if (!currentMonth) {
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="text-2xl font-headline">Cargando Calendario...</div>
+        </div>
+    );
+  }
+
   return (
     <>
       <div className="p-4 sm:p-6 bg-card rounded-xl shadow-lg">

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ import { ProgressCalendar } from '@/components/progress-calendar';
 import { HabitTaskDialog, type HabitTaskFormValues } from './habit-task-dialog';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk } from '@/lib/types';
 import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
+import { useState } from 'react';
 
 interface CalendarViewProps {
     initialMonth: Date;
@@ -24,21 +25,13 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
-    const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
-
-    useEffect(() => {
-        // Hydrate the date on the client to avoid hydration mismatch
-        setCurrentMonth(new Date(initialMonth));
-    }, [initialMonth]);
-
     const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
     const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
     const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | undefined>(undefined);
 
     const handleMonthChange = (newMonth: Date) => {
         startTransition(() => {
-            setCurrentMonth(newMonth);
-            router.push(`/calendar?month=${format(newMonth, 'yyyy-MM')}`);
+            router.push(`/calendar?month=${format(newMonth, 'yyyy-MM-dd')}`);
         });
     }
 
@@ -96,14 +89,6 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
         });
     }
     
-    if (!currentMonth) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="text-2xl font-headline">Cargando Calendario...</div>
-            </div>
-        );
-    }
-
     return (
         <>
             <Header 
@@ -115,7 +100,7 @@ export function CalendarView({ initialMonth, dailyProgressData, habitTasksData, 
             />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <ProgressCalendar
-                  currentMonth={currentMonth}
+                  currentMonth={initialMonth}
                   onMonthChange={handleMonthChange}
                   dailyProgressData={dailyProgressData}
                   habitTasksData={habitTasksData}
