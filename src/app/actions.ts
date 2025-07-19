@@ -20,26 +20,37 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
-    const { error } = await supabase.from('life_prks').insert([{ 
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated.");
+
+    const { data, error } = await supabase.from('life_prks').insert([{ 
         title: values.title, 
         description: values.description || '',
-    }]);
+        user_id: user.id 
+    }]).select().single();
 
     if(error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
     revalidatePath('/journal');
+    return data;
 }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
     const supabase = createClient();
-    const { error } = await supabase.from('area_prks').insert([{ 
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated.");
+    
+    const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
         unit: values.unit,
         life_prk_id: values.lifePrkId,
         target_value: 100,
         current_value: 0,
-     }]);
+        user_id: user.id
+     }]).select().single();
 
     if(error) {
         console.error('Supabase error adding Area PRK:', error);
@@ -47,11 +58,15 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
     }
     revalidatePath('/');
     revalidatePath('/calendar');
+    return data;
 }
 
 export async function addHabitTask(values: Partial<HabitTask>) {
     const supabase = createClient();
-    const { error } = await supabase.from('habit_tasks').insert([{ 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated.");
+
+    const { data, error } = await supabase.from('habit_tasks').insert([{ 
         area_prk_id: values.areaPrkId,
         title: values.title,
         type: values.type,
@@ -63,16 +78,18 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         is_critical: values.isCritical,
         measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal,
-    }]);
+        user_id: user.id
+    }]).select().single();
 
     if(error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
+    return data;
 }
 
-export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<void> {
+export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<HabitTask> {
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('habit_tasks')
       .update({
         title: values.title,
@@ -86,11 +103,14 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>): P
         measurement_type: values.measurementType,
         measurement_goal: values.measurementGoal
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select()
+      .single();
   
     if (error) throw error;
     revalidatePath('/');
     revalidatePath('/calendar');
+    return data;
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
@@ -153,43 +173,28 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 }
 
 export async function archiveLifePrk(id: string) {
-    try {
-        const supabase = createClient();
-        const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
-        if(error) throw error;
-        revalidatePath('/');
-        revalidatePath('/calendar');
-        revalidatePath('/journal');
-    } catch (error) {
-        console.error('Error archiving Life PRK:', error);
-        throw new Error('Failed to archive Life PRK.');
-    }
+    const supabase = createClient();
+    const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+    revalidatePath('/calendar');
+    revalidatePath('/journal');
 }
 
 export async function archiveAreaPrk(id: string) {
-    try {
-        const supabase = createClient();
-        const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
-        if(error) throw error;
-        revalidatePath('/');
-        revalidatePath('/calendar');
-    } catch (error) {
-        console.error('Error archiving Area PRK:', error);
-        throw new Error('Failed to archive Area PRK.');
-    }
+    const supabase = createClient();
+    const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 export async function archiveHabitTask(id: string) {
-    try {
-        const supabase = createClient();
-        const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
-        if(error) throw error;
-        revalidatePath('/');
-        revalidatePath('/calendar');
-    } catch (error) {
-        console.error('Error archiving Habit/Task:', error);
-        throw new Error('Failed to archive Habit/Task.');
-    }
+    const supabase = createClient();
+    const { error } = await supabase.from('habit_tasks').update({ archived: true }).eq('id', id);
+    if(error) throw error;
+    revalidatePath('/');
+    revalidatePath('/calendar');
 }
 
 
@@ -420,3 +425,5 @@ export async function getLifePrkProgressData(options: { from: Date, to: Date, ti
 
     return { chartData, lifePrkNames };
 }
+
+    
