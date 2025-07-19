@@ -50,11 +50,11 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
     revalidatePath('/');
 }
 
-export async function addAreaPrk(values: { title: string; unit: string; life_prk_id: string }) {
+export async function addAreaPrk(values: { title: string; life_prk_id: string }) {
     const supabase = createClient();
     const { data, error } = await supabase.from('area_prks').insert([{ 
         title: values.title,
-        unit: values.unit,
+        unit: '%', // Hardcode default unit
         life_prk_id: values.life_prk_id,
         target_value: 100,
         current_value: 0,
@@ -67,13 +67,12 @@ export async function addAreaPrk(values: { title: string; unit: string; life_prk
     revalidatePath('/');
 }
 
-export async function updateAreaPrk(id: string, values: { title: string; unit: string; }) {
+export async function updateAreaPrk(id: string, values: { title: string; }) {
     const supabase = createClient();
     const { error } = await supabase
         .from('area_prks')
         .update({ 
             title: values.title,
-            unit: values.unit,
         })
         .eq('id', id);
 

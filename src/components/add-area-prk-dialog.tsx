@@ -29,7 +29,6 @@ const formSchema = z.object({
   title: z.string().min(3, {
     message: 'El título debe tener al menos 3 caracteres.',
   }),
-  unit: z.string().min(1, { message: 'La unidad es requerida.' }),
 });
 
 export type AreaPrkFormValues = z.infer<typeof formSchema>;
@@ -48,7 +47,6 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
-      unit: '%',
     },
   });
 
@@ -57,12 +55,10 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
         if (isEditing && areaPrk) {
             form.reset({
                 title: areaPrk.title,
-                unit: areaPrk.unit,
             });
         } else {
             form.reset({
                 title: '',
-                unit: '%',
             });
         }
     }
@@ -99,19 +95,6 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
                   <FormLabel>Título</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej: Mejorar mi salud cardiovascular" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="unit"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unidad de Progreso</FormLabel>
-                  <FormControl>
-                    <Input placeholder="%" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
