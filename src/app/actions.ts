@@ -122,83 +122,91 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>) {
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
 
-    
-    if (type === 'project' || type === 'task') {
-        const { error } = await supabase
-            .from('habit_tasks')
-            .update({ completion_date: completionDate })
-            .eq('id', habitTaskId);
-        if (error) throw error;
-    } 
+        
+        if (type === 'project' || type === 'task') {
+            const { error } = await supabase
+                .from('habit_tasks')
+                .update({ completion_date: completionDate })
+                .eq('id', habitTaskId);
+            if (error) throw error;
+        } 
 
-    const { error: logError } = await supabase.from('progress_logs').insert([{
-        habit_task_id: habitTaskId,
-        completion_date: completionDate,
-        progress_value: null, 
-        completion_percentage: 1.0, // 100%
-        user_id: user.id
-    }]);
+        const { error: logError } = await supabase.from('progress_logs').insert([{
+            habit_task_id: habitTaskId,
+            completion_date: completionDate,
+            progress_value: null, 
+            completion_percentage: 1.0, // 100%
+            user_id: user.id
+        }]);
 
-    if (logError) throw logError;
+        if (logError) throw logError;
 
-    // Llama a la función RPC para recalcular el snapshot
-    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
-        user_id_input: user.id,
-        date_input: completionDate
-    });
+        const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+            user_id_input: user.id,
+            date_input: completionDate
+        });
 
-    if (rpcError) {
-        console.error('Error calling RPC function:', rpcError);
-        // Puedes decidir si quieres lanzar un error aquí o no
+        if (rpcError) {
+            console.error('Error calling RPC function:', rpcError);
+            throw rpcError;
+        }
+
+        revalidatePath('/');
+        revalidatePath('/calendar');
+        revalidatePath('/journal');
+    } catch (error) {
+        console.error('Error in logHabitTaskCompletion:', error);
+        throw new Error('Failed to log task completion.');
     }
-
-
-    revalidatePath('/');
-    revalidatePath('/calendar');
-    revalidatePath('/journal');
 }
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
 
 
-    if (type === 'project' || type === 'task') {
+        if (type === 'project' || type === 'task') {
+            const { error } = await supabase
+                .from('habit_tasks')
+                .update({ completion_date: null })
+                .eq('id', habitTaskId);
+            if (error) throw error;
+        }
+        
         const { error } = await supabase
-            .from('habit_tasks')
-            .update({ completion_date: null })
-            .eq('id', habitTaskId);
-        if (error) throw error;
-    }
-    
-    const { error } = await supabase
-        .from('progress_logs')
-        .delete()
-        .eq('habit_task_id', habitTaskId)
-        .eq('completion_date', completionDate);
+            .from('progress_logs')
+            .delete()
+            .eq('habit_task_id', habitTaskId)
+            .eq('completion_date', completionDate);
 
-    if (error) {
-        console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
-    }
+        if (error) {
+            console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
+        }
 
-    // Llama a la función RPC para recalcular el snapshot
-    const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
-        user_id_input: user.id,
-        date_input: completionDate
-    });
+        const { error: rpcError } = await supabase.rpc('calculate_and_save_daily_summary', {
+            user_id_input: user.id,
+            date_input: completionDate
+        });
 
-    if (rpcError) {
-        console.error('Error calling RPC function:', rpcError);
+        if (rpcError) {
+            console.error('Error calling RPC function:', rpcError);
+            throw rpcError;
+        }
+        
+        revalidatePath('/');
+        revalidatePath('/calendar');
+        revalidatePath('/journal');
+    } catch (error) {
+        console.error('Error in removeHabitTaskCompletion:', error);
+        throw new Error('Failed to remove task completion log.');
     }
-    
-    revalidatePath('/');
-    revalidatePath('/calendar');
-    revalidatePath('/journal');
 }
 
 
