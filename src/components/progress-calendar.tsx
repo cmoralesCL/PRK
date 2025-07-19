@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { HabitTaskItem } from '@/components/habit-task-item';
+import { HabitTaskListItem } from '@/components/habit-task-list-item';
 import { DayDetailDialog } from './day-detail-dialog';
 import { cn } from '@/lib/utils';
 import type { DailyProgressSnapshot, HabitTask } from '@/lib/types';
@@ -23,9 +23,12 @@ interface ProgressCalendarProps {
   onMonthChange: (date: Date) => void;
   dailyProgressData: DailyProgressSnapshot[];
   habitTasksData: Record<string, HabitTask[]>;
+  onAddTask: (date: Date) => void;
+  onEditTask: (task: HabitTask, date: Date) => void;
+  onArchiveTask: (id: string) => void;
 }
 
-export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressData, habitTasksData }: ProgressCalendarProps) {
+export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressData, habitTasksData, onAddTask, onEditTask, onArchiveTask }: ProgressCalendarProps) {
   const [currentDate, setCurrentDate] = useState(initialMonth);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
@@ -110,7 +113,7 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
                 </div>
                 { (isCurrentMonth || view === 'week') && (
                   <div className="flex-grow overflow-y-auto mt-1 space-y-1 pr-1">
-                     {progressInfo && (
+                     {progressInfo && progressInfo.progress > 0 && (
                         <div className="flex items-center gap-2">
                           <Progress value={progressInfo?.progress ?? 0} className="h-1.5 w-full" />
                           <span className="text-xs font-medium text-muted-foreground">
@@ -133,6 +136,15 @@ export function ProgressCalendar({ initialMonth, onMonthChange, dailyProgressDat
         onOpenChange={setDetailOpen}
         day={selectedDay}
         tasks={selectedDay ? habitTasksData[format(selectedDay, 'yyyy-MM-dd')] || [] : []}
+        onAddTask={(date) => {
+          onAddTask(date);
+          setDetailOpen(false); // Cierra el modal de detalle para abrir el de creación
+        }}
+        onEditTask={(task, date) => {
+            onEditTask(task, date);
+            setDetailOpen(false);
+        }}
+        onArchiveTask={onArchiveTask}
       />
     </>
   );

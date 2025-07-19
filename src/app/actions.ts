@@ -367,5 +367,6 @@ export async function getCalendarData(monthDate: Date) {
     return {
         dailyProgress,
         habitTasks: habitTasksByDay,
+        areaPrks, // Return areaPrks
     };
 }

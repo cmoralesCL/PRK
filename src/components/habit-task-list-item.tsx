@@ -1,7 +1,7 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, Calendar, GripVertical } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,12 @@ import { Progress } from './ui/progress';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface HabitTaskListItemProps {
   item: HabitTask;
@@ -30,8 +36,6 @@ export function HabitTaskListItem({
     variant = 'dashboard' 
 }: HabitTaskListItemProps) {
   const Icon = item.type === 'habit' ? Repeat : CheckSquare;
-  // Since completedToday is no longer reliably calculated on the server, we manage a local state
-  // or derive it if possible. For now, we'll just use the prop.
   const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
 
 
@@ -57,20 +61,44 @@ export function HabitTaskListItem({
 
   if (variant === 'dialog') {
     return (
-        <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/50">
+        <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/50 group">
             <Checkbox
                 id={`dialog-${item.id}`}
                 checked={isCompleted}
                 onCheckedChange={handleToggle}
                 className="h-4 w-4"
+                disabled={!onToggle}
             />
             <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <Label 
                 htmlFor={`dialog-${item.id}`}
-                className={cn("text-sm text-secondary-foreground flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through")}
+                className={cn("text-sm text-secondary-foreground flex-grow text-left font-normal cursor-pointer", isCompleted && "line-through", !onToggle && "cursor-default")}
             >
                 {item.title}
             </Label>
+            {(onEdit || onArchive) && (
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(item)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
+                        )}
+                        {onArchive && (
+                            <DropdownMenuItem onClick={() => onArchive(item.id)}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archivar
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
         </div>
     );
   }
@@ -84,12 +112,14 @@ export function HabitTaskListItem({
                 id={item.id}
                 checked={isCompleted}
                 onCheckedChange={handleToggle}
+                disabled={!onToggle}
             />
             <Label
                 htmlFor={item.id}
                 className={cn(
                 'text-sm font-medium leading-none cursor-pointer flex-grow',
-                isCompleted && 'line-through text-muted-foreground'
+                isCompleted && 'line-through text-muted-foreground',
+                !onToggle && "cursor-default"
                 )}
             >
                 {item.title}

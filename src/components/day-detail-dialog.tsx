@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -17,15 +18,19 @@ import type { HabitTask } from '@/lib/types';
 import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { Plus } from 'lucide-react';
 
 interface DayDetailDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   day: Date | null;
   tasks: HabitTask[];
+  onAddTask: (date: Date) => void;
+  onEditTask: (task: HabitTask, date: Date) => void;
+  onArchiveTask: (id: string) => void;
 }
 
-export function DayDetailDialog({ isOpen, onOpenChange, day, tasks }: DayDetailDialogProps) {
+export function DayDetailDialog({ isOpen, onOpenChange, day, tasks, onAddTask, onEditTask, onArchiveTask }: DayDetailDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
@@ -51,6 +56,14 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks }: DayDetailD
     });
   };
 
+  const handleEdit = (task: HabitTask) => {
+    onEditTask(task, day);
+  }
+
+  const handleArchive = (id: string) => {
+    onArchiveTask(id);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -69,6 +82,8 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks }: DayDetailD
                         key={task.id} 
                         item={task} 
                         onToggle={(id, completed) => handleToggleHabitTask(id, completed)}
+                        onEdit={handleEdit}
+                        onArchive={handleArchive}
                         selectedDate={day}
                         variant="dialog"
                     />
@@ -77,6 +92,12 @@ export function DayDetailDialog({ isOpen, onOpenChange, day, tasks }: DayDetailD
                 )}
             </div>
         </ScrollArea>
+        <DialogFooter>
+            <Button onClick={() => onAddTask(day)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Acción
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
