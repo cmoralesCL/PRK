@@ -144,7 +144,7 @@ export function HabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defau
             {isEditing ? 'Editar Hito o Hábito' : 'Crear un Hito o Hábito'}
           </DialogTitle>
           <DialogDescription>
-            Un hito es una acción única y significativa que impulsa tu PRK de Área, como 'Lanzar mi sitio web' o 'Correr mi primera maratón'.
+            Esta es una acción concreta que apoya tu PRK de Área.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
