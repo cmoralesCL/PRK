@@ -10,7 +10,7 @@ El sistema se basa en una jerarquía simple pero poderosa:
 
 1.  **PRK de Vida (Tu "Norte"):** Esta es tu gran visión, tu objetivo a largo plazo. No es algo que completas en una semana, sino la estrella que guía tus decisiones.
     *   *Ej: "Alcanzar la independencia financiera" o "Vivir una vida sana y enérgica".*
-
+1
 2.  **PRK de Área (Tu "Mapa"):** Estos son los resultados clave medibles que te indican que estás avanzando hacia tu visión. Son los componentes cuantificables de tu PRK de Vida.
     *   *Para "vida sana", un PRK de Área podría ser: "Mejorar mi salud cardiovascular".*
 
