@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
 import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog, TimeRangeOption } from "@/lib/types";
-import { eachDayOfInterval, format, startOfDay, endOfDay, isSameDay, parseISO, getDay, addDays, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { LifePrk, AreaPrk, HabitTask, ProgressLog } from "@/lib/types";
+import { format, startOfDay, parseISO, getDay, addDays } from 'date-fns';
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -30,8 +30,6 @@ export async function addLifePrk(values: { title: string; description?: string }
         throw error;
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
-    revalidatePath('/journal');
 }
 
 export async function addAreaPrk(values: { title: string; unit: string; lifePrkId: string }) {
@@ -49,7 +47,6 @@ export async function addAreaPrk(values: { title: string; unit: string; lifePrkI
         throw error;
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
 }
 
 export async function addHabitTask(values: Partial<HabitTask>) {
@@ -73,7 +70,6 @@ export async function addHabitTask(values: Partial<HabitTask>) {
         throw error;
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
 }
 
 export async function updateHabitTask(id: string, values: Partial<HabitTask>): Promise<void> {
@@ -99,7 +95,6 @@ export async function updateHabitTask(id: string, values: Partial<HabitTask>): P
         throw error;
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
@@ -123,8 +118,6 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         if (logError) throw logError;
 
         revalidatePath('/');
-        revalidatePath('/calendar');
-        revalidatePath('/journal');
     } catch (error) {
         console.error('Error in logHabitTaskCompletion:', error);
         throw new Error('Failed to log task completion.');
@@ -153,8 +146,6 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         }
         
         revalidatePath('/');
-        revalidatePath('/calendar');
-        revalidatePath('/journal');
     } catch (error) {
         console.error('Error in removeHabitTaskCompletion:', error);
         throw new Error('Failed to remove task completion log.');
@@ -171,8 +162,6 @@ export async function archiveLifePrk(id: string) {
         throw new Error("Failed to archive life prk.");
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
-    revalidatePath('/journal');
 }
 
 export async function archiveAreaPrk(id: string) {
@@ -185,7 +174,6 @@ export async function archiveAreaPrk(id: string) {
         throw new Error("Failed to archive area prk.");
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
 }
 
 export async function archiveHabitTask(id: string) {
@@ -198,7 +186,6 @@ export async function archiveHabitTask(id: string) {
         throw new Error("Failed to archive habit/task.");
     }
     revalidatePath('/');
-    revalidatePath('/calendar');
 }
 
 
@@ -221,11 +208,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         // La tarea es visible si está dentro de su rango O si no tiene fecha de vencimiento y ya empezó.
         // Se muestra hasta un día después de su fecha de vencimiento o finalización para permitir el registro tardío.
         const completionDate = task.completionDate ? parseISO(task.completionDate) : null;
-        const effectiveEndDate = dueDate ? addDays(dueDate, 1) : completionDate ? addDays(completionDate, 1) : null;
-
-        if (completionDate && isSameDay(completionDate, targetDate)) {
-             return true; // Se completó hoy, debe ser visible.
-        }
+        
         if (completionDate && completionDate < targetDate) {
             return false; // Ya se completó en un día anterior.
         }
@@ -348,84 +331,4 @@ export async function getDashboardData(selectedDateString: string) {
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
     };
-}
-
-export async function getCalendarData(date: Date) {
-    const supabase = createClient();
-    const monthStart = startOfMonth(date);
-    const monthEnd = endOfMonth(date);
-    const interval = eachDayOfInterval({ start: subDays(monthStart, 7), end: addDays(monthEnd, 7) });
-
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
-    if (habitTasksError) throw habitTasksError;
-
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
-    if (progressLogsError) throw progressLogsError;
-    
-    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('id').eq('archived', false);
-    if (lifePrksError) throw lifePrksError;
-
-    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('id, life_prk_id').eq('archived', false);
-    if (areaPrksError) throw areaPrksError;
-
-    const calendarData = await Promise.all(interval.map(async (day) => {
-        const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
-        
-        const mappedAreaPrks = areaPrks.map(ap => ({ id: ap.id, lifePrkId: ap.life_prk_id, archived: false, title: '', unit: '', targetValue: 0, currentValue: 0 }));
-
-        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks.map(lp => ({...lp, title: '', description: '', archived: false})), mappedAreaPrks, habitTasksForDay);
-        
-        const totalProgress = lifePrksWithProgress.reduce((sum, lp) => sum + (lp.progress ?? 0), 0);
-        const measuredLifePrksCount = lifePrksWithProgress.filter(lp => lp.progress !== null).length;
-        const finalProgress = measuredLifePrksCount > 0 ? totalProgress / measuredLifePrksCount : 0;
-
-        return {
-            date: day.toISOString(),
-            progress: finalProgress,
-            tasks: habitTasksForDay,
-        };
-    }));
-
-    return calendarData;
-}
-
-
-export async function getLifePrkProgressData(options: { from: Date, to: Date, timeRange: TimeRangeOption }) {
-    const supabase = createClient();
-    const { from, to } = options;
-    const interval = eachDayOfInterval({ start: from, end: to });
-
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
-    if (habitTasksError) throw habitTasksError;
-
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
-    if (progressLogsError) throw progressLogsError;
-
-    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
-    if (lifePrksError) throw lifePrksError;
-
-    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
-    if (areaPrksError) throw areaPrksError;
-
-    const lifePrkNames = lifePrks.reduce((acc, lp) => {
-        acc[lp.id] = lp.title;
-        return acc;
-    }, {} as Record<string, string>);
-
-    const chartData = await Promise.all(interval.map(async (day) => {
-        const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
-        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
-
-        const dataPoint: { date: string; [key: string]: number | string } = {
-            date: format(day, 'dd/MM'),
-        };
-
-        lifePrksWithProgress.forEach(lp => {
-            dataPoint[lp.id] = lp.progress ?? 0;
-        });
-
-        return dataPoint;
-    }));
-
-    return { chartData, lifePrkNames };
 }

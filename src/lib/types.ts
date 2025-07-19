@@ -59,39 +59,3 @@ export interface DailyProgressSnapshot {
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
-
-
-// Para el Diario Evolutivo
-export interface JournalEntry {
-  date: string;
-  items: {
-    type: 'habit' | 'project' | 'task';
-    title: string;
-    areaPrkTitle: string;
-    lifePrkTitle: string;
-  }[];
-}
-
-// Para el gráfico de progreso
-export interface LifePrkProgressPoint {
-  date: string;
-  [lifePrkId: string]: number | string; // Allows 'date' and dynamic keys for each Life PRK
-}
-
-// Para la nueva vista de calendario
-export interface CalendarDataPoint {
-  date: string; // Changed to string for serialization
-  progress: number;
-  tasks: HabitTask[];
-}
-
-// Fase 1: Nueva tabla
-export interface EmotionalPulse {
-  id: string;
-  pulseDate: string;
-  emotionalStateTag: string;
-  notes?: string;
-  createdAt: string;
-}
-
-export type TimeRangeOption = '7d' | '30d' | '3m' | '1y';
