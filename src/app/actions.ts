@@ -197,7 +197,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
             const target = task.measurement_goal?.target;
             if (typeof target === 'number' && target > 0) {
-                completionPercentage = Math.max(0, Math.min(1, progressValue / target));
+                completionPercentage = Math.max(0, progressValue / target);
             } else {
                  completionPercentage = progressValue > 0 ? 1 : 0;
             }
@@ -420,7 +420,7 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
              if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
-                const progressPercentage = Math.min(((task.current_progress_value ?? 0) / task.measurement_goal.target), 1);
+                const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target;
                 return sum + (progressPercentage * task.weight);
             }
             return sum + (task.completedToday ? task.weight : 0);
@@ -600,11 +600,11 @@ export async function getCalendarData(monthDate: Date) {
             
             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = Math.min((totalValue / task.measurement_goal.target), 1);
+                progressPercentage = (totalValue / task.measurement_goal.target);
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
                 const target = task.measurement_goal?.target ?? 1;
-                progressPercentage = Math.min((completions / target), 1);
+                progressPercentage = (completions / target);
             }
             
             totalWeightedProgress += progressPercentage * task.weight;
@@ -647,11 +647,11 @@ export async function getCalendarData(monthDate: Date) {
 
         if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
             const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-            progressPercentage = Math.min((totalValue / task.measurement_goal.target), 1);
+            progressPercentage = (totalValue / task.measurement_goal.target);
         } else if (task.measurement_type === 'binary') {
             const completions = logs.filter(l => l.completion_percentage === 1).length;
             const target = task.measurement_goal?.target ?? 1;
-            progressPercentage = Math.min((completions / target), 1);
+            progressPercentage = (completions / target);
         }
 
         totalMonthlyWeightedProgress += progressPercentage * task.weight;
