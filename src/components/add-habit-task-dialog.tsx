@@ -37,56 +37,45 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Label } from './ui/label';
 
-const baseSchema = z.object({
+const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
     area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
+    type: z.enum(['task', 'project', 'habit']),
     start_date: z.date().optional(),
     due_date: z.date().optional(),
     weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
     is_critical: z.boolean().default(false),
+    // Habit specific fields (optional at base level)
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days']).optional(),
+    frequency_days: z.array(z.string()).optional(),
+    measurement_type: z.enum(['binary', 'quantitative']).optional(),
+    measurement_goal: z.object({
+        target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
+        unit: z.string().optional(),
+    }).optional(),
+}).refine((data) => {
+    if (data.type === 'habit' && data.frequency === 'specific_days') {
+        return Array.isArray(data.frequency_days) && data.frequency_days.length > 0;
+    }
+    return true;
+}, {
+    message: "Debes seleccionar al menos un día para la frecuencia específica",
+    path: ["frequency_days"],
+})
+.refine((data) => {
+    if (data.type === 'habit' && data.measurement_type === 'quantitative') {
+        return data.measurement_goal?.target != null && data.measurement_goal?.unit != null && data.measurement_goal.unit.length > 0;
+    }
+    return true;
+}, {
+    message: "El objetivo y la unidad son requeridos para hábitos cuantitativos",
+    path: ['measurement_goal'],
 });
 
-export type HabitTaskFormValues = z.infer<ReturnType<typeof useFormSchema>>;
-
-function useFormSchema() {
-    return useMemo(() => {
-        return z.discriminatedUnion("type", [
-            z.object({
-                type: z.literal("task"),
-            }).merge(baseSchema),
-            z.object({
-                type: z.literal("project"),
-            }).merge(baseSchema),
-            z.object({
-                type: z.literal("habit"),
-                frequency: z.enum(['daily', 'weekly', 'monthly', 'specific_days'], { required_error: "La frecuencia es requerida para los hábitos"}),
-                frequency_days: z.array(z.string()).optional(),
-            }).merge(baseSchema)
-            .and(z.discriminatedUnion("measurement_type", [
-                z.object({
-                    measurement_type: z.literal("binary"),
-                }),
-                z.object({
-                    measurement_type: z.literal("quantitative"),
-                    measurement_goal: z.object({
-                        target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0."),
-                        unit: z.string().min(1, "La unidad es requerida."),
-                    }),
-                }),
-            ]))
-            .refine(data => {
-                if (data.frequency === 'specific_days' && (!data.frequency_days || data.frequency_days.length === 0)) {
-                    return false;
-                }
-                return true;
-            }, { message: "Debes seleccionar al menos un día para la frecuencia específica", path: ['frequency_days'] })
-        ]);
-    }, []);
-}
-
+export type HabitTaskFormValues = z.infer<typeof formSchema>;
 
 interface AddHabitTaskDialogProps {
   isOpen: boolean;
@@ -110,7 +99,6 @@ const daysOfWeek = [
 
 export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, defaultAreaPrkId, defaultDate, areaPrks }: AddHabitTaskDialogProps) {
   const isEditing = !!habitTask;
-  const formSchema = useFormSchema();
 
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
@@ -427,7 +415,6 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
                                     if (value === 'quantitative') {
                                         form.setValue('measurement_goal', { target: 1, unit: ''});
                                     } else {
-                                        // @ts-expect-error
                                         form.setValue('measurement_goal', undefined);
                                     }
                                 }} defaultValue={field.value} value={field.value}>
@@ -482,6 +469,7 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
                                     )}
                                 />
                             </div>
+                             <FormMessage />
                         </div>
                     )}
                 </>
@@ -528,3 +516,5 @@ export function AddHabitTaskDialog({ isOpen, onOpenChange, onSave, habitTask, de
     </Dialog>
   );
 }
+
+    
