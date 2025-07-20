@@ -159,7 +159,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
 export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at'>>): Promise<void> {
     const supabase = createClient();
     
-    const baseData = {
+    const baseData: Partial<HabitTask> = {
         title: values.title,
         description: values.description,
         area_prk_id: values.area_prk_id,
@@ -173,25 +173,26 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     let updateData: any = { ...baseData };
 
     if (values.type === 'habit') {
-        updateData = {
-            ...updateData,
-            frequency: values.frequency,
-            measurement_type: values.measurement_type,
-            measurement_goal: values.measurement_type === 'binary' ? null : values.measurement_goal,
-            frequency_days: values.frequency === 'specific_days' || values.frequency === 'every_x_weeks' ? values.frequency_days : null,
-            frequency_day_of_month: values.frequency === 'specific_day_of_month' || values.frequency === 'every_x_months' ? values.frequency_day_of_month : null,
-            frequency_interval: values.frequency?.startsWith('every_x_') ? values.frequency_interval : null,
-        };
+        updateData.frequency = values.frequency;
+        updateData.measurement_type = values.measurement_type;
+        updateData.measurement_goal = values.measurement_type === 'binary' ? null : values.measurement_goal;
+        
+        if(values.frequency === 'specific_days' || values.frequency === 'every_x_weeks'){
+            updateData.frequency_days = values.frequency_days;
+        }
+         if (values.frequency === 'specific_day_of_month' || values.frequency === 'every_x_months') {
+            updateData.frequency_day_of_month = values.frequency_day_of_month;
+        }
+        if (values.frequency?.startsWith('every_x_')) {
+            updateData.frequency_interval = values.frequency_interval;
+        }
     } else {
-        updateData = {
-            ...updateData,
-            frequency: null,
-            measurement_type: null,
-            measurement_goal: null,
-            frequency_days: null,
-            frequency_day_of_month: null,
-            frequency_interval: null,
-        };
+        updateData.frequency = null;
+        updateData.measurement_type = null;
+        updateData.measurement_goal = null;
+        updateData.frequency_days = null;
+        updateData.frequency_day_of_month = null;
+        updateData.frequency_interval = null;
     }
 
     try {
@@ -877,3 +878,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    
