@@ -55,7 +55,7 @@ export async function addLifePrk(values: { title: string; description?: string }
 
         if(error) throw error;
     } catch(error) {
-        logError(error, { at: 'addLifePrk', ...values });
+        logError(error, { at: 'addLifePrk', values });
         console.error("Error adding Life PRK:", error);
         throw error;
     }
@@ -75,7 +75,7 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
 
         if (error) throw error;
     } catch (error) {
-        logError(error, { at: 'updateLifePrk', id, ...values });
+        logError(error, { at: 'updateLifePrk', id, values });
         console.error("Error updating Life PRK:", error);
         throw error;
     }
@@ -95,7 +95,7 @@ export async function addAreaPrk(values: { title: string; life_prk_id: string })
 
         if(error) throw error;
     } catch(error) {
-        logError(error, { at: 'addAreaPrk', ...values });
+        logError(error, { at: 'addAreaPrk', values });
         console.error('Supabase error adding Area PRK:', error);
         throw error;
     }
@@ -114,7 +114,7 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
 
         if (error) throw error;
     } catch (error) {
-        logError(error, { at: 'updateAreaPrk', id, ...values });
+        logError(error, { at: 'updateAreaPrk', id, values });
         console.error('Supabase error updating Area PRK:', error);
         throw error;
     }
@@ -124,31 +124,16 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
 export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
     const supabase = createClient();
     
-    const dataToInsert: any = {
-        title: values.title,
-        description: values.description,
-        area_prk_id: values.area_prk_id,
-        weight: values.weight,
-        is_critical: values.is_critical,
-        start_date: values.start_date,
-        due_date: values.due_date,
-        type: values.type,
-    };
-
-    if (values.type === 'habit') {
-        dataToInsert.frequency = values.frequency;
-        dataToInsert.measurement_type = values.measurement_type;
-        dataToInsert.measurement_goal = values.measurement_goal;
-        dataToInsert.frequency_days = values.frequency_days;
-        dataToInsert.frequency_day_of_month = values.frequency_day_of_month;
-        dataToInsert.frequency_interval = values.frequency_interval;
-    }
+    const dataToInsert: any = { ...values };
 
     try {
         const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
-        if(error) throw error;
+        if(error) {
+            logError(error, { at: 'addHabitTask', values: dataToInsert });
+            throw error;
+        }
     } catch (error) {
-        logError(error, { at: 'addHabitTask', data: dataToInsert });
+        // Error is logged above
         console.error("Error adding Habit/Task:", error);
         throw error;
     }
@@ -159,41 +144,35 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
 export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at'>>): Promise<void> {
     const supabase = createClient();
     
-    const baseData: Partial<HabitTask> = {
-        title: values.title,
-        description: values.description,
-        area_prk_id: values.area_prk_id,
-        weight: values.weight,
-        is_critical: values.is_critical,
-        start_date: values.start_date,
-        due_date: values.due_date,
-        type: values.type,
-    };
+    // Build the update object carefully, only including fields that are relevant
+    const updateData: any = {};
 
-    let updateData: any = { ...baseData };
+    const fieldsToCopy: (keyof typeof values)[] = ['title', 'description', 'area_prk_id', 'weight', 'is_critical', 'start_date', 'due_date', 'type'];
+    fieldsToCopy.forEach(field => {
+        if(values[field] !== undefined) {
+            updateData[field] = values[field];
+        }
+    });
 
     if (values.type === 'habit') {
         updateData.frequency = values.frequency;
         updateData.measurement_type = values.measurement_type;
-        updateData.measurement_goal = values.measurement_type === 'binary' ? null : values.measurement_goal;
-        
-        if(values.frequency === 'specific_days' || values.frequency === 'every_x_weeks'){
-            updateData.frequency_days = values.frequency_days;
-        }
-         if (values.frequency === 'specific_day_of_month' || values.frequency === 'every_x_months') {
-            updateData.frequency_day_of_month = values.frequency_day_of_month;
-        }
-        if (values.frequency?.startsWith('every_x_')) {
-            updateData.frequency_interval = values.frequency_interval;
-        }
+        updateData.measurement_goal = values.measurement_goal;
+        updateData.frequency_days = values.frequency_days;
+        updateData.frequency_day_of_month = values.frequency_day_of_month;
+        updateData.frequency_interval = values.frequency_interval;
+        updateData.frequency_unit = values.frequency_unit;
     } else {
+        // For tasks/projects, null out habit-specific fields
         updateData.frequency = null;
         updateData.measurement_type = null;
         updateData.measurement_goal = null;
         updateData.frequency_days = null;
         updateData.frequency_day_of_month = null;
         updateData.frequency_interval = null;
+        updateData.frequency_unit = null;
     }
+
 
     try {
         const { data, error } = await supabase
@@ -202,14 +181,11 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
             .eq('id', id);
 
         if (error) {
-            logError(error, { at: 'updateHabitTask', id, data: updateData });
+            logError(error, { at: 'updateHabitTask', id, values: updateData });
             throw error;
         }
     } catch (error) {
-        // Error is already logged if it comes from the DB driver
-        if (!(typeof error === 'object' && error !== null && 'code' in error)) {
-            logError(error, { at: 'updateHabitTaskCatch', id, data: updateData });
-        }
+        // Error is logged if it comes from the DB driver, so we don't double-log
         console.error("Error updating Habit/Task:", error);
         throw error;
     }
@@ -359,13 +335,6 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         return false;
     }
 
-    if (task.archived_at) {
-        const archivedDate = startOfDay(parseISO(task.archived_at));
-        if (targetDate >= archivedDate) {
-            return false;
-        }
-    }
-
     if (!task.start_date) {
         return false; 
     }
@@ -374,78 +343,79 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     if (targetDate < startDate) {
         return false;
     }
+    
+    const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
+    if (endDate && targetDate > endDate) {
+        return false;
+    }
 
     if (task.type === 'task' || task.type === 'project') {
-        const dueDate = task.due_date ? parseISO(task.due_date) : null;
         const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
 
         if (completionDate && startOfDay(completionDate) < targetDate) {
             return false;
         }
         
-        if (!dueDate) {
+        if (!endDate) { // No due date, active only on start date
             return isSameDay(targetDate, startDate);
         }
 
         // Allow one day past due date to show up
-        if (targetDate >= startDate && targetDate <= addDays(startOfDay(dueDate), 1)) {
+        if (targetDate >= startDate && targetDate <= addDays(startOfDay(endDate), 1)) {
             return true;
         }
         
         return false;
 
     } else if (task.type === 'habit') {
-        const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
-        if (endDate && targetDate > endDate) {
-            return false;
-        }
 
-        const interval = task.frequency_interval;
-
-        // Check for invalid interval for interval-based frequencies
-        if (task.frequency?.startsWith('every_x_') && (!interval || interval < 1)) {
-            return false;
-        }
-        
         switch (task.frequency) {
-            case 'daily':
+            case 'DIARIA':
                 return true;
-            case 'weekly':
-            case 'monthly':
-            case 'every_x_weeks_commitment':
-            case 'every_x_months_commitment':
-                return false; // These are commitments, not scheduled on specific days.
-            case 'specific_days':
-                const dayOfWeek = getDay(targetDate); // Sunday is 0, Monday is 1...
+
+            case 'SEMANAL_ESPECIFICO':
                 // date-fns: Sunday=0, Monday=1, ..., Saturday=6
-                // Our convention: 'sun', 'mon', ...
-                const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                // Our convention from `frecuencia.md` 'L', 'M', 'X', 'J', 'V', 'S', 'D'
+                const dayMap = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+                const dayOfWeek = getDay(targetDate);
                 return task.frequency_days?.includes(dayMap[dayOfWeek]) ?? false;
-            case 'every_x_days':
-                if (!interval) return false;
-                const daysDiff = differenceInDays(targetDate, startDate);
-                return daysDiff >= 0 && daysDiff % interval === 0;
-            case 'every_x_weeks':
-                if (!interval) return false;
-                const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
-                if (weeksDiff < 0 || weeksDiff % interval !== 0) {
-                    return false;
-                }
-                 // If specific days are set, check if the current day is one of them
-                if (task.frequency_days && task.frequency_days.length > 0) {
-                    const currentDayOfWeek = getDay(targetDate);
-                    const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-                    return task.frequency_days.includes(dayMap[currentDayOfWeek]);
-                }
-                // If no specific days, it occurs on the same day of the week as the start date
-                return getDay(targetDate) === getDay(startDate);
-            case 'every_x_months':
-                 if (!interval || !task.frequency_day_of_month) return false;
-                const monthsDiff = differenceInMonths(targetDate, startDate);
-                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === task.frequency_day_of_month;
-            case 'specific_day_of_month':
+            
+            case 'INTERVALO':
+                if (!task.frequency_interval || !task.frequency_unit) return false;
+                
+                let diffFunction;
+                if(task.frequency_unit === 'days') diffFunction = differenceInDays;
+                else if(task.frequency_unit === 'weeks') diffFunction = differenceInWeeks;
+                else if(task.frequency_unit === 'months') diffFunction = differenceInMonths;
+                else return false;
+
+                const diff = diffFunction(targetDate, startDate);
+                return diff >= 0 && diff % task.frequency_interval === 0;
+
+            case 'MENSUAL_DIA_FIJO':
                 if (!task.frequency_day_of_month) return false;
-                return targetDate.getDate() === task.frequency_day_of_month;
+                const dateDay = targetDate.getDate();
+                const lastDayOfMonth = endOfMonth(targetDate).getDate();
+
+                // Handle edge cases like 31st for months with 30 days
+                if (task.frequency_day_of_month > lastDayOfMonth) {
+                    return dateDay === lastDayOfMonth;
+                }
+                return dateDay === task.frequency_day_of_month;
+
+            case 'ANUAL':
+                const startMonth = startDate.getMonth();
+                const startDay = startDate.getDate();
+                return targetDate.getMonth() === startMonth && targetDate.getDate() === startDay;
+
+            // Frequencies for commitments are not active on specific dates
+            case 'SEMANAL_ACUMULATIVO':
+            case 'MENSUAL_ACUMULATIVO':
+            case 'TRIMESTRAL_ACUMULATIVO':
+            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+                return false; 
+
             default:
                 return false;
         }
@@ -622,49 +592,30 @@ export async function getCalendarData(monthDate: Date) {
 
         const taskStartDate = parseISO(task.start_date);
         
-        // Basic check: task must have started before the end of the month view
-        if (isAfter(taskStartDate, monthEnd)) {
-            return false;
-        }
+        if (isAfter(taskStartDate, monthEnd)) return false;
+        if(task.archived_at && isBefore(parseISO(task.archived_at), monthStart)) return false;
+        if (task.due_date && isBefore(parseISO(task.due_date), monthStart)) return false;
 
-        // Basic check: task must not have been archived before the start of the month view
-        if(task.archived_at && isBefore(parseISO(task.archived_at), monthStart)) {
-            return false;
-        }
-        
-        // Basic check: if task has a due date, it must not end before the month starts
-        if (task.due_date && isBefore(parseISO(task.due_date), monthStart)) {
-            return false;
-        }
-
-        const isCommitmentType = task.frequency === 'weekly' 
-            || task.frequency === 'monthly' 
-            || task.frequency === 'every_x_weeks_commitment' 
-            || task.frequency === 'every_x_months_commitment';
+        const isCommitmentType = task.frequency === 'SEMANAL_ACUMULATIVO' 
+            || task.frequency === 'MENSUAL_ACUMULATIVO'
+            || task.frequency === 'TRIMESTRAL_ACUMULATIVO'
+            || task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE'
+            || task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE';
 
         if (!isCommitmentType) return false;
         
         const monthInterval = { start: monthStart, end: monthEnd };
 
-        if (task.frequency === 'monthly') {
-            const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-            return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
-        }
-        
-        if (task.frequency === 'every_x_months_commitment') {
+        if (task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE') {
              if (isAfter(taskStartDate, monthEnd)) return false;
-
             const interval = task.frequency_interval || 1;
             const monthsDiff = differenceInMonths(monthStart, taskStartDate);
-            
-            if (monthsDiff < 0) { // Starts in a future month, but might overlap if start is mid-month
+            if (monthsDiff < 0) { 
                 return areIntervalsOverlapping(monthInterval, { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : monthEnd }, { inclusive: true });
             }
-            
             return monthsDiff % interval === 0;
         }
         
-        // For weekly commitments, just check they are active in the interval
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
         return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
 
@@ -673,25 +624,17 @@ export async function getCalendarData(monthDate: Date) {
         let periodStart, periodEnd;
 
         switch (task.frequency) {
-            case 'weekly':
+            case 'SEMANAL_ACUMULATIVO':
+            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
                 periodStart = startOfWeek(monthDate, { weekStartsOn: 1 });
                 periodEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
                 break;
-            case 'monthly':
-            case 'every_x_months_commitment':
+            case 'MENSUAL_ACUMULATIVO':
+            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
                 periodStart = monthStart;
                 periodEnd = monthEnd;
                 break;
-            case 'every_x_weeks_commitment':
-                if (!task.start_date) return task; // Should not happen due to filter
-                let start = startOfWeek(parseISO(task.start_date), { weekStartsOn: 1 });
-                while (endOfWeek(start, { weekStartsOn: 1 }) < monthDate) {
-                    start = addDays(start, (task.frequency_interval || 1) * 7);
-                }
-                periodStart = start;
-                periodEnd = endOfWeek(start, { weekStartsOn: 1 });
-                break;
-            default:
+            default: // Includes TRIMESTRAL
                 periodStart = monthStart;
                 periodEnd = monthEnd;
         }
@@ -741,7 +684,7 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         // 2. Weekly commitments progress
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'every_x_weeks_commitment');
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'SEMANAL_ACUMULATIVO' || c.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE');
         weeklyCommitmentTasks.forEach(task => {
             if (!task.start_date) return;
             const taskStartDate = parseISO(task.start_date);
@@ -800,7 +743,7 @@ export async function getCalendarData(monthDate: Date) {
         let progressPercentage = 0;
         const target = task.measurement_goal?.target ?? 1;
 
-        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
+        if (task.frequency === 'SEMANAL_ACUMULATIVO' || task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
             let weekStart = startOfWeek(monthStart, {weekStartsOn: 1});
             while(weekStart <= monthEnd) {
                 const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
@@ -878,5 +821,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    

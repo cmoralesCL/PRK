@@ -1,0 +1,21 @@
+
+import * as React from 'react';
+import { Dashboard } from '@/components/dashboard';
+import { getDashboardData } from '@/app/actions';
+
+export const dynamic = 'force-dynamic';
+
+export default async function DashboardPage({ searchParams }: { searchParams: { date?: string } }) {
+  const selectedDate = searchParams.date || new Date().toISOString().split('T')[0];
+
+  const { lifePrks, areaPrks, habitTasks } = await getDashboardData(selectedDate);
+
+  return (
+    <Dashboard
+      lifePrks={lifePrks}
+      areaPrks={areaPrks}
+      habitTasks={habitTasks}
+      initialSelectedDate={selectedDate}
+    />
+  );
+}

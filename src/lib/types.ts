@@ -1,5 +1,4 @@
 
-
 export interface LifePrk {
   id: string;
   title: string;
@@ -36,22 +35,22 @@ export interface HabitTask {
   
   start_date?: string; // Corresponds to start_date
   
-  // Frequency for interval-based habits
-  frequency?: 'daily' 
-    | 'specific_days' 
-    | 'every_x_days'
-    | 'every_x_weeks'
-    | 'every_x_weeks_commitment'
-    | 'every_x_months'
-    | 'every_x_months_commitment'
-    | 'specific_day_of_month'
-    | 'weekly' // Represents a weekly commitment
-    | 'monthly' // Represents a monthly commitment
+  frequency?: 'DIARIA' 
+    | 'SEMANAL_ESPECIFICO' 
+    | 'INTERVALO'
+    | 'MENSUAL_DIA_FIJO'
+    | 'ANUAL'
+    | 'SEMANAL_ACUMULATIVO'
+    | 'MENSUAL_ACUMULATIVO'
+    | 'TRIMESTRAL_ACUMULATIVO'
+    | 'SEMANAL_ACUMULATIVO_RECURRENTE'
+    | 'MENSUAL_ACUMULATIVO_RECURRENTE'
     | null;
-
-  frequency_interval?: number | null; // For 'every_x...' frequencies
-  frequency_days?: string[] | null; // For 'specific_days' or 'every_x_weeks' on specific days
-  frequency_day_of_month?: number | null; // For 'specific_day_of_month'
+  
+  frequency_unit?: 'days' | 'weeks' | 'months' | null; // For 'INTERVALO'
+  frequency_interval?: number | null; // For 'INTERVALO' and '*_RECURRENTE'
+  frequency_days?: string[] | null; // For 'SEMANAL_ESPECIFICO'
+  frequency_day_of_month?: number | null; // For 'MENSUAL_DIA_FIJO'
   
   weight: number;
 
