@@ -30,6 +30,7 @@ import {
     differenceInDays,
     isAfter,
     isBefore,
+    endOfYear,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -531,6 +532,84 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
     return { lifePrksWithProgress, areaPrksWithProgress };
 }
 
+function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[], referenceDate: Date) {
+    const periodStart = startOfWeek(referenceDate, { weekStartsOn: 1 });
+    const periodEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(referenceDate);
+    const monthEnd = endOfMonth(referenceDate);
+
+    return allHabitTasks.filter(task => {
+        // Basic filtering
+        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date || task.archived) {
+            return false;
+        }
+        const taskStartDate = parseISO(task.start_date);
+        if (isAfter(taskStartDate, monthEnd)) return false; // Use monthEnd as the widest possible range for this check
+        if (task.archived_at && isBefore(parseISO(task.archived_at), periodStart)) return false;
+        if (task.due_date && isBefore(parseISO(task.due_date), periodStart)) return false;
+
+        const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
+        const weekInterval = { start: periodStart, end: periodEnd };
+        
+        if (task.frequency.startsWith('SEMANAL')) {
+            if (!areIntervalsOverlapping(weekInterval, taskInterval, { inclusive: true })) return false;
+
+            if (task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
+                if (!task.frequency_interval) return false;
+                const weekDiff = Math.floor(differenceInDays(startOfWeek(periodStart, { weekStartsOn: 1 }), startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
+                return weekDiff >= 0 && weekDiff % task.frequency_interval === 0;
+            }
+            return true; // Is a standard weekly commitment active in this period
+        }
+        
+        if (task.frequency.startsWith('MENSUAL')) {
+            if (!areIntervalsOverlapping({start: monthStart, end: monthEnd}, taskInterval, { inclusive: true })) return false;
+
+            if (task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE') {
+                if (!task.frequency_interval) return false;
+                const monthDiff = differenceInMonths(monthStart, taskStartDate);
+                return monthDiff >= 0 && monthDiff % task.frequency_interval === 0;
+            }
+            return true;
+        }
+
+        return false; // For now, only weekly and monthly on dashboard
+    }).map(task => {
+        let logs: ProgressLog[] = [];
+        let periodStartForLogs: Date, periodEndForLogs: Date;
+        
+        const freq = task.frequency;
+
+        if(freq?.startsWith('SEMANAL')) {
+            periodStartForLogs = startOfWeek(referenceDate, { weekStartsOn: 1 });
+            periodEndForLogs = endOfWeek(referenceDate, { weekStartsOn: 1 });
+        } else { // MENSUAL
+            periodStartForLogs = monthStart;
+            periodEndForLogs = monthEnd;
+        }
+        
+        logs = allProgressLogs.filter(log => 
+            log.habit_task_id === task.id &&
+            isWithinInterval(parseISO(log.completion_date), { start: periodStartForLogs, end: periodEndForLogs })
+        );
+
+        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? 1 : 0)), 0);
+        
+        let completedToday = false;
+        if (task.measurement_type === 'binary' || task.measurement_type === 'quantitative') {
+            const target = task.measurement_goal?.target_count ?? 1;
+            completedToday = target > 0 ? totalProgressValue >= target : totalProgressValue > 0;
+        }
+
+        return {
+            ...task,
+            current_progress_value: totalProgressValue,
+            completedToday: completedToday
+        };
+    });
+}
+
+
 export async function getDashboardData(selectedDateString: string) {
     const supabase = createClient();
     const selectedDate = parseISO(selectedDateString);
@@ -563,10 +642,13 @@ export async function getDashboardData(selectedDateString: string) {
     
     const { lifePrksWithProgress, areaPrksWithProgress } = calculateProgressForDate(selectedDate, lifePrks, areaPrks, habitTasksForDay);
 
+    const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, selectedDate);
+
     return {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
         habitTasks: habitTasksForDay,
+        commitments: commitments,
     };
 }
 

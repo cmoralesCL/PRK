@@ -21,8 +21,8 @@ interface CommitmentsCardProps {
 export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, onArchive }: CommitmentsCardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly');
-  const monthlyCommitments = commitments.filter(c => c.frequency === 'monthly');
+  const weeklyCommitments = commitments.filter(c => c.frequency?.startsWith('SEMANAL'));
+  const monthlyCommitments = commitments.filter(c => c.frequency?.startsWith('MENSUAL'));
   // Add other periods as needed
 
   if (commitments.length === 0) {

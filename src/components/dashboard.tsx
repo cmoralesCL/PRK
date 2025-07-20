@@ -28,11 +28,13 @@ import {
 import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
+import { CommitmentsCard } from './commitments-card';
 
 interface DashboardProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
   habitTasks: HabitTask[];
+  commitments: HabitTask[];
   initialSelectedDate: string;
 }
 
@@ -40,6 +42,7 @@ export function Dashboard({
   lifePrks,
   areaPrks,
   habitTasks,
+  commitments,
   initialSelectedDate,
 }: DashboardProps) {
   const { toast } = useToast();
@@ -177,7 +180,8 @@ export function Dashboard({
   };
   
   const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const task = habitTasks.find(ht => ht.id === id);
+    const allTasks = [...habitTasks, ...commitments];
+    const task = allTasks.find(ht => ht.id === id);
     if (!task) return;
 
     const completionDate = date.toISOString().split('T')[0];
@@ -287,6 +291,13 @@ export function Dashboard({
         )}
         {!isPending && lifePrks.length > 0 && (
           <>
+            <CommitmentsCard 
+                commitments={commitments}
+                selectedDate={selectedDate}
+                onToggle={handleToggleHabitTask}
+                onEdit={handleOpenEditHabitTaskDialog}
+                onArchive={handleArchiveHabitTask}
+            />
             <div className="flex justify-end gap-2 my-4">
                 <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                     Expandir Todo
