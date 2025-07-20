@@ -31,6 +31,7 @@ export interface HabitTask {
   description?: string | null;
   type: 'habit' | 'project' | 'task';
   created_at?: string;
+  archived: boolean;
   archived_at?: string | null;
   
   start_date?: string; // Corresponds to start_date

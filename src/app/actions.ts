@@ -111,7 +111,7 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
     revalidatePath('/');
 }
 
-export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>) {
+export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
     const supabase = createClient();
     
     const dataToInsert: any = {
@@ -146,7 +146,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     revalidatePath('/calendar');
 }
 
-export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>): Promise<void> {
+export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>): Promise<void> {
     const supabase = createClient();
     
     const updateData: any = { ...values };
@@ -302,7 +302,7 @@ export async function archiveAreaPrk(id: string) {
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
     try {
-        const { error } = await supabase.from('habit_tasks').update({ archived_at: archiveDate }).eq('id', id);
+        const { error } = await supabase.from('habit_tasks').update({ archived: true, archived_at: archiveDate }).eq('id', id);
         if(error) throw error;
     } catch (error) {
         logError(error);
@@ -322,6 +322,10 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
  */
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
+
+    if (task.archived) {
+        return false;
+    }
 
     if (task.archived_at) {
         const archivedDate = startOfDay(parseISO(task.archived_at));
@@ -508,7 +512,7 @@ export async function getDashboardData(selectedDateString: string) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
     if (habitTasksError) throw habitTasksError;
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
@@ -544,7 +548,7 @@ export async function getCalendarData(monthDate: Date) {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) throw areaPrksError;
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
     if (habitTasksError) throw habitTasksError;
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
