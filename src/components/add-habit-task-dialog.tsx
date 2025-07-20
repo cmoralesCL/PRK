@@ -96,7 +96,7 @@ const formSchema = z.object({
         case 'SEMANAL_ACUMULATIVO_RECURRENTE':
         case 'MENSUAL_ACUMULATIVO_RECURRENTE':
         case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-            if (!data.measurement_goal?.target_count) {
+            if (data.measurement_type === 'binary' && (!data.measurement_goal?.target_count)) {
                  ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
             }
             break;
@@ -143,6 +143,8 @@ export function AddHabitTaskDialog({
           ...habitTask,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
+          frequency_interval: habitTask.frequency_interval ?? '',
+          frequency_day_of_month: habitTask.frequency_day_of_month ?? '',
         };
         form.reset(baseValues);
       } else { // Reset for new task
@@ -150,6 +152,8 @@ export function AddHabitTaskDialog({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
           frequency: 'DIARIA',
+          frequency_interval: '',
+          frequency_day_of_month: '',
           ...defaultValues,
         });
       }
@@ -157,7 +161,7 @@ export function AddHabitTaskDialog({
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    let dataToSave: Partial<HabitTask> = {
+    const dataToSave: Partial<HabitTask> = {
         title: values.title,
         description: values.description,
         area_prk_id: values.area_prk_id,
@@ -166,44 +170,52 @@ export function AddHabitTaskDialog({
         due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
         weight: values.weight,
         is_critical: values.is_critical,
-        measurement_type: values.measurement_type,
     };
 
     if (values.type === 'habit') {
         dataToSave.frequency = values.frequency;
-        
+        dataToSave.measurement_type = values.measurement_type;
+        dataToSave.measurement_goal = values.measurement_goal;
+
+        // Clean up fields based on frequency
+        dataToSave.frequency_interval = null;
+        dataToSave.frequency_days = null;
+        dataToSave.frequency_day_of_month = null;
+
         // Add fields based on frequency
-        switch (values.frequency) {
-            case 'INTERVALO_DIAS':
-            case 'INTERVALO_SEMANAL_DIAS_FIJOS':
-            case 'INTERVALO_MENSUAL_DIA_FIJO':
-            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-                dataToSave.frequency_interval = values.frequency_interval;
-                break;
+        const freq = values.frequency;
+
+        if (freq?.includes('INTERVALO') || freq?.includes('RECURRENTE')) {
+            dataToSave.frequency_interval = values.frequency_interval || null;
         }
 
-        switch (values.frequency) {
-            case 'SEMANAL_DIAS_FIJOS':
-            case 'INTERVALO_SEMANAL_DIAS_FIJOS':
-                dataToSave.frequency_days = values.frequency_days;
-                break;
+        if (freq === 'SEMANAL_DIAS_FIJOS' || freq === 'INTERVALO_SEMANAL_DIAS_FIJOS') {
+            dataToSave.frequency_days = values.frequency_days;
         }
 
-        switch (values.frequency) {
-            case 'MENSUAL_DIA_FIJO':
-            case 'INTERVALO_MENSUAL_DIA_FIJO':
-                dataToSave.frequency_day_of_month = values.frequency_day_of_month;
-                break;
+        if (freq === 'MENSUAL_DIA_FIJO' || freq === 'INTERVALO_MENSUAL_DIA_FIJO') {
+            dataToSave.frequency_day_of_month = values.frequency_day_of_month || null;
         }
 
-        if (values.frequency?.includes('ACUMULATIVO')) {
-            dataToSave.measurement_goal = values.measurement_goal;
+        if (freq?.includes('ACUMULATIVO')) {
+             if(values.measurement_type === 'binary') {
+                dataToSave.measurement_goal = {
+                    target_count: values.measurement_goal?.target_count
+                };
+             } else {
+                 dataToSave.measurement_goal = null;
+             }
         } else {
             dataToSave.measurement_goal = null;
         }
 
+    } else { // Task or Project
+        dataToSave.frequency = null;
+        dataToSave.measurement_type = null;
+        dataToSave.measurement_goal = null;
+        dataToSave.frequency_days = null;
+        dataToSave.frequency_day_of_month = null;
+        dataToSave.frequency_interval = null;
     }
     
     onSave(dataToSave);
@@ -347,15 +359,27 @@ const daysOfWeek = [
 function FrequencyBuilder({ form }: { form: any }) {
     const [behavior, setBehavior] = useState<'date' | 'period'>('date');
     const frequency: HabitFrequency | undefined = form.watch('frequency');
+    const measurementType: 'binary' | 'quantitative' | undefined = form.watch('measurement_type');
+
+    useEffect(() => {
+        const freq = form.getValues('frequency');
+        if (freq?.includes('ACUMULATIVO')) {
+            setBehavior('period');
+        } else {
+            setBehavior('date');
+        }
+    }, [form]);
+
 
     const handleBehaviorChange = (value: 'date' | 'period') => {
         setBehavior(value);
-        // Reset fields when changing behavior
-        form.setValue('frequency', value === 'date' ? 'DIARIA' : 'SEMANAL_ACUMULATIVO');
-        form.setValue('frequency_days', undefined);
-        form.setValue('frequency_interval', undefined);
-        form.setValue('frequency_day_of_month', undefined);
-        form.setValue('measurement_goal', undefined);
+        if (value === 'date') {
+            form.setValue('frequency', 'DIARIA');
+            form.setValue('measurement_type', 'binary');
+        } else {
+            form.setValue('frequency', 'SEMANAL_ACUMULATIVO');
+            form.setValue('measurement_type', 'binary');
+        }
     };
 
     const handleDayToggle = (dayId: string) => {
@@ -430,7 +454,9 @@ function FrequencyBuilder({ form }: { form: any }) {
                            <FormItem><FormLabel>El día del mes</FormLabel><FormControl><Input type="number" min="1" max="31" placeholder="Ej: 15" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                     )}
-
+                     <FormField control={form.control} name="measurement_type" render={({ field }) => (
+                        <FormItem className='hidden'><FormControl><Input {...field} /></FormControl></FormItem>
+                     )}/>
                 </div>
             )}
 
@@ -438,7 +464,10 @@ function FrequencyBuilder({ form }: { form: any }) {
                  <div className="space-y-4 pt-2">
                      <FormField control={form.control} name="frequency" render={({ field }) => (
                       <FormItem>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('measurement_type', 'binary'); // Default to binary for commitments
+                        }} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un período" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="SEMANAL_ACUMULATIVO">Por Semana (Acumulativo)</SelectItem>
@@ -466,8 +495,33 @@ function FrequencyBuilder({ form }: { form: any }) {
                            </FormItem>
                         )}/>
                     )}
+
+                    <FormField
+                        control={form.control}
+                        name="measurement_type"
+                        render={({ field }) => (
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex gap-4"
+                            >
+                                <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                        <RadioGroupItem value="binary" id="binary" />
+                                    </FormControl>
+                                    <Label htmlFor="binary">Contar Tareas (Binario)</Label>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                        <RadioGroupItem value="quantitative" id="quantitative" />
+                                    </FormControl>
+                                    <Label htmlFor="quantitative">Sumar Valores</Label>
+                                </FormItem>
+                            </RadioGroup>
+                        )}
+                    />
                     
-                    {frequency?.includes('ACUMULATIVO') && (
+                    {measurementType === 'binary' && frequency?.includes('ACUMULATIVO') && (
                         <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
                            <FormItem><FormLabel>Meta (X veces por período)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
