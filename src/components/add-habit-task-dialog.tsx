@@ -66,8 +66,18 @@ const formSchema = z.object({
         unit: z.string().optional(),
     }).optional(),
 }).superRefine((data, ctx) => {
+    // Due date must be after start date
+    if (data.start_date && data.due_date && data.due_date < data.start_date) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "La fecha de fin no puede ser anterior a la de inicio.",
+            path: ['due_date'],
+        });
+    }
+
     if (data.type !== 'habit' || !data.frequency) return;
 
+    // Validations for specific frequencies
     switch (data.frequency) {
         case 'SEMANAL_DIAS_FIJOS':
         case 'INTERVALO_SEMANAL_DIAS_FIJOS':
@@ -77,7 +87,7 @@ const formSchema = z.object({
             break;
         case 'MENSUAL_DIA_FIJO':
         case 'INTERVALO_MENSUAL_DIA_FIJO':
-            if (!data.frequency_day_of_month) {
+            if (data.frequency_day_of_month === undefined) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debes especificar el día del mes.', path: ['frequency_day_of_month'] });
             }
             break;
@@ -87,7 +97,7 @@ const formSchema = z.object({
         case 'SEMANAL_ACUMULATIVO_RECURRENTE':
         case 'MENSUAL_ACUMULATIVO_RECURRENTE':
         case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-             if (!data.frequency_interval || data.frequency_interval < 1) {
+             if (data.frequency_interval === undefined) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El intervalo es requerido y debe ser mayor a 0.', path: ['frequency_interval'] });
             }
             break;
@@ -98,8 +108,11 @@ const formSchema = z.object({
         case 'SEMANAL_ACUMULATIVO_RECURRENTE':
         case 'MENSUAL_ACUMULATIVO_RECURRENTE':
         case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-            if (data.measurement_type === 'binary' && (!data.measurement_goal?.target_count)) {
+            if (data.measurement_type === 'binary' && data.measurement_goal?.target_count === undefined) {
                  ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
+            }
+            if (data.measurement_type === 'quantitative' && data.measurement_goal?.target_count === undefined) {
+                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo a sumar es requerido.', path: ['measurement_goal.target_count'] });
             }
             break;
     }
@@ -141,7 +154,7 @@ export function AddHabitTaskDialog({
     if (isOpen) {
       if (isEditing && habitTask) {
         // --- Populate Form ---
-        const baseValues: any = {
+        form.reset({
           ...habitTask,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
@@ -150,16 +163,18 @@ export function AddHabitTaskDialog({
           measurement_goal: {
             ...habitTask.measurement_goal,
             target_count: habitTask.measurement_goal?.target_count ?? ''
-          }
-        };
-        form.reset(baseValues);
+          },
+          frequency_days: habitTask.frequency_days ?? [],
+        });
       } else { // Reset for new task
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
           frequency: 'DIARIA',
+          frequency_days: [],
           frequency_interval: '',
           frequency_day_of_month: '',
+          measurement_type: 'binary',
           measurement_goal: { target_count: '' },
           ...defaultValues,
         });
@@ -190,8 +205,8 @@ export function AddHabitTaskDialog({
         dataToSave.measurement_goal = null;
 
         const freq = values.frequency;
-
-        if (freq === 'INTERVALO_DIAS' || freq === 'INTERVALO_SEMANAL_DIAS_FIJOS' || freq === 'INTERVALO_MENSUAL_DIA_FIJO' || freq?.includes('RECURRENTE')) {
+        
+        if (freq?.includes('INTERVALO') || freq?.includes('RECURRENTE')) {
             dataToSave.frequency_interval = values.frequency_interval;
         }
 
@@ -202,7 +217,7 @@ export function AddHabitTaskDialog({
         if (freq === 'MENSUAL_DIA_FIJO' || freq === 'INTERVALO_MENSUAL_DIA_FIJO') {
             dataToSave.frequency_day_of_month = values.frequency_day_of_month;
         }
-
+        
         if (freq?.includes('ACUMULATIVO')) {
              if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
                 dataToSave.measurement_goal = {
@@ -210,6 +225,8 @@ export function AddHabitTaskDialog({
                     unit: values.measurement_goal?.unit,
                 };
              }
+        } else {
+             dataToSave.measurement_type = 'binary';
         }
     }
     
@@ -420,7 +437,15 @@ function FrequencyBuilder({ form }: { form: any }) {
 
                     {(frequency === 'INTERVALO_DIAS' || frequency === 'INTERVALO_SEMANAL_DIAS_FIJOS' || frequency === 'INTERVALO_MENSUAL_DIA_FIJO') && (
                          <FormField control={form.control} name="frequency_interval" render={({ field }) => (
-                           <FormItem><FormLabel>Cada</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
+                           <FormItem>
+                                <FormLabel>
+                                    {frequency === 'INTERVALO_DIAS' && 'Cada (N) días'}
+                                    {frequency === 'INTERVALO_SEMANAL_DIAS_FIJOS' && 'Cada (N) semanas'}
+                                    {frequency === 'INTERVALO_MENSUAL_DIA_FIJO' && 'Cada (N) meses'}
+                                </FormLabel>
+                                <FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )}/>
                     )}
 
@@ -441,7 +466,7 @@ function FrequencyBuilder({ form }: { form: any }) {
                                     </Button>
                                 ))}
                              </div>
-                              <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
+                              <FormField control={form.control} name="frequency_days" render={() => <FormMessage />} />
                         </div>
                     )}
                      {(frequency === 'MENSUAL_DIA_FIJO' || frequency === 'INTERVALO_MENSUAL_DIA_FIJO') && (
@@ -481,9 +506,9 @@ function FrequencyBuilder({ form }: { form: any }) {
                          <FormField control={form.control} name="frequency_interval" render={({ field }) => (
                            <FormItem>
                                 <FormLabel>
-                                    {frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántas semanas'}
-                                    {frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántos meses'}
-                                    {frequency === 'TRIMESTRAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántos trimestres'}
+                                    {frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE' && 'Cada (N) semanas'}
+                                    {frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE' && 'Cada (N) meses'}
+                                    {frequency === 'TRIMESTRAL_ACUMULATIVO_RECURRENTE' && 'Cada (N) trimestres'}
                                 </FormLabel>
                                <FormControl><Input type="number" min="1" placeholder="Ej: 2" {...field} /></FormControl>
                                <FormMessage />
@@ -495,36 +520,48 @@ function FrequencyBuilder({ form }: { form: any }) {
                         control={form.control}
                         name="measurement_type"
                         render={({ field }) => (
-                            <RadioGroup
-                                onValueChange={field.onChange}
-                                value={field.value}
-                                className="flex gap-4"
-                            >
-                                <FormItem className="flex items-center space-x-2">
-                                    <FormControl>
-                                        <RadioGroupItem value="binary" id="binary" />
-                                    </FormControl>
-                                    <Label htmlFor="binary">Contar Tareas (Binario)</Label>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-2">
-                                    <FormControl>
-                                        <RadioGroupItem value="quantitative" id="quantitative" />
-                                    </FormControl>
-                                    <Label htmlFor="quantitative">Sumar Valores</Label>
-                                </FormItem>
-                            </RadioGroup>
+                            <FormItem>
+                                <FormLabel>Tipo de Meta</FormLabel>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                    className="flex gap-4 pt-1"
+                                >
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <RadioGroupItem value="binary" id="binary" />
+                                        </FormControl>
+                                        <Label htmlFor="binary">Contar Tareas (X veces)</Label>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <RadioGroupItem value="quantitative" id="quantitative" />
+                                        </FormControl>
+                                        <Label htmlFor="quantitative">Sumar Valores (N unidades)</Label>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormItem>
                         )}
                     />
                     
                     {measurementType === 'binary' && frequency?.includes('ACUMULATIVO') && (
                         <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
-                           <FormItem><FormLabel>Meta (X veces por período)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
+                           <FormItem><FormLabel>Meta (veces por período)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
+                    )}
+                    {measurementType === 'quantitative' && frequency?.includes('ACUMULATIVO') && (
+                        <div className="flex gap-2">
+                             <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
+                               <FormItem className="flex-grow"><FormLabel>Meta (valor total)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 100" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="measurement_goal.unit" render={({ field }) => (
+                                <FormItem className="w-1/3"><FormLabel>Unidad</FormLabel><FormControl><Input placeholder="km, hrs..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                        </div>
                     )}
 
                 </div>
             )}
         </div>
     );
-
-    
+}
