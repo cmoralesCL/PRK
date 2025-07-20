@@ -145,8 +145,16 @@ export function AddHabitTaskDialog({
     let newInterval: number | undefined = undefined;
     let newDays: string[] | undefined = undefined;
     let newDayOfMonth: number | undefined = undefined;
-    
-    if (mode === 'cada') {
+
+    if (mode === 'los') {
+        newFrequency = 'specific_days';
+        newDays = specificDays;
+        newInterval = undefined;
+    } else if (mode === 'dia_fijo') {
+        newFrequency = 'specific_day_of_month';
+        newDayOfMonth = dayOfMonth;
+        newInterval = undefined;
+    } else if (mode === 'cada') {
         newInterval = interval;
         if (unit === 'days') {
             newFrequency = interval === 1 ? 'daily' : 'every_x_days';
@@ -157,14 +165,6 @@ export function AddHabitTaskDialog({
         } else if (unit === 'months') {
             newFrequency = 'every_x_months';
         }
-    } else if (mode === 'los') {
-        newFrequency = 'specific_days';
-        newDays = specificDays;
-        newInterval = undefined;
-    } else if (mode === 'dia_fijo') {
-        newFrequency = 'specific_day_of_month';
-        newDayOfMonth = dayOfMonth;
-        newInterval = undefined;
     } else if (mode === 'veces_por') {
         const newMeasurementType = form.getValues('measurement_type') || 'binary';
         const newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
@@ -236,7 +236,7 @@ export function AddHabitTaskDialog({
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
           ...defaultValues,
         });
-        // Reset builder state
+        // Reset builder state to a clean, default state
         setFrequencyBuilder({ mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 });
       }
     }
