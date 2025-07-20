@@ -123,3 +123,11 @@ Details: Failing row contains (aad82f5f-bf4e-4929-802b-0de9b13954e0, e3c3c0b1-30
 Hint: null
 --------------------------------------------------
 
+[2025-07-20T04:46:56.724Z] - DETAILED ERROR LOG
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (3b643a0b-e14e-4569-aac9-f16533550fe7, 5232709e-699c-4ea8-8473-4b5b8cb7a79e, Prueba 2.1 (Aparición), habit, 2025-07-09, null, null, every_x_weeks, {mon,wed,fri}, 1, f, binary, null, 2025-07-20 04:46:56.64149+00, f, null, null, 1, null, Crear un hábito para Lunes, Miércoles y Viernes. Verificar que...).
+Hint: null
+--------------------------------------------------
+
