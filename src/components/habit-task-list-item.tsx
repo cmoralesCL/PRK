@@ -17,7 +17,7 @@ interface HabitTaskListItemProps {
   item: HabitTask;
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onUndo?: (id: string, date: Date) => void;
-  onArchive?: (id: string) => void;
+  onArchive?: (id: string, date: Date) => void;
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog';
@@ -91,6 +91,12 @@ export function HabitTaskListItem({
     }
   };
 
+  const handleArchive = () => {
+    if (onArchive) {
+      onArchive(item.id, selectedDate);
+    }
+  }
+
   if (variant === 'calendar') {
     return (
         <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
@@ -130,7 +136,7 @@ export function HabitTaskListItem({
                         </Button>
                     )}
                     {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onArchive(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
                             <Archive className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
@@ -190,7 +196,7 @@ export function HabitTaskListItem({
                         </Button>
                     )}
                     {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onArchive(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
                             <Archive className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
@@ -257,7 +263,7 @@ export function HabitTaskListItem({
                         </Button>
                     )}
                     {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onArchive(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
                             <Archive className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
