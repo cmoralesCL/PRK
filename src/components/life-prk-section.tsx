@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -29,6 +30,7 @@ interface LifePrkSectionProps {
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
+  onUndoHabitTask: (id: string, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (lifePrk: LifePrk) => void;
@@ -46,6 +48,7 @@ export function LifePrkSection({
   onAddHabitTask,
   onEditHabitTask,
   onToggleHabitTask,
+  onUndoHabitTask,
   onGetAiSuggestions,
   onArchive,
   onEdit,
@@ -119,6 +122,7 @@ export function LifePrkSection({
                   onAddHabitTask={onAddHabitTask}
                   onEditHabitTask={onEditHabitTask}
                   onToggleHabitTask={onToggleHabitTask}
+                  onUndoHabitTask={onUndoHabitTask}
                   onGetAiSuggestions={onGetAiSuggestions}
                   onArchive={onArchiveAreaPrk}
                   onEdit={onEditAreaPrk}

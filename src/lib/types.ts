@@ -1,4 +1,5 @@
 
+
 export interface LifePrk {
   id: string;
   title: string;
@@ -73,6 +74,9 @@ export interface HabitTask {
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | null;
   measurement_goal?: { target_count?: number; unit?: string; } | null; // Corresponds to measurement_goal
+  
+  // UI-specific fields, not in DB
+  logs?: ProgressLog[];
 }
 
 export interface ProgressLog {

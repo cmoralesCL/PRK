@@ -1,16 +1,18 @@
 
+
 'use client';
 
 import { useTransition, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ListTodo, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
-import type { HabitTask, HabitFrequency } from '@/lib/types';
+import type { HabitTask, HabitFrequency, ProgressLog } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import { logHabitTaskCompletion, removeHabitTaskCompletion, archiveHabitTask } from '@/app/actions';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 
 type CommitmentTab = 'weekly' | 'monthly' | 'quarterly';
@@ -42,16 +44,28 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
 
     startTransition(async () => {
       try {
-        if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
-        } else {
-          await removeHabitTaskCompletion(id, task.type, completionDate);
-        }
+        await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+        toast({ title: "¡Progreso registrado!" });
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
       }
     });
   };
+
+  const handleUndo = (id: string, date: Date) => {
+     const task = commitments.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+    startTransition(async () => {
+        try {
+            await removeHabitTaskCompletion(id, task.type, completionDate);
+            toast({ title: "Registro deshecho" });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
+        }
+    });
+  }
 
   const handleEdit = (task: HabitTask) => {
     onEditCommitment(task);
@@ -83,6 +97,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
                 key={commitment.id}
                 item={commitment}
                 onToggle={handleToggle}
+                onUndo={handleUndo}
                 onEdit={handleEdit}
                 onArchive={handleArchive}
                 selectedDate={selectedDate}

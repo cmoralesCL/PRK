@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -13,12 +14,13 @@ interface CommitmentsCardProps {
   commitments: HabitTask[];
   selectedDate: Date;
   onToggle: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
+  onUndo: (id: string, date: Date) => void;
   onEdit: (task: HabitTask) => void;
   onArchive: (id: string) => void;
 }
 
 
-export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, onArchive }: CommitmentsCardProps) {
+export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, onEdit, onArchive }: CommitmentsCardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const weeklyCommitments = commitments.filter(c => c.frequency?.startsWith('SEMANAL'));
@@ -40,6 +42,7 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onEdit, o
                 key={commitment.id}
                 item={commitment}
                 onToggle={onToggle}
+                onUndo={onUndo}
                 onEdit={onEdit}
                 onArchive={onArchive}
                 selectedDate={selectedDate}

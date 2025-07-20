@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil } from 'lucide-react';
@@ -24,6 +25,7 @@ interface AreaPrkCardProps {
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
+  onUndoHabitTask: (id: string, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (areaPrk: AreaPrk) => void;
@@ -37,6 +39,7 @@ export function AreaPrkCard({
   onAddHabitTask,
   onEditHabitTask,
   onToggleHabitTask,
+  onUndoHabitTask,
   onGetAiSuggestions,
   onArchive,
   onEdit,
@@ -101,7 +104,8 @@ export function AreaPrkCard({
                   <HabitTaskListItem 
                     key={item.id} 
                     item={item} 
-                    onToggle={onToggleHabitTask} 
+                    onToggle={onToggleHabitTask}
+                    onUndo={onUndoHabitTask}
                     onArchive={onArchiveHabitTask} 
                     onEdit={onEditHabitTask} 
                     selectedDate={selectedDate} 

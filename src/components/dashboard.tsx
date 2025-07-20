@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -190,17 +191,28 @@ export function Dashboard({
       try {
         if (completed) {
           await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
-          if (task.type !== 'habit') {
-              toast({ title: '¡Tarea Completada!', description: '¡Excelente trabajo!' });
-          } else {
-              toast({ title: '¡Hábito Registrado!', description: 'Un paso más cerca de tu meta.' });
-          }
         } else {
           await removeHabitTaskCompletion(id, task.type, completionDate);
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
       }
+    });
+  };
+
+  const handleUndoHabitTask = (id: string, date: Date) => {
+     const allTasks = [...habitTasks, ...commitments];
+    const task = allTasks.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+    startTransition(async () => {
+        try {
+            await removeHabitTaskCompletion(id, task.type, completionDate);
+            toast({ title: "Registro deshecho" });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
+        }
     });
   };
 
@@ -295,6 +307,7 @@ export function Dashboard({
                 commitments={commitments}
                 selectedDate={selectedDate}
                 onToggle={handleToggleHabitTask}
+                onUndo={handleUndoHabitTask}
                 onEdit={handleOpenEditHabitTaskDialog}
                 onArchive={handleArchiveHabitTask}
             />
@@ -323,6 +336,7 @@ export function Dashboard({
                   onAddHabitTask={handleOpenAddHabitTaskDialog}
                   onEditHabitTask={handleOpenEditHabitTaskDialog}
                   onToggleHabitTask={handleToggleHabitTask}
+                  onUndoHabitTask={handleUndoHabitTask}
                   onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
                   onArchive={handleArchiveLifePrk}
                   onEdit={handleOpenEditLifePrkDialog}
