@@ -145,48 +145,58 @@ export function AddHabitTaskDialog({
     let newInterval: number | undefined = undefined;
     let newDays: string[] | undefined = undefined;
     let newDayOfMonth: number | undefined = undefined;
-    let newMeasurementType: 'binary' | 'quantitative' | undefined = 'binary';
-    let newMeasurementGoal: { target?: number, unit?: string } | undefined = undefined;
     
-    if (mode === 'cada') {
+    // Reset measurement fields unless mode is 'veces_por'
+    if (mode !== 'veces_por') {
+      form.setValue('measurement_type', 'binary');
+      form.setValue('measurement_goal', undefined);
+    }
+    
+    switch (mode) {
+      case 'cada':
         newInterval = interval;
         if (unit === 'days') {
-            newFrequency = interval === 1 ? 'daily' : 'every_x_days';
-            if (interval === 1) newInterval = undefined;
+          newFrequency = interval === 1 ? 'daily' : 'every_x_days';
+          if (interval === 1) newInterval = undefined;
         } else if (unit === 'weeks') {
-            newFrequency = 'every_x_weeks';
-            newDays = specificDays.length > 0 ? specificDays : undefined;
+          newFrequency = 'every_x_weeks';
+          newDays = specificDays.length > 0 ? specificDays : undefined;
         } else if (unit === 'months') {
-            newFrequency = 'every_x_months';
+          newFrequency = 'every_x_months';
         }
-    } else if (mode === 'los') {
+        break;
+      
+      case 'los':
         newFrequency = 'specific_days';
         newDays = specificDays;
-    } else if (mode === 'dia_fijo') {
-      newFrequency = 'specific_day_of_month';
-      newDayOfMonth = dayOfMonth;
-    } else if (mode === 'veces_por') {
-      newMeasurementType = form.getValues('measurement_type') || 'binary';
-      newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
-      switch (unit) {
-        case 'weeks':
-          newFrequency = 'weekly';
-          break;
-        case 'months':
-          newFrequency = 'monthly';
-          break;
-      }
+        break;
+
+      case 'dia_fijo':
+        newFrequency = 'specific_day_of_month';
+        newDayOfMonth = dayOfMonth;
+        break;
+
+      case 'veces_por':
+        const newMeasurementType = form.getValues('measurement_type') || 'binary';
+        const newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
+        form.setValue('measurement_type', newMeasurementType, { shouldValidate: true });
+        form.setValue('measurement_goal', newMeasurementGoal, { shouldValidate: true });
+        
+        switch (unit) {
+          case 'weeks':
+            newFrequency = 'weekly';
+            break;
+          case 'months':
+            newFrequency = 'monthly';
+            break;
+        }
+        break;
     }
     
     form.setValue('frequency', newFrequency, { shouldValidate: true });
     form.setValue('frequency_interval', newInterval, { shouldValidate: true });
     form.setValue('frequency_days', newDays, { shouldValidate: true });
     form.setValue('frequency_day_of_month', newDayOfMonth, { shouldValidate: true });
-    
-    if (mode === 'veces_por') {
-      form.setValue('measurement_type', newMeasurementType, { shouldValidate: true });
-      form.setValue('measurement_goal', newMeasurementGoal, { shouldValidate: true });
-    }
 
   }, [frequencyBuilder, type, form]);
 
