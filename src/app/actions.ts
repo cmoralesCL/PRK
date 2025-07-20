@@ -40,7 +40,7 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
     const result = await suggestRelatedHabitsTasks(input);
     return result.suggestions || [];
   } catch (error) {
-    logError(error, { at: 'getAiSuggestions', input });
+    await logError(error, { at: 'getAiSuggestions', input });
     console.error("Error al obtener sugerencias de la IA:", error);
     return [];
   }
@@ -56,7 +56,7 @@ export async function addLifePrk(values: { title: string; description?: string }
 
         if(error) throw error;
     } catch(error) {
-        logError(error, { at: 'addLifePrk', values });
+        await logError(error, { at: 'addLifePrk', values });
         console.error("Error adding Life PRK:", error);
         throw error;
     }
@@ -76,7 +76,7 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
 
         if (error) throw error;
     } catch (error) {
-        logError(error, { at: 'updateLifePrk', id, values });
+        await logError(error, { at: 'updateLifePrk', id, values });
         console.error("Error updating Life PRK:", error);
         throw error;
     }
@@ -96,7 +96,7 @@ export async function addAreaPrk(values: { title: string; life_prk_id: string })
 
         if(error) throw error;
     } catch(error) {
-        logError(error, { at: 'addAreaPrk', values });
+        await logError(error, { at: 'addAreaPrk', values });
         console.error('Supabase error adding Area PRK:', error);
         throw error;
     }
@@ -115,7 +115,7 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
 
         if (error) throw error;
     } catch (error) {
-        logError(error, { at: 'updateAreaPrk', id, values });
+        await logError(error, { at: 'updateAreaPrk', id, values });
         console.error('Supabase error updating Area PRK:', error);
         throw error;
     }
@@ -130,7 +130,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     try {
         const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
         if(error) {
-            logError(error, { at: 'addHabitTask', values: dataToInsert });
+            await logError(error, { at: 'addHabitTask', values: dataToInsert });
             throw error;
         }
     } catch (error) {
@@ -179,7 +179,7 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
             .eq('id', id);
 
         if (error) {
-            logError(error, { at: 'updateHabitTask', id, values: updateData });
+            await logError(error, { at: 'updateHabitTask', id, values: updateData });
             throw error;
         }
     } catch (error) {
@@ -240,7 +240,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         revalidatePath('/');
         revalidatePath('/calendar');
     } catch (error) {
-        logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
+        await logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
         console.error('Error in logHabitTaskCompletion:', error);
         throw new Error('Failed to log task completion.');
     }
@@ -270,7 +270,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         revalidatePath('/');
         revalidatePath('/calendar');
     } catch (error) {
-        logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
+        await logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
         console.error('Error in removeHabitTaskCompletion:', error);
         throw new Error('Failed to remove task completion log.');
     }
@@ -282,7 +282,7 @@ export async function archiveLifePrk(id: string) {
         const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
         if(error) throw error;
     } catch (error) {
-        logError(error, { at: 'archiveLifePrk', id });
+        await logError(error, { at: 'archiveLifePrk', id });
         console.error("Error archiving life prk:", error);
         throw new Error("Failed to archive life prk.");
     }
@@ -296,7 +296,7 @@ export async function archiveAreaPrk(id: string) {
         const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
         if(error) throw error;
     } catch(error) {
-        logError(error, { at: 'archiveAreaPrk', id });
+        await logError(error, { at: 'archiveAreaPrk', id });
         console.error("Error archiving area prk:", error);
         throw new Error("Failed to archive area prk.");
     }
@@ -310,7 +310,7 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
         const { error } = await supabase.from('habit_tasks').update({ archived: true, archived_at: archiveDate }).eq('id', id);
         if(error) throw error;
     } catch (error) {
-        logError(error, { at: 'archiveHabitTask', id, archiveDate });
+        await logError(error, { at: 'archiveHabitTask', id, archiveDate });
         console.error("Error archiving habit/task:", error);
         throw new Error("Failed to archive habit/task.");
     }
@@ -350,9 +350,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     if (task.type === 'task' || task.type === 'project') {
         const completionDate = task.completion_date ? startOfDay(parseISO(task.completion_date)) : null;
 
-        // If completed, only show it on the day it was completed
+        // If completed, only show it for one day after completion for visibility
         if (completionDate) {
-            return isSameDay(targetDate, completionDate);
+            return isWithinInterval(targetDate, { start: completionDate, end: addDays(completionDate, 1) });
         }
 
         // If not completed, it's active until its due date (or just on start_date if no due_date)
@@ -360,8 +360,8 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             return isWithinInterval(targetDate, { start: startDate, end: endDate });
         }
         
-        // No due date means it's a one-off task for the start date
-        return isSameDay(targetDate, startDate);
+        // No due date means it's a one-off task for the start date, visible until one day after
+        return isWithinInterval(targetDate, { start: startDate, end: addDays(startDate, 1) });
     }
     
     // For recurring habits
@@ -386,15 +386,25 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 const diffDays = differenceInDays(targetDate, startDate);
                 return diffDays >= 0 && diffDays % task.frequency_interval === 0;
             
-            case 'INTERVALO_SEMANAL_DIAS_FIJOS':
+            case 'INTERVALO_SEMANAL_DIAS_FIJOS': {
                 if (!task.frequency_interval || !task.frequency_days) return false;
-                const weekDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
-                if (weekDiff < 0 || weekDiff % task.frequency_interval !== 0) {
+                
+                const startOfWeekDate = startOfWeek(startDate, { weekStartsOn: 1 });
+                const targetWeekStartDate = startOfWeek(targetDate, { weekStartsOn: 1 });
+                const weekDiffInDays = differenceInDays(targetWeekStartDate, startOfWeekDate);
+
+                if (weekDiffInDays < 0) return false;
+
+                const weekDiff = Math.floor(weekDiffInDays / 7);
+
+                if (weekDiff % task.frequency_interval !== 0) {
                     return false;
                 }
+
                 const dayMapWeekly = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
                 const dayOfWeekWeekly = getDay(targetDate);
                 return task.frequency_days.includes(dayMapWeekly[dayOfWeekWeekly]);
+            }
 
             case 'MENSUAL_DIA_FIJO':
                 if (!task.frequency_day_of_month) return false;
@@ -518,25 +528,25 @@ export async function getDashboardData(selectedDateString: string) {
 
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) {
-        logError(lifePrksError, {at: 'getDashboardData - lifePrks'});
+        await logError(lifePrksError, {at: 'getDashboardData - lifePrks'});
         throw lifePrksError;
     };
 
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) {
-        logError(areaPrksError, {at: 'getDashboardData - areaPrks'});
+        await logError(areaPrksError, {at: 'getDashboardData - areaPrks'});
         throw areaPrksError;
     }
 
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
     if (habitTasksError) {
-        logError(habitTasksError, {at: 'getDashboardData - allHabitTasks'});
+        await logError(habitTasksError, {at: 'getDashboardData - allHabitTasks'});
         throw habitTasksError;
     }
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
     if (progressLogsError) {
-        logError(progressLogsError, {at: 'getDashboardData - allProgressLogs'});
+        await logError(progressLogsError, {at: 'getDashboardData - allProgressLogs'});
         throw progressLogsError;
     }
     
@@ -566,25 +576,25 @@ export async function getCalendarData(monthDate: Date) {
 
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) {
-        logError(lifePrksError, {at: 'getCalendarData - lifePrks'});
+        await logError(lifePrksError, {at: 'getCalendarData - lifePrks'});
         throw lifePrksError;
     }
 
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
     if (areaPrksError) {
-        logError(areaPrksError, {at: 'getCalendarData - areaPrks'});
+        await logError(areaPrksError, {at: 'getCalendarData - areaPrks'});
         throw areaPrksError;
     }
 
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
     if (habitTasksError) {
-        logError(habitTasksError, {at: 'getCalendarData - allHabitTasks'});
+        await logError(habitTasksError, {at: 'getCalendarData - allHabitTasks'});
         throw habitTasksError;
     }
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
     if (progressLogsError) {
-        logError(progressLogsError, {at: 'getCalendarData - allProgressLogs'});
+        await logError(progressLogsError, {at: 'getCalendarData - allProgressLogs'});
         throw progressLogsError;
     }
 
