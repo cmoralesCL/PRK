@@ -77,44 +77,50 @@ const formSchema = z.object({
 
     if (data.type !== 'habit' || !data.frequency) return;
 
-    // Validations for specific frequencies
-    switch (data.frequency) {
-        case 'SEMANAL_DIAS_FIJOS':
-        case 'INTERVALO_SEMANAL_DIAS_FIJOS':
-            if (!data.frequency_days || data.frequency_days.length === 0) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debes seleccionar al menos un día.', path: ['frequency_days'] });
-            }
-            break;
-        case 'MENSUAL_DIA_FIJO':
-        case 'INTERVALO_MENSUAL_DIA_FIJO':
-            if (data.frequency_day_of_month === undefined) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debes especificar el día del mes.', path: ['frequency_day_of_month'] });
-            }
-            break;
-        case 'INTERVALO_DIAS':
-        case 'INTERVALO_SEMANAL_DIAS_FIJOS':
-        case 'INTERVALO_MENSUAL_DIA_FIJO':
-        case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-        case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-        case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-             if (data.frequency_interval === undefined) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El intervalo es requerido y debe ser mayor a 0.', path: ['frequency_interval'] });
-            }
-            break;
-        case 'SEMANAL_ACUMULATIVO':
-        case 'MENSUAL_ACUMULATIVO':
-        case 'TRIMESTRAL_ACUMULATIVO':
-        case 'ANUAL_ACUMULATIVO':
-        case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-        case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-        case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-            if (data.measurement_type === 'binary' && data.measurement_goal?.target_count === undefined) {
-                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
-            }
-            if (data.measurement_type === 'quantitative' && data.measurement_goal?.target_count === undefined) {
-                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo a sumar es requerido.', path: ['measurement_goal.target_count'] });
-            }
-            break;
+    // --- Validations for specific frequencies based on 'frecuencia.md' ---
+    const freq = data.frequency;
+
+    // Rule: Frequencies with intervals must have an interval value.
+    if (freq.includes('INTERVALO') || freq.includes('RECURRENTE')) {
+        if (data.frequency_interval === undefined || data.frequency_interval === null) {
+             ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: 'El intervalo es requerido y debe ser mayor a 0.', 
+                path: ['frequency_interval'] 
+            });
+        }
+    }
+
+    // Rule: Frequencies with fixed days must have days selected.
+    if (freq.includes('DIAS_FIJOS')) {
+        if (!data.frequency_days || data.frequency_days.length === 0) {
+            ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: 'Debes seleccionar al menos un día.', 
+                path: ['frequency_days'] 
+            });
+        }
+    }
+    
+    // Rule: Frequencies with a fixed day of month must have that day specified.
+    if (freq.includes('DIA_FIJO')) {
+         if (data.frequency_day_of_month === undefined || data.frequency_day_of_month === null) {
+            ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: 'Debes especificar el día del mes.', 
+                path: ['frequency_day_of_month'] 
+            });
+        }
+    }
+    
+    // Rule: Accumulative frequencies must have a measurement goal.
+    if (freq.includes('ACUMULATIVO')) {
+        if (data.measurement_type === 'binary' && data.measurement_goal?.target_count === undefined) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
+        }
+        if (data.measurement_type === 'quantitative' && data.measurement_goal?.target_count === undefined) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo a sumar es requerido.', path: ['measurement_goal.target_count'] });
+        }
     }
 });
 
@@ -144,6 +150,9 @@ export function AddHabitTaskDialog({
     defaultValues: {
       title: '', description: '', type: 'task', start_date: defaultDate || new Date(),
       area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
+      frequency_interval: '',
+      frequency_day_of_month: '',
+      frequency_days: [],
       ...defaultValues
     },
   });

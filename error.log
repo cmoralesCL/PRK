@@ -28,3 +28,33 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-20T18:39:36.066Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (25edcac0-4d61-4d73-a59d-5b01eb78caca, 5232709e-699c-4ea8-8473-4b5b8cb7a79e, Intervalo Semanal con Días Fijos, habit, 2025-07-10, null, null, INTERVALO_SEMANAL_DIAS_FIJOS, {M,L}, 1, f, binary, null, 2025-07-20 18:39:35.989024+00, f, null, null, null, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "values": {
+    "title": "Intervalo Semanal con Días Fijos",
+    "description": "",
+    "area_prk_id": "5232709e-699c-4ea8-8473-4b5b8cb7a79e",
+    "type": "habit",
+    "start_date": "2025-07-10",
+    "weight": 1,
+    "is_critical": false,
+    "frequency": "INTERVALO_SEMANAL_DIAS_FIJOS",
+    "measurement_type": "binary",
+    "frequency_days": [
+      "M",
+      "L"
+    ],
+    "frequency_day_of_month": null,
+    "measurement_goal": null
+  }
+}
+--------------------------------------------------
+
