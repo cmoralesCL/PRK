@@ -23,6 +23,23 @@ export interface AreaPrk {
 
 export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
+export type HabitFrequency = 
+  | 'DIARIA'
+  | 'SEMANAL_DIAS_FIJOS'
+  | 'MENSUAL_DIA_FIJO'
+  | 'ANUAL_FECHA_FIJA'
+  | 'INTERVALO_DIAS'
+  | 'INTERVALO_SEMANAL_DIAS_FIJOS'
+  | 'INTERVALO_MENSUAL_DIA_FIJO'
+  | 'SEMANAL_ACUMULATIVO'
+  | 'MENSUAL_ACUMULATIVO'
+  | 'TRIMESTRAL_ACUMULATIVO'
+  | 'ANUAL_ACUMULATIVO'
+  | 'SEMANAL_ACUMULATIVO_RECURRENTE'
+  | 'MENSUAL_ACUMULATIVO_RECURRENTE'
+  | 'TRIMESTRAL_ACUMULATIVO_RECURRENTE';
+
+
 export interface HabitTask {
   id: string;
   area_prk_id: string; // Corresponds to area_prk_id in Supabase
@@ -35,17 +52,7 @@ export interface HabitTask {
   
   start_date?: string; // Corresponds to start_date
   
-  frequency?: 'DIARIA' 
-    | 'SEMANAL_ESPECIFICO' 
-    | 'INTERVALO'
-    | 'MENSUAL_DIA_FIJO'
-    | 'ANUAL'
-    | 'SEMANAL_ACUMULATIVO'
-    | 'MENSUAL_ACUMULATIVO'
-    | 'TRIMESTRAL_ACUMULATIVO'
-    | 'SEMANAL_ACUMULATIVO_RECURRENTE'
-    | 'MENSUAL_ACUMULATIVO_RECURRENTE'
-    | null;
+  frequency?: HabitFrequency | null;
   
   frequency_unit?: 'days' | 'weeks' | 'months' | null; // For 'INTERVALO'
   frequency_interval?: number | null; // For 'INTERVALO' and '*_RECURRENTE'
@@ -64,7 +71,7 @@ export interface HabitTask {
   
   // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | null;
-  measurement_goal?: { target?: number; unit?: string; } | null; // Corresponds to measurement_goal
+  measurement_goal?: { target_count?: number; unit?: string; } | null; // Corresponds to measurement_goal
 }
 
 export interface ProgressLog {

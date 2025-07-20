@@ -1,137 +1,127 @@
-Especificación Funcional del Motor de Frecuencias
+Especificación Funcional Definitiva del Motor de Frecuencias para BRP
 1. Introducción
-Este documento detalla la lógica de negocio para determinar cuándo una habit_tasks (Acción) está activa o debe ser medida. El objetivo es traducir la configuración de frecuencia de un usuario en un comportamiento predecible dentro del calendario y la barra lateral de compromisos de la aplicación.
-
-Toda la lógica se basa en los campos de la tabla habit_tasks del modelo de datos proporcionado.
+Este documento es la fuente de verdad para la lógica de negocio que determina cuándo una habit_tasks (Acción) está activa y cómo debe medirse. El objetivo es proporcionar una guía inequívoca para su implementación, basada en el modelo de datos proporcionado.
 
 2. Concepto Central: Los Dos Comportamientos de Seguimiento
-Toda Acción, sin importar su frecuencia, debe ser clasificada en uno de dos comportamientos de seguimiento. Esta clasificación determina dónde aparece en la UI y cómo se mide su progreso.
+Toda Acción se clasifica en uno de dos comportamientos, lo cual determina su lugar en la interfaz y su método de medición.
 
 A. Acción con Fecha Específica
-Concepto: La acción tiene una fecha de vencimiento exacta y determinada por el sistema.
+Concepto: La acción tiene una o varias fechas de vencimiento exactas y predecibles.
 
-Comportamiento en la UI: Aparece en el Calendario en el día o días específicos que le corresponden.
+Comportamiento en la UI: Aparece en el Calendario en los días que le corresponden.
 
-Medición: Su cumplimiento (o fallo) afecta directamente al cálculo de progreso diario de su PRK de Área asociado.
+Medición: Afecta al cálculo de progreso diario de su PRK de Área.
 
 B. Compromiso por Período
-Concepto: La acción es una meta flexible que debe cumplirse un número de veces dentro de un período de tiempo definido (semana, mes, trimestre, etc.), sin un día fijo asignado.
+Concepto: Es una meta flexible a cumplir dentro de un período (semana, mes, etc.), sin un día fijo.
 
-Comportamiento en la UI: Aparece en la Barra Lateral de "Compromisos" durante el período activo.
+Comportamiento en la UI: Aparece en la Barra Lateral de "Compromisos" durante su período activo.
 
-Medición: Su cumplimiento (parcial o total) afecta al cálculo de progreso del período (ej: "Progreso Semanal") de su PRK de Área asociado.
+Medición: Afecta al cálculo de progreso del período completo (semanal, mensual, etc.).
 
 3. Guía Detallada por Frecuencia
-A continuación se detalla cómo interpretar la configuración de la tabla habit_tasks para implementar cada tipo de frecuencia.
+A continuación se describe cada tipo de frecuencia, su lógica y la configuración requerida en la tabla habit_tasks.
 
 Grupo 1: Acciones con Fecha Específica
 3.1 Diaria
-Concepto: Una acción que debe realizarse todos los días.
+Concepto: Una acción para todos los días.
 
-Lógica de Determinación: La acción está activa si CURRENT_DATE >= start_date.
+Lógica: Activa si CURRENT_DATE >= start_date.
 
-Configuración en habit_tasks:
-
-frequency: 'DIARIA'
-
-Comportamiento: Fecha Específica.
+Configuración: frequency: 'DIARIA'
 
 3.2 Días Específicos de la Semana
-Concepto: Una acción que se repite solo en ciertos días de la semana.
+Concepto: Se repite en los mismos días cada semana.
 
-Lógica de Determinación: La acción está activa si DAY_OF_WEEK(CURRENT_DATE) está contenido en el campo frequency_days.
+Lógica: Activa si DAY_OF_WEEK(CURRENT_DATE) está en frequency_days.
 
-Configuración en habit_tasks:
+Configuración: frequency: 'SEMANAL_DIAS_FIJOS', frequency_days: 'L,M,V'
 
-frequency: 'SEMANAL_ESPECIFICO'
+3.3 Día Fijo del Mes
+Concepto: Anclada a un número de día cada mes.
 
-frequency_days: 'L,M,V' (string con los días seleccionados)
+Lógica: Activa si DAY(CURRENT_DATE) == frequency_day_of_month. Debe manejar meses cortos (ej: día 31 en febrero debe vencer el 28/29).
 
-Comportamiento: Fecha Específica.
+Configuración: frequency: 'MENSUAL_DIA_FIJO', frequency_day_of_month: N
 
-3.3 Intervalo Fijo (Cada N Días/Semanas/Meses)
-Concepto: Una acción que se repite en un ciclo fijo a partir de su última fecha de finalización.
+3.4 Anual (Fecha Fija)
+Concepto: Ocurre una vez al año en la misma fecha.
 
-Lógica de Determinación: La acción está activa si CURRENT_DATE == due_date. El due_date se calcula dinámicamente:
+Lógica: Activa si MONTH(CURRENT_DATE) == MONTH(start_date) Y DAY(CURRENT_DATE) == DAY(start_date).
 
-Si la tarea nunca se ha completado (completion_date es NULL), due_date = start_date.
+Configuración: frequency: 'ANUAL_FECHA_FIJA'
 
-Si la tarea ya se completó, due_date = completion_date + frequency_interval frequency_unit.
+3.5 Intervalo de Días
+Concepto: Ciclo fijo de N días a partir de la última finalización.
 
-Configuración en habit_tasks:
+Lógica: Activa si CURRENT_DATE == due_date. due_date se calcula como completion_date + frequency_interval days.
 
-frequency: 'INTERVALO'
+Configuración: frequency: 'INTERVALO_DIAS', frequency_interval: N
 
-frequency_interval: N (ej: 3)
+3.6 Intervalo Semanal con Días Fijos (NUEVO)
+Concepto: Se repite en días específicos, pero solo en semanas que siguen un intervalo. (Ej: Los Lunes y Miércoles, cada 3 semanas).
 
-frequency_unit: 'days', 'weeks', 'months'
+Lógica de Determinación (2 pasos):
 
-Comportamiento: Fecha Específica.
+El sistema primero determina si la semana actual es una "Semana Objetivo" (usando start_date y frequency_interval).
 
-3.4 Día Fijo del Mes
-Concepto: Una acción anclada a una fecha numérica del mes.
+Si lo es, entonces la lógica del punto 3.2 aplica: la acción estará activa si DAY_OF_WEEK(CURRENT_DATE) está en frequency_days.
 
-Lógica de Determinación: La acción está activa si DAY(CURRENT_DATE) == frequency_day_of_month.
+Configuración: frequency: 'INTERVALO_SEMANAL_DIAS_FIJOS', frequency_interval: N, frequency_days: 'L,W'
 
-Manejo de Casos Límite: Si frequency_day_of_month es 31 y el mes actual tiene 30 días, la tarea debe vencer el día 30. Si es Febrero, debe vencer el 28 o 29.
+3.7 Intervalo Mensual con Día Fijo (NUEVO)
+Concepto: Ocurre en una fecha numérica, pero solo en meses que siguen un intervalo. (Ej: El día 15, cada 2 meses).
 
-Configuración en habit_tasks:
+Lógica de Determinación (2 pasos):
 
-frequency: 'MENSUAL_DIA_FIJO'
+El sistema determina si el mes actual es un "Mes Objetivo".
 
-frequency_day_of_month: N (ej: 15)
+Si lo es, la lógica del punto 3.3 aplica: la acción estará activa si DAY(CURRENT_DATE) == frequency_day_of_month.
 
-Comportamiento: Fecha Específica.
-
-3.5 Anual
-Concepto: Una acción que ocurre una vez al año en la misma fecha.
-
-Lógica de Determinación: La acción está activa si MONTH(CURRENT_DATE) == MONTH(start_date) Y DAY(CURRENT_DATE) == DAY(start_date).
-
-Configuración en habit_tasks:
-
-frequency: 'ANUAL'
-
-Comportamiento: Fecha Específica.
+Configuración: frequency: 'INTERVALO_MENSUAL_DIA_FIJO', frequency_interval: N, frequency_day_of_month: 15
 
 Grupo 2: Compromisos por Período
-3.6 Por Semana / Mes / Trimestre (Acumulativo)
-Concepto: Una meta de frecuencia a cumplir dentro de un período de calendario estándar.
+3.8 Por Semana (Acumulativo)
+Concepto: Meta de frecuencia a cumplir dentro de cada semana.
 
-Lógica de Determinación: La acción está activa si CURRENT_DATE está dentro del período actual (semana, mes o trimestre). El sistema debe llevar un conteo de las veces completadas (progress_logs) dentro de ese período.
+Lógica: Activa durante toda la semana. Se usa un contador para X veces.
 
-Configuración en habit_tasks:
+Configuración: frequency: 'SEMANAL_ACUMULATIVO', measurement_goal: {"target_count": X}
 
-frequency: 'SEMANAL_ACUMULATIVO', 'MENSUAL_ACUMULATIVO', 'TRIMESTRAL_ACUMULATIVO'
+3.9 Por Mes (Acumulativo)
+Concepto: Meta de frecuencia a cumplir dentro de cada mes.
 
-measurement_goal: jsonb con el objetivo, ej: {"target_count": 5}
+Configuración: frequency: 'MENSUAL_ACUMULATIVO', measurement_goal: {"target_count": X}
 
-Comportamiento: Compromiso por Período.
+3.10 Por Trimestre (Acumulativo)
+Concepto: Meta de frecuencia a cumplir dentro de cada trimestre fiscal (Q1, Q2, Q3, Q4).
 
-3.7 Compromiso Semanal / Mensual Recurrente
-Concepto: Un compromiso flexible que no ocurre en todos los períodos, sino en un ciclo (ej: una vez cada 3 semanas).
+Configuración: frequency: 'TRIMESTRAL_ACUMULATIVO', measurement_goal: {"target_count": X}
 
-Lógica de Determinación:
+3.11 Anual (Compromiso Flexible)
+Concepto: Meta de frecuencia a cumplir a lo largo de todo el año calendario.
 
-Primero, el sistema debe determinar si la semana (o mes) actual es una "Semana Objetivo". Esto se calcula usando la start_date y el frequency_interval (ej: (CURRENT_WEEK - START_WEEK) % interval == 0).
+Configuración: frequency: 'ANUAL_ACUMULATIVO', measurement_goal: {"target_count": X}
 
-Si es una Semana Objetivo, la acción se comporta como un Compromiso por Período normal (ver punto 3.6). En las demás semanas, permanece oculta.
+3.12 Compromiso Semanal Recurrente
+Concepto: Un compromiso semanal que solo aparece en semanas que siguen un intervalo.
 
-Configuración en habit_tasks:
+Lógica: El sistema determina si la semana actual es una "Semana Objetivo" (usando start_date y frequency_interval). Si lo es, la acción aparece en la barra lateral de compromisos para esa semana.
 
-frequency: 'SEMANAL_ACUMULATIVO_RECURRENTE', 'MENSUAL_ACUMULATIVO_RECURRENTE'
+Configuración: frequency: 'SEMANAL_ACUMULATIVO_RECURRENTE', frequency_interval: N, measurement_goal: {"target_count": X}
 
-frequency_interval: N (ej: 3 para "cada 3 semanas")
+3.13 Compromiso Mensual/Trimestral Recurrente
+Concepto: Un compromiso mensual/trimestral que solo aparece en períodos que siguen un intervalo.
 
-measurement_goal: jsonb con el objetivo, ej: {"target_count": 1}
+Lógica: Similar al anterior, pero aplicado a meses o trimestres.
 
-Comportamiento: Compromiso por Período.
+Configuración: frequency: 'MENSUAL_ACUMULATIVO_RECURRENTE' o 'TRIMESTRAL_ACUMULATIVO_RECURRENTE', frequency_interval: N, measurement_goal: {"target_count": X}
 
-4. Reglas Generales de Cálculo
-Ponderación (weight): Todos los cálculos de progreso (diarios o de período) deben ser promedios ponderados. El progreso de cada acción se multiplica por su weight antes de promediar.
+4. Reglas Generales de Cálculo y Registro
+Ponderación (weight): Todos los cálculos de progreso deben ser promedios ponderados usando este campo.
 
-Acciones Críticas (is_critical): Si una acción marcada como is_critical = true falla (progreso 0%), podría tener un efecto de "veto" o una penalización adicional en el puntaje del período, según se defina en la lógica de negocio.
+Acciones Críticas (is_critical): Una acción crítica fallida debe tener un impacto significativamente mayor en el puntaje, potencialmente reduciendo el progreso del PRK a 0 para ese período, independientemente de otras acciones completadas.
 
-Registro (progress_logs): Cada vez que un usuario registra un avance para una acción (la completa, o suma N páginas leídas), se debe crear un nuevo registro en la tabla progress_logs asociando el habit_task_id, la fecha y el valor del progreso.
+Registro (progress_logs): Cada cumplimiento de una acción (completar una tarea binaria, registrar N minutos de meditación, etc.) debe generar un registro en progress_logs. Este es el evento atómico del sistema.
 
-Consolidación Diaria (daily_progress_snapshots): Al final de cada día, un proceso debe calcular el puntaje final de todos los PRK de Área para cada usuario y almacenarlo en daily_progress_snapshots. Este cálculo se basa en los progress_logs del día y en el estado de los Compromisos de período que cierran ese día.
+Consolidación (daily_progress_snapshots): Al final del día, un proceso debe calcular y almacenar el progreso consolidado. Este proceso debe tener en cuenta los progress_logs del día y el estado de cualquier "Compromiso por Período" que cierre en esa fecha (fin de semana, fin de mes, etc.).

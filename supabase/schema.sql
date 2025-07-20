@@ -1,66 +1,73 @@
--- supabase/schema.sql
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Elimina las tablas antiguas si existen para empezar de cero
-DROP TABLE IF EXISTS public.daily_progress_snapshots CASCADE;
-DROP TABLE IF EXISTS public.progress_logs CASCADE;
-DROP TABLE IF EXISTS public.habit_tasks CASCADE;
-DROP TABLE IF EXISTS public.area_prks CASCADE;
-DROP TABLE IF EXISTS public.life_prks CASCADE;
-
--- 1. Tabla life_prks (Visión de Vida)
-CREATE TABLE public.life_prks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    archived BOOLEAN DEFAULT false
-);
-
--- 2. Tabla area_prks (Áreas de Enfoque)
 CREATE TABLE public.area_prks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    life_prk_id UUID REFERENCES public.life_prks(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    target_value NUMERIC,
-    current_value NUMERIC,
-    unit TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    archived BOOLEAN DEFAULT false
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  life_prk_id uuid NOT NULL,
+  title text NOT NULL,
+  target_value integer NOT NULL DEFAULT 100,
+  current_value integer NOT NULL DEFAULT 0,
+  unit text NOT NULL DEFAULT '%'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  archived boolean NOT NULL DEFAULT false,
+  CONSTRAINT area_prks_pkey PRIMARY KEY (id),
+  CONSTRAINT area_prks_life_prk_id_fkey FOREIGN KEY (life_prk_id) REFERENCES public.life_prks(id)
 );
-
--- 3. Tabla habit_tasks (Hábitos y Tareas)
-CREATE TABLE public.habit_tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    area_prk_id UUID REFERENCES public.area_prks(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('habit', 'project', 'task')),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    archived BOOLEAN DEFAULT false,
-    start_date DATE,
-    frequency TEXT CHECK (frequency IN ('daily', 'weekly', 'monthly', 'specific_days', 'every_x_months_commitment')),
-    frequency_days TEXT[],
-    weight NUMERIC DEFAULT 1,
-    due_date DATE,
-    completion_date DATE,
-    is_critical BOOLEAN DEFAULT false,
-    measurement_type TEXT CHECK (measurement_type IN ('binary', 'quantitative', 'temporal')),
-    measurement_goal JSONB
-);
-
--- 4. Tabla progress_logs (Registro de Progreso)
-CREATE TABLE public.progress_logs (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    habit_task_id UUID REFERENCES public.habit_tasks(id) ON DELETE CASCADE,
-    completion_date DATE NOT NULL,
-    progress_value NUMERIC,
-    completion_percentage NUMERIC,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 5. Tabla daily_progress_snapshots (Resumen Diario - Opcional para analytics)
 CREATE TABLE public.daily_progress_snapshots (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    snapshot_date DATE NOT NULL UNIQUE,
-    progress NUMERIC,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  snapshot_date date NOT NULL UNIQUE,
+  progress_data jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT daily_progress_snapshots_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.emotional_pulses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  pulse_date date NOT NULL,
+  emotional_state_tag text NOT NULL,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT emotional_pulses_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.habit_tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  area_prk_id uuid NOT NULL,
+  title text NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['habit'::text, 'project'::text, 'task'::text])),
+  start_date date NOT NULL DEFAULT now(),
+  due_date date,
+  completion_date date,
+  frequency text CHECK (frequency = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text, 'specific_days'::text, 'every_x_months_commitment'::text])),
+  frequency_days ARRAY,
+  weight integer NOT NULL DEFAULT 1 CHECK (weight >= 1 AND weight <= 5),
+  is_critical boolean NOT NULL DEFAULT false,
+  measurement_type text CHECK (measurement_type = ANY (ARRAY['binary'::text, 'quantitative'::text, 'temporal'::text])),
+  measurement_goal jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  archived boolean NOT NULL DEFAULT false,
+  archived_at timestamp with time zone,
+  frequency_unit text,
+  frequency_interval integer,
+  frequency_day_of_month integer,
+  description text,
+  CONSTRAINT habit_tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT habit_tasks_area_prk_id_fkey FOREIGN KEY (area_prk_id) REFERENCES public.area_prks(id)
+);
+CREATE TABLE public.life_prks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  archived boolean NOT NULL DEFAULT false,
+  CONSTRAINT life_prks_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.progress_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  habit_task_id uuid NOT NULL,
+  completion_date date NOT NULL,
+  progress_value numeric,
+  completion_percentage numeric NOT NULL DEFAULT 1.0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT progress_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT progress_logs_habit_task_id_fkey FOREIGN KEY (habit_task_id) REFERENCES public.habit_tasks(id)
 );

@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,9 +36,11 @@ import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { AreaPrk, HabitTask } from '@/lib/types';
+import type { AreaPrk, HabitTask, HabitFrequency } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Textarea } from './ui/textarea';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
 
 const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
@@ -50,38 +52,57 @@ const formSchema = z.object({
     weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
     is_critical: z.boolean().default(false),
     
-    // Habit specific fields, managed by the frequency builder
-    frequency: z.enum([
-        'DIARIA', 
-        'SEMANAL_ESPECIFICO', 
-        'INTERVALO',
-        'MENSUAL_DIA_FIJO',
-        'ANUAL',
-        'SEMANAL_ACUMULATIVO',
-        'MENSUAL_ACUMULATIVO',
-        'TRIMESTRAL_ACUMULATIVO',
-        'SEMANAL_ACUMULATIVO_RECURRENTE',
-        'MENSUAL_ACUMULATIVO_RECURRENTE'
-    ]).optional(),
-    frequency_unit: z.enum(['days', 'weeks', 'months']).optional(),
+    // Habit specific fields
+    frequency: z.custom<HabitFrequency>().optional(),
     frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
     frequency_day_of_month: z.coerce.number().min(1, "El día debe ser entre 1 y 31.").max(31, "El día debe ser entre 1 y 31.").optional(),
     
     measurement_type: z.enum(['binary', 'quantitative']).optional(),
     measurement_goal: z.object({
-        target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
+        target_count: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
         unit: z.string().optional(),
     }).optional(),
-}).refine((data) => {
-    if (data.frequency === 'SEMANAL_ESPECIFICO' && (!data.frequency_days || data.frequency_days.length === 0)) {
-        return false;
+}).superRefine((data, ctx) => {
+    if (data.type !== 'habit') return;
+
+    switch (data.frequency) {
+        case 'SEMANAL_DIAS_FIJOS':
+        case 'INTERVALO_SEMANAL_DIAS_FIJOS':
+            if (!data.frequency_days || data.frequency_days.length === 0) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debes seleccionar al menos un día.', path: ['frequency_days'] });
+            }
+            break;
+        case 'MENSUAL_DIA_FIJO':
+        case 'INTERVALO_MENSUAL_DIA_FIJO':
+            if (!data.frequency_day_of_month) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debes especificar el día del mes.', path: ['frequency_day_of_month'] });
+            }
+            break;
+        case 'INTERVALO_DIAS':
+        case 'INTERVALO_SEMANAL_DIAS_FIJOS':
+        case 'INTERVALO_MENSUAL_DIA_FIJO':
+        case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+        case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+        case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+             if (!data.frequency_interval || data.frequency_interval < 1) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El intervalo es requerido y debe ser mayor a 0.', path: ['frequency_interval'] });
+            }
+            break;
+        case 'SEMANAL_ACUMULATIVO':
+        case 'MENSUAL_ACUMULATIVO':
+        case 'TRIMESTRAL_ACUMULATIVO':
+        case 'ANUAL_ACUMULATIVO':
+        case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+        case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+        case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+            if (!data.measurement_goal?.target_count) {
+                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
+            }
+            break;
     }
-    return true;
-}, {
-    message: "Debes seleccionar al menos un día.",
-    path: ["frequency_days"],
 });
+
 
 export type HabitTaskFormValues = z.infer<typeof formSchema>;
 
@@ -95,27 +116,6 @@ interface AddHabitTaskDialogProps {
   areaPrks: AreaPrk[];
   defaultValues?: Partial<HabitTaskFormValues>;
 }
-
-const daysOfWeek = [
-    { id: 'L', label: 'L' }, { id: 'M', label: 'M' }, { id: 'X', label: 'X' },
-    { id: 'J', label: 'J' }, { id: 'V', label: 'V' }, { id: 'S', label: 'S' },
-    { id: 'D', label: 'D' },
-];
-
-type FrequencyBuilderState = {
-    mode: 'DIARIA' | 'SEMANAL_ESPECIFICO' | 'INTERVALO' | 'MENSUAL_DIA_FIJO' | 'ANUAL' | 'META_ACUMULATIVA';
-    // For INTERVALO
-    interval_value: number;
-    interval_unit: 'days' | 'weeks' | 'months';
-    // For SEMANAL_ESPECIFICO
-    specificDays: string[];
-    // For MENSUAL_DIA_FIJO
-    dayOfMonth: number;
-    // For META_ACUMULATIVA
-    meta_target: number;
-    meta_period: 'SEMANAL_ACUMULATIVO' | 'MENSUAL_ACUMULATIVO' | 'TRIMESTRAL_ACUMULATIVO';
-};
-
 
 // Main Dialog Component
 export function AddHabitTaskDialog({ 
@@ -135,166 +135,59 @@ export function AddHabitTaskDialog({
 
   const type = form.watch('type');
   
-  // State for the interactive frequency builder
-  const [frequencyBuilder, setFrequencyBuilder] = useState<FrequencyBuilderState>({
-    mode: 'DIARIA', interval_value: 1, interval_unit: 'days', specificDays: [], dayOfMonth: 1,
-    meta_target: 1, meta_period: 'SEMANAL_ACUMULATIVO',
-  });
-
-  // EFFECT 1: Sync Frequency Builder -> Form Fields
-  useEffect(() => {
-    if (type !== 'habit') return;
-  
-    const { mode, interval_value, interval_unit, specificDays, dayOfMonth, meta_period, meta_target } = frequencyBuilder;
-    
-    let newFrequency: HabitTaskFormValues['frequency'] | undefined = undefined;
-    let newInterval: number | undefined = undefined;
-    let newUnit: HabitTaskFormValues['frequency_unit'] | undefined = undefined;
-    let newDays: string[] | undefined = undefined;
-    let newDayOfMonth: number | undefined = undefined;
-    
-    form.setValue('measurement_goal', undefined);
-
-    switch(mode) {
-        case 'DIARIA':
-            newFrequency = 'DIARIA';
-            break;
-        case 'SEMANAL_ESPECIFICO':
-            newFrequency = 'SEMANAL_ESPECIFICO';
-            newDays = specificDays;
-            break;
-        case 'INTERVALO':
-            newFrequency = 'INTERVALO';
-            newInterval = interval_value;
-            newUnit = interval_unit;
-            break;
-        case 'MENSUAL_DIA_FIJO':
-            newFrequency = 'MENSUAL_DIA_FIJO';
-            newDayOfMonth = dayOfMonth;
-            break;
-        case 'ANUAL':
-            newFrequency = 'ANUAL';
-            break;
-        case 'META_ACUMULATIVA':
-            newFrequency = meta_period;
-            form.setValue('measurement_goal', { target: meta_target });
-            break;
-    }
-    
-    form.setValue('frequency', newFrequency, { shouldValidate: true });
-    form.setValue('frequency_interval', newInterval, { shouldValidate: true });
-    form.setValue('frequency_unit', newUnit, { shouldValidate: true });
-    form.setValue('frequency_days', newDays, { shouldValidate: true });
-    form.setValue('frequency_day_of_month', newDayOfMonth, { shouldValidate: true });
-  
-  }, [frequencyBuilder, type, form]);
-
-
-  // EFFECT 2: Sync Props/Edit Data -> Form and Builder
   useEffect(() => {
     if (isOpen) {
       if (isEditing && habitTask) {
         // --- Populate Form ---
         const baseValues: any = {
-          title: habitTask.title,
-          description: habitTask.description || '',
-          type: habitTask.type, area_prk_id: habitTask.area_prk_id,
+          ...habitTask,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
-          weight: habitTask.weight || 1, is_critical: habitTask.is_critical || false,
-          frequency: habitTask.frequency, 
-          frequency_interval: habitTask.frequency_interval,
-          frequency_unit: habitTask.frequency_unit,
-          frequency_days: habitTask.frequency_days, 
-          frequency_day_of_month: habitTask.frequency_day_of_month,
-          measurement_type: habitTask.measurement_type, 
-          measurement_goal: habitTask.measurement_goal,
         };
         form.reset(baseValues);
-
-        // --- Populate Frequency Builder ---
-        const { frequency, frequency_interval, frequency_unit, frequency_days, frequency_day_of_month, measurement_goal } = habitTask;
-        let newBuilderState: FrequencyBuilderState = { 
-            mode: 'DIARIA', interval_value: 1, interval_unit: 'days', specificDays: [], dayOfMonth: 1,
-            meta_target: 1, meta_period: 'SEMANAL_ACUMULATIVO' 
-        };
-        
-        switch(frequency) {
-            case 'DIARIA':
-                newBuilderState = { ...newBuilderState, mode: 'DIARIA'};
-                break;
-            case 'SEMANAL_ESPECIFICO':
-                newBuilderState = { ...newBuilderState, mode: 'SEMANAL_ESPECIFICO', specificDays: frequency_days || [] };
-                break;
-            case 'INTERVALO':
-                newBuilderState = { ...newBuilderState, mode: 'INTERVALO', interval_value: frequency_interval || 1, interval_unit: frequency_unit || 'days' };
-                break;
-            case 'MENSUAL_DIA_FIJO':
-                newBuilderState = { ...newBuilderState, mode: 'MENSUAL_DIA_FIJO', dayOfMonth: frequency_day_of_month || 1 };
-                break;
-            case 'ANUAL':
-                newBuilderState = { ...newBuilderState, mode: 'ANUAL' };
-                break;
-            case 'SEMANAL_ACUMULATIVO':
-            case 'MENSUAL_ACUMULATIVO':
-            case 'TRIMESTRAL_ACUMULATIVO':
-                newBuilderState = { ...newBuilderState, mode: 'META_ACUMULATIVA', meta_period: frequency, meta_target: measurement_goal?.target || 1 };
-                break;
-        }
-        setFrequencyBuilder(newBuilderState);
-
       } else { // Reset for new task
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
           ...defaultValues,
         });
-        // Reset builder state to a clean, default state
-        setFrequencyBuilder({
-            mode: 'DIARIA', interval_value: 1, interval_unit: 'days', specificDays: [], dayOfMonth: 1,
-            meta_target: 1, meta_period: 'SEMANAL_ACUMULATIVO'
-        });
       }
     }
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    const dataToSave = {...values};
+    const dataToSave: Partial<HabitTaskFormValues> = { ...values };
+    
+    // Convert dates to string format for server
+    if (dataToSave.start_date) dataToSave.start_date = format(dataToSave.start_date, 'yyyy-MM-dd') as any;
+    if (dataToSave.due_date) dataToSave.due_date = format(dataToSave.due_date, 'yyyy-MM-dd') as any;
 
-    // Clean up data based on frequency
-    switch(dataToSave.frequency) {
-        case 'DIARIA':
-        case 'ANUAL':
-            dataToSave.frequency_interval = null;
-            dataToSave.frequency_unit = null;
-            dataToSave.frequency_days = null;
-            dataToSave.frequency_day_of_month = null;
-            break;
-        case 'SEMANAL_ESPECIFICO':
-            dataToSave.frequency_interval = null;
-            dataToSave.frequency_unit = null;
-            dataToSave.frequency_day_of_month = null;
-            break;
-        case 'INTERVALO':
-            dataToSave.frequency_days = null;
-            dataToSave.frequency_day_of_month = null;
-            break;
-        case 'MENSUAL_DIA_FIJO':
-            dataToSave.frequency_interval = null;
-            dataToSave.frequency_unit = null;
-            dataToSave.frequency_days = null;
-            break;
-        case 'SEMANAL_ACUMULATIVO':
-        case 'MENSUAL_ACUMULATIVO':
-        case 'TRIMESTRAL_ACUMULATIVO':
-            dataToSave.frequency_interval = null;
-            dataToSave.frequency_unit = null;
-            dataToSave.frequency_days = null;
-            dataToSave.frequency_day_of_month = null;
-            break;
+    if (dataToSave.type !== 'habit') {
+        // Clean up habit-specific fields for tasks/projects
+        dataToSave.frequency = undefined;
+        dataToSave.frequency_interval = undefined;
+        dataToSave.frequency_days = undefined;
+        dataToSave.frequency_day_of_month = undefined;
+        dataToSave.measurement_goal = undefined;
+        dataToSave.measurement_type = undefined;
+    } else {
+        // Clean up fields not relevant to the selected frequency
+        const freq = dataToSave.frequency;
+        if (freq !== 'INTERVALO_DIAS' && freq !== 'INTERVALO_SEMANAL_DIAS_FIJOS' && freq !== 'INTERVALO_MENSUAL_DIA_FIJO' && !freq?.includes('RECURRENTE')) {
+            dataToSave.frequency_interval = undefined;
+        }
+        if (freq !== 'SEMANAL_DIAS_FIJOS' && freq !== 'INTERVALO_SEMANAL_DIAS_FIJOS') {
+            dataToSave.frequency_days = undefined;
+        }
+        if (freq !== 'MENSUAL_DIA_FIJO' && freq !== 'INTERVALO_MENSUAL_DIA_FIJO') {
+            dataToSave.frequency_day_of_month = undefined;
+        }
+        if (!freq?.includes('ACUMULATIVO')) {
+             dataToSave.measurement_goal = undefined;
+        }
     }
-
-    onSave(dataToSave);
+    
+    onSave(dataToSave as HabitTaskFormValues);
     form.reset();
     onOpenChange(false);
   };
@@ -402,7 +295,7 @@ export function AddHabitTaskDialog({
             />
 
             {type === 'habit' && (
-                <FrequencyBuilder state={frequencyBuilder} setState={setFrequencyBuilder} form={form} />
+                <FrequencyBuilder form={form} />
             )}
             
             <FormField control={form.control} name="weight" render={({ field }) => (
@@ -424,116 +317,144 @@ export function AddHabitTaskDialog({
   );
 }
 
+const daysOfWeek = [
+    { id: 'L', label: 'L' }, { id: 'M', label: 'M' }, { id: 'X', label: 'X' },
+    { id: 'J', label: 'J' }, { id: 'V', label: 'V' }, { id: 'S', label: 'S' },
+    { id: 'D', label: 'D' },
+];
 
-// Sub-component for the interactive frequency builder
-function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderState; setState: (state: FrequencyBuilderState) => void; form: any }) {
-    const { mode, interval_value, interval_unit, specificDays, dayOfMonth, meta_period, meta_target } = state;
-    
+
+function FrequencyBuilder({ form }: { form: any }) {
+    const [behavior, setBehavior] = useState<'date' | 'period'>('date');
+    const frequency: HabitFrequency | undefined = form.watch('frequency');
+
+    const handleBehaviorChange = (value: 'date' | 'period') => {
+        setBehavior(value);
+        // Reset fields when changing behavior
+        form.setValue('frequency', undefined);
+        form.setValue('frequency_days', undefined);
+        form.setValue('frequency_interval', undefined);
+        form.setValue('frequency_day_of_month', undefined);
+        form.setValue('measurement_goal', undefined);
+    };
+
     const handleDayToggle = (dayId: string) => {
-        const newDays = specificDays.includes(dayId)
-            ? specificDays.filter(d => d !== dayId)
-            : [...specificDays, dayId];
-        setState({ ...state, specificDays: newDays });
+        const currentDays = form.getValues('frequency_days') || [];
+        const newDays = currentDays.includes(dayId)
+            ? currentDays.filter((d: string) => d !== dayId)
+            : [...currentDays, dayId];
+        form.setValue('frequency_days', newDays, { shouldValidate: true });
     };
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
-          <FormLabel>Frecuencia del Hábito</FormLabel>
-          <Select value={mode} onValueChange={(newMode: FrequencyBuilderState['mode']) => setState({ ...state, mode: newMode })}>
-              <SelectTrigger>
-                  <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                  <SelectItem value="DIARIA">Diaria</SelectItem>
-                  <SelectItem value="SEMANAL_ESPECIFICO">Días específicos de la semana</SelectItem>
-                  <SelectItem value="INTERVALO">Intervalo personalizado (cada N días/semanas/meses)</SelectItem>
-                  <SelectItem value="MENSUAL_DIA_FIJO">Día fijo del mes</SelectItem>
-                  <SelectItem value="ANUAL">Anual (misma fecha cada año)</SelectItem>
-                  <SelectItem value="META_ACUMULATIVA">Meta acumulativa (X veces por semana/mes)</SelectItem>
-              </SelectContent>
-          </Select>
+            <FormLabel>Frecuencia del Hábito</FormLabel>
+            <RadioGroup value={behavior} onValueChange={handleBehaviorChange} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="date" id="date" />
+                    <Label htmlFor="date">Acción con Fecha Específica</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="period" id="period" />
+                    <Label htmlFor="period">Compromiso por Período</Label>
+                </div>
+            </RadioGroup>
+            
+            {behavior === 'date' && (
+                <div className="space-y-4 pt-2">
+                    <FormField control={form.control} name="frequency" render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una frecuencia" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="DIARIA">Diaria</SelectItem>
+                                <SelectItem value="SEMANAL_DIAS_FIJOS">Días Específicos de la Semana</SelectItem>
+                                <SelectItem value="MENSUAL_DIA_FIJO">Día Fijo del Mes</SelectItem>
+                                <SelectItem value="ANUAL_FECHA_FIJA">Anual (Fecha Fija)</SelectItem>
+                                <SelectItem value="INTERVALO_DIAS">Intervalo de Días</SelectItem>
+                                <SelectItem value="INTERVALO_SEMANAL_DIAS_FIJOS">Intervalo Semanal con Días Fijos</SelectItem>
+                                <SelectItem value="INTERVALO_MENSUAL_DIA_FIJO">Intervalo Mensual con Día Fijo</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}/>
 
-          {mode === 'SEMANAL_ESPECIFICO' && (
-             <div className="flex flex-wrap gap-1.5 pt-2">
-                {daysOfWeek.map(day => (
-                    <Button
-                        type="button"
-                        key={day.id}
-                        variant={specificDays.includes(day.id) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleDayToggle(day.id)}
-                        className="h-8 w-8 p-0"
-                    >
-                        {day.label}
-                    </Button>
-                ))}
-             </div>
-          )}
+                    {(frequency === 'INTERVALO_DIAS' || frequency === 'INTERVALO_SEMANAL_DIAS_FIJOS' || frequency === 'INTERVALO_MENSUAL_DIA_FIJO') && (
+                         <FormField control={form.control} name="frequency_interval" render={({ field }) => (
+                           <FormItem><FormLabel>Cada</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    )}
 
-          {mode === 'INTERVALO' && (
-            <div className="flex items-center gap-2 pt-2">
-                <span>Repetir cada</span>
-                <Input
-                    type="number"
-                    min="1"
-                    className="w-16"
-                    value={interval_value}
-                    onChange={(e) => setState({ ...state, interval_value: parseInt(e.target.value, 10) || 1 })}
-                />
-                <Select value={interval_unit} onValueChange={(newUnit: FrequencyBuilderState['interval_unit']) => setState({ ...state, interval_unit: newUnit })}>
-                    <SelectTrigger className="w-auto focus:ring-0">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="days">{interval_value === 1 ? 'día' : 'días'}</SelectItem>
-                        <SelectItem value="weeks">{interval_value === 1 ? 'semana' : 'semanas'}</SelectItem>
-                        <SelectItem value="months">{interval_value === 1 ? 'mes' : 'meses'}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          )}
+                    {(frequency === 'SEMANAL_DIAS_FIJOS' || frequency === 'INTERVALO_SEMANAL_DIAS_FIJOS') && (
+                        <div>
+                             <FormLabel>En los días</FormLabel>
+                             <div className="flex flex-wrap gap-1.5 pt-2">
+                                {daysOfWeek.map(day => (
+                                    <Button
+                                        type="button"
+                                        key={day.id}
+                                        variant={(form.watch('frequency_days') || []).includes(day.id) ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => handleDayToggle(day.id)}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        {day.label}
+                                    </Button>
+                                ))}
+                             </div>
+                              <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
+                        </div>
+                    )}
+                     {(frequency === 'MENSUAL_DIA_FIJO' || frequency === 'INTERVALO_MENSUAL_DIA_FIJO') && (
+                         <FormField control={form.control} name="frequency_day_of_month" render={({ field }) => (
+                           <FormItem><FormLabel>El día del mes</FormLabel><FormControl><Input type="number" min="1" max="31" placeholder="Ej: 15" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    )}
 
-          {mode === 'MENSUAL_DIA_FIJO' && (
-             <div className="flex items-center gap-2 pt-2">
-                <span>El día</span>
-                 <Input
-                    type="number"
-                    min="1"
-                    max="31"
-                    className="w-16"
-                    value={dayOfMonth}
-                    onChange={(e) => setState({ ...state, dayOfMonth: parseInt(e.target.value, 10) || 1 })}
-                />
-                <span>de cada mes.</span>
-             </div>
-          )}
-          
-          {mode === 'META_ACUMULATIVA' && (
-            <div className="flex items-center gap-2 pt-2">
-                 <Input
-                    type="number"
-                    min="1"
-                    className="w-16"
-                    value={meta_target}
-                    onChange={(e) => setState({ ...state, meta_target: parseInt(e.target.value, 10) || 1 })}
-                />
-                <span>veces por</span>
-                <Select value={meta_period} onValueChange={(newPeriod) => setState({ ...state, meta_period: newPeriod as any })}>
-                    <SelectTrigger className="w-auto focus:ring-0">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="SEMANAL_ACUMULATIVO">semana</SelectItem>
-                        <SelectItem value="MENSUAL_ACUMULATIVO">mes</SelectItem>
-                        <SelectItem value="TRIMESTRAL_ACUMULATIVO">trimestre</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          )}
+                </div>
+            )}
 
+            {behavior === 'period' && (
+                 <div className="space-y-4 pt-2">
+                     <FormField control={form.control} name="frequency" render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un período" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="SEMANAL_ACUMULATIVO">Por Semana (Acumulativo)</SelectItem>
+                                <SelectItem value="MENSUAL_ACUMULATIVO">Por Mes (Acumulativo)</SelectItem>
+                                <SelectItem value="TRIMESTRAL_ACUMULATIVO">Por Trimestre (Acumulativo)</SelectItem>
+                                <SelectItem value="ANUAL_ACUMULATIVO">Anual (Compromiso Flexible)</SelectItem>
+                                <SelectItem value="SEMANAL_ACUMULATIVO_RECURRENTE">Compromiso Semanal Recurrente</SelectItem>
+                                <SelectItem value="MENSUAL_ACUMULATIVO_RECURRENTE">Compromiso Mensual Recurrente</SelectItem>
+                                <SelectItem value="TRIMESTRAL_ACUMULATIVO_RECURRENTE">Compromiso Trimestral Recurrente</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}/>
 
-           <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
-           <FormMessage>{form.formState.errors.frequency_interval?.message}</FormMessage>
+                    {frequency?.includes('RECURRENTE') && (
+                         <FormField control={form.control} name="frequency_interval" render={({ field }) => (
+                           <FormItem>
+                                <FormLabel>
+                                    {frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántas semanas'}
+                                    {frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántos meses'}
+                                    {frequency === 'TRIMESTRAL_ACUMULATIVO_RECURRENTE' && 'Cada cuántos trimestres'}
+                                </FormLabel>
+                               <FormControl><Input type="number" min="1" placeholder="Ej: 2" {...field} /></FormControl>
+                               <FormMessage />
+                           </FormItem>
+                        )}/>
+                    )}
+                    
+                    {frequency?.includes('ACUMULATIVO') && (
+                        <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
+                           <FormItem><FormLabel>Meta (X veces por período)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    )}
+
+                </div>
+            )}
         </div>
     );
 }
