@@ -37,7 +37,7 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
     const result = await suggestRelatedHabitsTasks(input);
     return result.suggestions || [];
   } catch (error) {
-    logError(error);
+    logError(error, { at: 'getAiSuggestions', input });
     console.error("Error al obtener sugerencias de la IA:", error);
     return [];
   }
@@ -51,7 +51,7 @@ export async function addLifePrk(values: { title: string; description?: string }
     }]);
 
     if(error) {
-        logError(error);
+        logError(error, values);
         console.error("Error adding Life PRK:", error);
         throw error;
     }
@@ -69,7 +69,7 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
         .eq('id', id);
 
     if (error) {
-        logError(error);
+        logError(error, { id, ...values });
         console.error("Error updating Life PRK:", error);
         throw error;
     }
@@ -87,7 +87,7 @@ export async function addAreaPrk(values: { title: string; life_prk_id: string })
      }]);
 
     if(error) {
-        logError(error);
+        logError(error, values);
         console.error('Supabase error adding Area PRK:', error);
         throw error;
     }
@@ -104,7 +104,7 @@ export async function updateAreaPrk(id: string, values: { title: string; }) {
         .eq('id', id);
 
     if (error) {
-        logError(error);
+        logError(error, { id, ...values });
         console.error('Supabase error updating Area PRK:', error);
         throw error;
     }
@@ -138,7 +138,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
 
     if(error) {
-        logError(error);
+        logError(error, values);
         console.error("Error adding Habit/Task:", error);
         throw error;
     }
@@ -178,7 +178,7 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
       .eq('id', id);
   
     if (error) {
-        logError(error);
+        logError(error, { id, ...values });
         console.error("Error updating Habit/Task:", error);
         throw error;
     }
@@ -235,7 +235,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         revalidatePath('/');
         revalidatePath('/calendar');
     } catch (error) {
-        logError(error);
+        logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
         console.error('Error in logHabitTaskCompletion:', error);
         throw new Error('Failed to log task completion.');
     }
@@ -265,7 +265,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         revalidatePath('/');
         revalidatePath('/calendar');
     } catch (error) {
-        logError(error);
+        logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
         console.error('Error in removeHabitTaskCompletion:', error);
         throw new Error('Failed to remove task completion log.');
     }
@@ -277,7 +277,7 @@ export async function archiveLifePrk(id: string) {
         const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
         if(error) throw error;
     } catch (error) {
-        logError(error);
+        logError(error, { at: 'archiveLifePrk', id });
         console.error("Error archiving life prk:", error);
         throw new Error("Failed to archive life prk.");
     }
@@ -291,7 +291,7 @@ export async function archiveAreaPrk(id: string) {
         const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
         if(error) throw error;
     } catch(error) {
-        logError(error);
+        logError(error, { at: 'archiveAreaPrk', id });
         console.error("Error archiving area prk:", error);
         throw new Error("Failed to archive area prk.");
     }
@@ -305,7 +305,7 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
         const { error } = await supabase.from('habit_tasks').update({ archived: true, archived_at: archiveDate }).eq('id', id);
         if(error) throw error;
     } catch (error) {
-        logError(error);
+        logError(error, { at: 'archiveHabitTask', id, archiveDate });
         console.error("Error archiving habit/task:", error);
         throw new Error("Failed to archive habit/task.");
     }

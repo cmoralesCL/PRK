@@ -7,9 +7,10 @@ const logFilePath = path.join(process.cwd(), 'error.log');
 /**
  * Formatea un objeto de error en un string legible y detallado.
  * @param error El error a formatear.
+ * @param contextData Datos adicionales para incluir en el log.
  * @returns Un string formateado del mensaje de error.
  */
-function formatLogMessage(error: any): string {
+function formatLogMessage(error: any, contextData?: any): string {
     const timestamp = new Date().toISOString();
     let errorMessage = `[${timestamp}] - DETAILED ERROR LOG\n`;
 
@@ -46,6 +47,17 @@ function formatLogMessage(error: any): string {
         }
     }
 
+    // Añadir datos de contexto si existen
+    if (contextData) {
+        errorMessage += `\nCONTEXT DATA:\n`;
+        try {
+            const prettyContext = JSON.stringify(contextData, null, 2);
+            errorMessage += `${prettyContext}\n`;
+        } catch {
+            errorMessage += `Context (unserializable): ${contextData}\n`;
+        }
+    }
+
     errorMessage += '--------------------------------------------------\n\n';
     return errorMessage;
 }
@@ -53,9 +65,10 @@ function formatLogMessage(error: any): string {
 /**
  * Registra un error en la consola y, si está en desarrollo, en un archivo de log.
  * @param error El error a registrar.
+ * @param contextData Datos adicionales para contextualizar el error.
  */
-export function logError(error: any): void {
-    const message = formatLogMessage(error);
+export function logError(error: any, contextData?: any): void {
+    const message = formatLogMessage(error, contextData);
 
     // Siempre registra en la consola para máxima visibilidad en cualquier entorno
     console.error(message);
