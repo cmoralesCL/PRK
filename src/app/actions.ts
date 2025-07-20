@@ -27,6 +27,7 @@ import {
     differenceInWeeks,
     differenceInMonths,
     differenceInDays,
+    isAfter,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -613,18 +614,43 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     const commitments = allHabitTasks.filter(task => {
-        if (task.type !== 'habit' || !task.start_date) {
+        if (task.type !== 'habit' || !task.start_date || task.archived) {
             return false;
         }
 
         const taskStartDate = parseISO(task.start_date);
-        const monthInterval = { start: monthStart, end: monthEnd };
-
-        if (!areIntervalsOverlapping({start: taskStartDate, end: task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000)}, monthInterval)) {
+        
+        // Basic check: task must have started before the end of the month view
+        if (isAfter(taskStartDate, monthEnd)) {
             return false;
         }
 
-        return task.frequency === 'weekly' || task.frequency === 'monthly' || task.frequency === 'every_x_weeks_commitment' || task.frequency === 'every_x_months_commitment';
+        // Basic check: task must not have been archived before the start of the month view
+        if(task.archived_at && isAfter(monthStart, parseISO(task.archived_at))) {
+            return false;
+        }
+        
+        const isCommitmentType = task.frequency === 'weekly' 
+            || task.frequency === 'monthly' 
+            || task.frequency === 'every_x_weeks_commitment' 
+            || task.frequency === 'every_x_months_commitment';
+
+        if (!isCommitmentType) return false;
+
+        // Specific logic for recurring monthly commitments
+        if (task.frequency === 'every_x_months_commitment') {
+            const interval = task.frequency_interval || 1;
+            const monthsDiff = differenceInMonths(monthStart, taskStartDate);
+            // Check if the current month is a valid interval month
+            if (monthsDiff < 0) return false; // Starts in the future
+            return monthsDiff % interval === 0;
+        }
+        
+        // For other commitments (weekly, monthly), just check they are active in the interval
+        const monthInterval = { start: monthStart, end: monthEnd };
+        const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
+        return areIntervalsOverlapping(monthInterval, taskInterval);
+
     }).map(task => {
         let logs: ProgressLog[] = [];
         let periodStart, periodEnd;
@@ -639,8 +665,8 @@ export async function getCalendarData(monthDate: Date) {
                 periodEnd = monthEnd;
                 break;
             case 'every_x_weeks_commitment':
-                // For recurring commitments, we need to find the specific period for the selected monthDate
-                let start = startOfWeek(parseISO(task.start_date!), { weekStartsOn: 1 });
+                if (!task.start_date) return task; // Should not happen due to filter
+                let start = startOfWeek(parseISO(task.start_date), { weekStartsOn: 1 });
                 while (endOfWeek(start, { weekStartsOn: 1 }) < monthDate) {
                     start = addDays(start, (task.frequency_interval || 1) * 7);
                 }
@@ -648,7 +674,8 @@ export async function getCalendarData(monthDate: Date) {
                 periodEnd = endOfWeek(start, { weekStartsOn: 1 });
                 break;
             case 'every_x_months_commitment':
-                let mStart = startOfMonth(parseISO(task.start_date!));
+                 if (!task.start_date) return task; // Should not happen due to filter
+                let mStart = startOfMonth(parseISO(task.start_date));
                 while(endOfMonth(mStart) < monthDate) {
                     mStart = addMonths(mStart, task.frequency_interval || 1);
                 }
@@ -705,7 +732,7 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         // 2. Weekly commitments progress
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'every_x_weeks_commitment');
         weeklyCommitmentTasks.forEach(task => {
             if (!task.start_date) return;
             const taskStartDate = parseISO(task.start_date);
@@ -764,7 +791,7 @@ export async function getCalendarData(monthDate: Date) {
         let progressPercentage = 0;
         const target = task.measurement_goal?.target ?? 1;
 
-        if (task.frequency === 'weekly') {
+        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
             let weekStart = startOfWeek(monthStart, {weekStartsOn: 1});
             while(weekStart <= monthEnd) {
                 const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
@@ -783,7 +810,7 @@ export async function getCalendarData(monthDate: Date) {
 
                 weekStart = addDays(weekStart, 7);
             }
-        } else { // monthly
+        } else { // monthly or every_x_months_commitment
             const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
              if (task.measurement_type === 'quantitative') {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
@@ -842,6 +869,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-
-    
