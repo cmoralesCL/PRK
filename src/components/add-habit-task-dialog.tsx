@@ -148,25 +148,20 @@ export function AddHabitTaskDialog({
     let newMeasurementType: 'binary' | 'quantitative' | undefined = 'binary';
     let newMeasurementGoal: { target?: number, unit?: string } | undefined = undefined;
     
-    // This logic translates the user-friendly builder into the data model
     if (mode === 'cada') {
-      newInterval = interval;
-      switch (unit) {
-        case 'days':
-          newFrequency = interval === 1 ? 'daily' : 'every_x_days';
-          if (interval === 1) newInterval = undefined;
-          break;
-        case 'weeks':
-          newFrequency = 'every_x_weeks';
-          newDays = specificDays.length > 0 ? specificDays : undefined;
-          break;
-        case 'months':
-          newFrequency = 'every_x_months';
-          break;
-      }
+        newInterval = interval;
+        if (unit === 'days') {
+            newFrequency = interval === 1 ? 'daily' : 'every_x_days';
+            if (interval === 1) newInterval = undefined;
+        } else if (unit === 'weeks') {
+            newFrequency = 'every_x_weeks';
+            newDays = specificDays.length > 0 ? specificDays : undefined;
+        } else if (unit === 'months') {
+            newFrequency = 'every_x_months';
+        }
     } else if (mode === 'los') {
-      newFrequency = 'specific_days';
-      newDays = specificDays;
+        newFrequency = 'specific_days';
+        newDays = specificDays;
     } else if (mode === 'dia_fijo') {
       newFrequency = 'specific_day_of_month';
       newDayOfMonth = dayOfMonth;
