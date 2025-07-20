@@ -367,7 +367,13 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         return false;
 
     } else if (task.type === 'habit') {
-        const interval = task.frequency_interval || 1;
+        const interval = task.frequency_interval;
+        if (interval === null || interval === undefined || interval < 1) {
+             if (task.frequency === 'every_x_days' || task.frequency === 'every_x_weeks' || task.frequency === 'every_x_months') {
+                return false;
+             }
+        }
+        
         switch (task.frequency) {
             case 'daily':
                 return true;
@@ -379,13 +385,13 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return task.frequency_days?.includes(dayOfWeek) ?? false;
             case 'every_x_days':
                  const daysDiff = differenceInDays(targetDate, startDate);
-                return daysDiff >= 0 && daysDiff % interval === 0;
+                return daysDiff >= 0 && daysDiff % interval! === 0;
             case 'every_x_weeks':
                 const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: getDay(startDate) as any });
-                return weeksDiff >= 0 && weeksDiff % interval === 0 && getDay(targetDate) === getDay(startDate);
+                return weeksDiff >= 0 && weeksDiff % interval! === 0 && getDay(targetDate) === getDay(startDate);
             case 'every_x_months':
                 const monthsDiff = differenceInMonths(targetDate, startDate);
-                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === startDate.getDate();
+                return monthsDiff >= 0 && monthsDiff % interval! === 0 && targetDate.getDate() === startDate.getDate();
             default:
                 return false;
         }
@@ -748,5 +754,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    
