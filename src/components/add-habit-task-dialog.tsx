@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,7 +64,7 @@ const formSchema = z.object({
         unit: z.string().optional(),
     }).optional(),
 }).superRefine((data, ctx) => {
-    if (data.type !== 'habit') return;
+    if (data.type !== 'habit' || !data.frequency) return;
 
     switch (data.frequency) {
         case 'SEMANAL_DIAS_FIJOS':
@@ -109,7 +109,7 @@ export type HabitTaskFormValues = z.infer<typeof formSchema>;
 interface AddHabitTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: HabitTaskFormValues) => void;
+  onSave: (values: Partial<HabitTask>) => void;
   habitTask: HabitTask | null;
   defaultAreaPrkId?: string;
   defaultDate?: Date;
@@ -149,6 +149,7 @@ export function AddHabitTaskDialog({
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
+          frequency: 'DIARIA',
           ...defaultValues,
         });
       }
@@ -156,38 +157,56 @@ export function AddHabitTaskDialog({
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
 
   const onSubmit = (values: HabitTaskFormValues) => {
-    const dataToSave: Partial<HabitTaskFormValues> = { ...values };
-    
-    // Convert dates to string format for server
-    if (dataToSave.start_date) dataToSave.start_date = format(dataToSave.start_date, 'yyyy-MM-dd') as any;
-    if (dataToSave.due_date) dataToSave.due_date = format(dataToSave.due_date, 'yyyy-MM-dd') as any;
+    let dataToSave: Partial<HabitTask> = {
+        title: values.title,
+        description: values.description,
+        area_prk_id: values.area_prk_id,
+        type: values.type,
+        start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
+        due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
+        weight: values.weight,
+        is_critical: values.is_critical,
+        measurement_type: values.measurement_type,
+    };
 
-    if (dataToSave.type !== 'habit') {
-        // Clean up habit-specific fields for tasks/projects
-        dataToSave.frequency = undefined;
-        dataToSave.frequency_interval = undefined;
-        dataToSave.frequency_days = undefined;
-        dataToSave.frequency_day_of_month = undefined;
-        dataToSave.measurement_goal = undefined;
-        dataToSave.measurement_type = undefined;
-    } else {
-        // Clean up fields not relevant to the selected frequency
-        const freq = dataToSave.frequency;
-        if (freq !== 'INTERVALO_DIAS' && freq !== 'INTERVALO_SEMANAL_DIAS_FIJOS' && freq !== 'INTERVALO_MENSUAL_DIA_FIJO' && !freq?.includes('RECURRENTE')) {
-            dataToSave.frequency_interval = undefined;
+    if (values.type === 'habit') {
+        dataToSave.frequency = values.frequency;
+        
+        // Add fields based on frequency
+        switch (values.frequency) {
+            case 'INTERVALO_DIAS':
+            case 'INTERVALO_SEMANAL_DIAS_FIJOS':
+            case 'INTERVALO_MENSUAL_DIA_FIJO':
+            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+                dataToSave.frequency_interval = values.frequency_interval;
+                break;
         }
-        if (freq !== 'SEMANAL_DIAS_FIJOS' && freq !== 'INTERVALO_SEMANAL_DIAS_FIJOS') {
-            dataToSave.frequency_days = undefined;
+
+        switch (values.frequency) {
+            case 'SEMANAL_DIAS_FIJOS':
+            case 'INTERVALO_SEMANAL_DIAS_FIJOS':
+                dataToSave.frequency_days = values.frequency_days;
+                break;
         }
-        if (freq !== 'MENSUAL_DIA_FIJO' && freq !== 'INTERVALO_MENSUAL_DIA_FIJO') {
-            dataToSave.frequency_day_of_month = undefined;
+
+        switch (values.frequency) {
+            case 'MENSUAL_DIA_FIJO':
+            case 'INTERVALO_MENSUAL_DIA_FIJO':
+                dataToSave.frequency_day_of_month = values.frequency_day_of_month;
+                break;
         }
-        if (!freq?.includes('ACUMULATIVO')) {
-             dataToSave.measurement_goal = undefined;
+
+        if (values.frequency?.includes('ACUMULATIVO')) {
+            dataToSave.measurement_goal = values.measurement_goal;
+        } else {
+            dataToSave.measurement_goal = null;
         }
+
     }
     
-    onSave(dataToSave as HabitTaskFormValues);
+    onSave(dataToSave);
     form.reset();
     onOpenChange(false);
   };
@@ -216,6 +235,7 @@ export function AddHabitTaskDialog({
                       placeholder="Añade notas, enlaces o detalles aquí."
                       className="resize-none"
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -331,7 +351,7 @@ function FrequencyBuilder({ form }: { form: any }) {
     const handleBehaviorChange = (value: 'date' | 'period') => {
         setBehavior(value);
         // Reset fields when changing behavior
-        form.setValue('frequency', undefined);
+        form.setValue('frequency', value === 'date' ? 'DIARIA' : 'SEMANAL_ACUMULATIVO');
         form.setValue('frequency_days', undefined);
         form.setValue('frequency_interval', undefined);
         form.setValue('frequency_day_of_month', undefined);

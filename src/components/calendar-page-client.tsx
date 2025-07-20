@@ -8,7 +8,7 @@ import { format, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
+import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot, HabitFrequency } from '@/lib/types';
 import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
 
 import { CalendarView } from '@/components/calendar-view';
@@ -57,7 +57,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
         setHabitTaskDialogOpen(true);
     };
 
-    const handleOpenAddCommitmentDialog = (frequency: 'weekly' | 'monthly' | 'every_x_weeks_commitment' | 'every_x_months_commitment') => {
+    const handleOpenAddCommitmentDialog = (frequency: HabitFrequency) => {
         setEditingHabitTask(null);
         setSelectedDateForDialog(new Date()); 
         setDefaultHabitTaskValues({
@@ -81,41 +81,14 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
         handleOpenDayDetail(day);
     }
 
-    const handleSaveHabitTask = (values: HabitTaskFormValues) => {
+    const handleSaveHabitTask = (values: Partial<HabitTask>) => {
         startTransition(async () => {
             try {
-                const commonData = {
-                    title: values.title,
-                    description: values.description,
-                    type: values.type,
-                    area_prk_id: values.area_prk_id,
-                    start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                    due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
-                    weight: values.weight,
-                    is_critical: values.is_critical,
-                };
-    
-                let habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>;
-    
-                if (values.type === 'habit') {
-                    habitTaskData = {
-                        ...commonData,
-                        frequency: values.frequency,
-                        frequency_days: values.frequency_days,
-                        frequency_interval: values.frequency_interval,
-                        frequency_day_of_month: values.frequency_day_of_month,
-                        measurement_type: values.measurement_type,
-                        measurement_goal: values.measurement_goal,
-                    };
-                } else {
-                    habitTaskData = { ...commonData };
-                }
-                
                 if (editingHabitTask) {
-                    await updateHabitTask(editingHabitTask.id, habitTaskData);
+                    await updateHabitTask(editingHabitTask.id, values);
                     toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
                 } else {
-                    await addHabitTask(habitTaskData);
+                    await addHabitTask(values);
                     toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
                 }
             } catch (error) {

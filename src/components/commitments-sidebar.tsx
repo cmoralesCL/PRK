@@ -4,7 +4,7 @@
 import { useTransition, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ListTodo, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
-import type { HabitTask } from '@/lib/types';
+import type { HabitTask, HabitFrequency } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
@@ -13,19 +13,26 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
 
+type CommitmentTab = 'weekly' | 'monthly' | 'quarterly';
+const tabToFrequencyMap: Record<CommitmentTab, HabitFrequency> = {
+    weekly: 'SEMANAL_ACUMULATIVO',
+    monthly: 'MENSUAL_ACUMULATIVO',
+    quarterly: 'TRIMESTRAL_ACUMULATIVO'
+};
+
 interface CommitmentsSidebarProps {
   commitments: HabitTask[];
   selectedDate: Date;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onAddCommitment: (frequency: 'weekly' | 'monthly') => void;
+  onAddCommitment: (frequency: HabitFrequency) => void;
   onEditCommitment: (task: HabitTask) => void;
 }
 
 export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen, onAddCommitment, onEditCommitment }: CommitmentsSidebarProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'quarterly'>('weekly');
+  const [activeTab, setActiveTab] = useState<CommitmentTab>('weekly');
 
   const handleToggle = (id: string, completed: boolean, date: Date, progressValue?: number) => {
      const task = commitments.find(ht => ht.id === id);
@@ -61,8 +68,9 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     });
   };
 
-  const weeklyCommitments = commitments.filter(c => c.frequency === 'weekly');
-  const monthlyCommitments = commitments.filter(c => c.frequency === 'monthly');
+  const weeklyCommitments = commitments.filter(c => c.frequency?.startsWith('SEMANAL_ACUMULATIVO'));
+  const monthlyCommitments = commitments.filter(c => c.frequency?.startsWith('MENSUAL_ACUMULATIVO'));
+  const quarterlyCommitments = commitments.filter(c => c.frequency?.startsWith('TRIMESTRAL_ACUMULATIVO'));
   
   const renderCommitmentList = (tasks: HabitTask[]) => {
     if (tasks.length === 0) {
@@ -111,7 +119,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
         <Tabs 
           defaultValue="weekly" 
           className="w-full"
-          onValueChange={(value) => setActiveTab(value as 'weekly' | 'monthly' | 'quarterly')}
+          onValueChange={(value) => setActiveTab(value as CommitmentTab)}
         >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="weekly">Semanal</TabsTrigger>
@@ -125,12 +133,12 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
                 {renderCommitmentList(monthlyCommitments)}
             </TabsContent>
             <TabsContent value="quarterly" className="mt-4">
-              {renderCommitmentList([])}
+              {renderCommitmentList(quarterlyCommitments)}
             </TabsContent>
         </Tabs>
         </CardContent>
          <CardFooter>
-            <Button className="w-full" onClick={() => onAddCommitment(activeTab as 'weekly' | 'monthly')}>
+            <Button className="w-full" onClick={() => onAddCommitment(tabToFrequencyMap[activeTab])}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Compromiso
             </Button>

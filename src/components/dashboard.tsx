@@ -8,7 +8,7 @@ import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
 import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
-import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
+import { AddHabitTaskDialog } from './add-habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
 import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -159,44 +159,14 @@ export function Dashboard({
     setHabitTaskDialogOpen(true);
   };
 
-  const handleSaveHabitTask = (values: HabitTaskFormValues) => {
+  const handleSaveHabitTask = (values: Partial<HabitTask>) => {
     startTransition(async () => {
         try {
-            const commonData = {
-                title: values.title,
-                description: values.description,
-                area_prk_id: values.area_prk_id,
-                weight: values.weight,
-                is_critical: values.is_critical,
-                start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
-                due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
-            };
-
-            let habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>;
-
-            if (values.type === 'habit') {
-                habitTaskData = {
-                    ...commonData,
-                    type: 'habit',
-                    frequency: values.frequency,
-                    frequency_days: values.frequency_days,
-                    frequency_interval: values.frequency_interval,
-                    frequency_day_of_month: values.frequency_day_of_month,
-                    measurement_type: values.measurement_type,
-                    measurement_goal: values.measurement_type === 'quantitative' ? values.measurement_goal : undefined,
-                };
-            } else {
-                 habitTaskData = {
-                    ...commonData,
-                    type: values.type,
-                };
-            }
-
             if (editingHabitTask) {
-                await updateHabitTask(editingHabitTask.id, habitTaskData);
+                await updateHabitTask(editingHabitTask.id, values);
                 toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
             } else {
-                await addHabitTask(habitTaskData);
+                await addHabitTask(values);
                 toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
