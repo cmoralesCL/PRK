@@ -267,3 +267,79 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-20T05:34:44.319Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (dc3ef375-03a9-4cdd-9f0f-55772bccb32d, e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c, vdfv, habit, 2025-07-11, null, null, every_x_weeks, {mon,wed,fri}, 1, f, null, null, 2025-07-20 05:34:44.231426+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "vdfv",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c",
+  "start_date": "2025-07-11",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_days": [
+    "mon",
+    "wed",
+    "fri"
+  ],
+  "frequency_interval": 1
+}
+--------------------------------------------------
+
+[2025-07-20T05:35:36.633Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (3684f9ac-7014-4b22-a04e-19181a3d0249, e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c, dsdc, habit, 2025-07-10, null, null, every_x_weeks, {mon,wed,fri}, 1, f, null, null, 2025-07-20 05:35:36.531835+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "dsdc",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c",
+  "start_date": "2025-07-10",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_days": [
+    "mon",
+    "wed",
+    "fri"
+  ],
+  "frequency_interval": 1
+}
+--------------------------------------------------
+
+[2025-07-20T05:36:49.377Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (265dce2a-2093-4f0c-b82f-622a506a834f, 5232709e-699c-4ea8-8473-4b5b8cb7a79e, sadadsad, habit, 2025-07-03, null, null, every_x_weeks, null, 1, f, null, null, 2025-07-20 05:36:49.298871+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "sadadsad",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "5232709e-699c-4ea8-8473-4b5b8cb7a79e",
+  "start_date": "2025-07-03",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_interval": 1
+}
+--------------------------------------------------
+

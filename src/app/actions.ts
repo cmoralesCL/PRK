@@ -45,12 +45,14 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('life_prks').insert([{ 
-        title: values.title, 
-        description: values.description || '',
-    }]);
+    try {
+        const { data, error } = await supabase.from('life_prks').insert([{ 
+            title: values.title, 
+            description: values.description || '',
+        }]);
 
-    if(error) {
+        if(error) throw error;
+    } catch(error) {
         logError(error, { at: 'addLifePrk', ...values });
         console.error("Error adding Life PRK:", error);
         throw error;
@@ -60,15 +62,17 @@ export async function addLifePrk(values: { title: string; description?: string }
 
 export async function updateLifePrk(id: string, values: { title: string; description?: string }) {
     const supabase = createClient();
-    const { error } = await supabase
-        .from('life_prks')
-        .update({ 
-            title: values.title, 
-            description: values.description || '',
-        })
-        .eq('id', id);
+    try {
+        const { error } = await supabase
+            .from('life_prks')
+            .update({ 
+                title: values.title, 
+                description: values.description || '',
+            })
+            .eq('id', id);
 
-    if (error) {
+        if (error) throw error;
+    } catch (error) {
         logError(error, { at: 'updateLifePrk', id, ...values });
         console.error("Error updating Life PRK:", error);
         throw error;
@@ -78,15 +82,17 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
 
 export async function addAreaPrk(values: { title: string; life_prk_id: string }) {
     const supabase = createClient();
-    const { data, error } = await supabase.from('area_prks').insert([{ 
-        title: values.title,
-        unit: '%', // Hardcode default unit
-        life_prk_id: values.life_prk_id,
-        target_value: 100,
-        current_value: 0,
-     }]);
+    try {
+        const { data, error } = await supabase.from('area_prks').insert([{ 
+            title: values.title,
+            unit: '%', // Hardcode default unit
+            life_prk_id: values.life_prk_id,
+            target_value: 100,
+            current_value: 0,
+         }]);
 
-    if(error) {
+        if(error) throw error;
+    } catch(error) {
         logError(error, { at: 'addAreaPrk', ...values });
         console.error('Supabase error adding Area PRK:', error);
         throw error;
@@ -96,14 +102,16 @@ export async function addAreaPrk(values: { title: string; life_prk_id: string })
 
 export async function updateAreaPrk(id: string, values: { title: string; }) {
     const supabase = createClient();
-    const { error } = await supabase
-        .from('area_prks')
-        .update({ 
-            title: values.title,
-        })
-        .eq('id', id);
+    try {
+        const { error } = await supabase
+            .from('area_prks')
+            .update({ 
+                title: values.title,
+            })
+            .eq('id', id);
 
-    if (error) {
+        if (error) throw error;
+    } catch (error) {
         logError(error, { at: 'updateAreaPrk', id, ...values });
         console.error('Supabase error updating Area PRK:', error);
         throw error;
@@ -134,11 +142,11 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.frequency_interval = values.frequency_interval;
     }
 
-
-    const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
-
-    if(error) {
-        logError(error, { at: 'addHabitTask', ...values });
+    try {
+        const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
+        if(error) throw error;
+    } catch (error) {
+        logError(error, { at: 'addHabitTask', data: dataToInsert });
         console.error("Error adding Habit/Task:", error);
         throw error;
     }
@@ -171,14 +179,15 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
             updateData.frequency_interval = null;
         }
     }
-
-    const { data, error } = await supabase
-      .from('habit_tasks')
-      .update(updateData)
-      .eq('id', id);
-  
-    if (error) {
-        logError(error, { at: 'updateHabitTask', id, ...values });
+    try {
+        const { data, error } = await supabase
+          .from('habit_tasks')
+          .update(updateData)
+          .eq('id', id);
+      
+        if (error) throw error;
+    } catch (error) {
+        logError(error, { at: 'updateHabitTask', id, data: updateData });
         console.error("Error updating Habit/Task:", error);
         throw error;
     }
@@ -363,6 +372,11 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         return false;
 
     } else if (task.type === 'habit') {
+        const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
+        if (endDate && targetDate > endDate) {
+            return false;
+        }
+
         const interval = task.frequency_interval;
 
         // Check for invalid interval for interval-based frequencies
