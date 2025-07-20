@@ -154,43 +154,63 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     revalidatePath('/calendar');
 }
 
-export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>): Promise<void> {
+export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at'>>): Promise<void> {
     const supabase = createClient();
     
-    const updateData: any = { ...values };
-    
-    if (values.type !== 'habit') {
-        // Ensure habit-specific fields are nulled out if type is not habit
-        updateData.frequency = null;
-        updateData.frequency_days = null;
-        updateData.frequency_day_of_month = null;
-        updateData.measurement_type = null;
-        updateData.measurement_goal = null;
-        updateData.frequency_interval = null;
-    } else {
-        // If it is a habit but measurement is binary, null out goal
-        if (values.measurement_type === 'binary' && values.frequency !== 'weekly' && values.frequency !== 'monthly') {
-            updateData.measurement_goal = null;
-        }
+    const baseData = {
+        title: values.title,
+        description: values.description,
+        area_prk_id: values.area_prk_id,
+        weight: values.weight,
+        is_critical: values.is_critical,
+        start_date: values.start_date,
+        due_date: values.due_date,
+        type: values.type,
+    };
 
-        if (values.frequency?.startsWith('every_x_')) {
-             updateData.frequency_interval = values.frequency_interval;
-        } else {
-            updateData.frequency_interval = null;
-        }
+    let updateData: any = { ...baseData };
+
+    if (values.type === 'habit') {
+        updateData = {
+            ...updateData,
+            frequency: values.frequency,
+            measurement_type: values.measurement_type,
+            measurement_goal: values.measurement_type === 'binary' ? null : values.measurement_goal,
+            frequency_days: values.frequency === 'specific_days' || values.frequency === 'every_x_weeks' ? values.frequency_days : null,
+            frequency_day_of_month: values.frequency === 'specific_day_of_month' ? values.frequency_day_of_month : null,
+            frequency_interval: values.frequency?.startsWith('every_x_') ? values.frequency_interval : null,
+        };
+    } else {
+        updateData = {
+            ...updateData,
+            frequency: null,
+            measurement_type: null,
+            measurement_goal: null,
+            frequency_days: null,
+            frequency_day_of_month: null,
+            frequency_interval: null,
+        };
     }
+
     try {
         const { data, error } = await supabase
-          .from('habit_tasks')
-          .update(updateData)
-          .eq('id', id);
-      
-        if (error) throw error;
+            .from('habit_tasks')
+            .update(updateData)
+            .eq('id', id);
+
+        if (error) {
+            logError(error, { at: 'updateHabitTask', id, data: updateData });
+            throw error;
+        }
     } catch (error) {
-        logError(error, { at: 'updateHabitTask', id, data: updateData });
+        // Error is already logged if it comes from the DB driver
+        if (!(typeof error === 'object' && error !== null && 'code' in error)) {
+            logError(error, { at: 'updateHabitTaskCatch', id, data: updateData });
+        }
         console.error("Error updating Habit/Task:", error);
         throw error;
     }
+
     revalidatePath('/');
     revalidatePath('/calendar');
 }
@@ -822,3 +842,6 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+
+    
