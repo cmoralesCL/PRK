@@ -138,7 +138,7 @@ export function AddHabitTaskDialog({
   // EFFECT 1: Sync Frequency Builder -> Form Fields
   useEffect(() => {
     if (type !== 'habit') return;
-    
+
     const { mode, interval, unit, specificDays, dayOfMonth } = frequencyBuilder;
     let newFrequency: HabitTaskFormValues['frequency'] = 'daily';
     let newInterval: number | undefined = undefined;
@@ -148,11 +148,19 @@ export function AddHabitTaskDialog({
     let newMeasurementGoal: { target?: number, unit?: string } | undefined = undefined;
 
     if (mode === 'cada') {
-        if (unit === 'days') newFrequency = 'every_x_days';
-        if (unit === 'weeks') newFrequency = 'every_x_weeks';
-        if (unit === 'months') newFrequency = 'every_x_months';
-        newInterval = interval;
-        if(unit === 'weeks' && specificDays.length > 0) newDays = specificDays;
+        if (interval === 1 && unit === 'days') {
+            newFrequency = 'daily';
+        } else {
+            newFrequency = `every_x_${unit}` as 'every_x_days' | 'every_x_weeks' | 'every_x_months';
+            newInterval = interval;
+            if(unit === 'weeks') {
+                newDays = specificDays;
+            } else if (unit === 'months' && dayOfMonth > 0) {
+                newFrequency = 'specific_day_of_month';
+                newDayOfMonth = dayOfMonth;
+                newInterval = undefined; 
+            }
+        }
     } else if (mode === 'los') {
         newFrequency = 'specific_days';
         newDays = specificDays;
@@ -163,22 +171,15 @@ export function AddHabitTaskDialog({
         newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
     }
     
-    // Handle 'specific_day_of_month' which is a special case of 'cada mes'
-    if (mode === 'cada' && unit === 'months' && specificDays.length === 0 && dayOfMonth > 0) {
-        newFrequency = 'specific_day_of_month';
-        newDayOfMonth = dayOfMonth;
-        newInterval = undefined; // Reset interval
-    }
-
     // Set form values based on builder state
-    form.setValue('frequency', newFrequency);
-    form.setValue('frequency_interval', newInterval);
-    form.setValue('frequency_days', newDays);
-    form.setValue('frequency_day_of_month', newDayOfMonth);
+    form.setValue('frequency', newFrequency, { shouldValidate: true });
+    form.setValue('frequency_interval', newInterval, { shouldValidate: true });
+    form.setValue('frequency_days', newDays, { shouldValidate: true });
+    form.setValue('frequency_day_of_month', newDayOfMonth, { shouldValidate: true });
     
     if (mode === 'veces_por') {
-      form.setValue('measurement_type', newMeasurementType);
-      form.setValue('measurement_goal', newMeasurementGoal);
+      form.setValue('measurement_type', newMeasurementType, { shouldValidate: true });
+      form.setValue('measurement_goal', newMeasurementGoal, { shouldValidate: true });
     }
 
   }, [frequencyBuilder, type, form]);
@@ -203,12 +204,19 @@ export function AddHabitTaskDialog({
         const { frequency, frequency_interval, frequency_days, frequency_day_of_month, measurement_goal } = habitTask;
         let newBuilderState: FrequencyBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
         
-        if (frequency === 'every_x_days') {
-          newBuilderState = { ...newBuilderState, mode: 'cada', unit: 'days', interval: frequency_interval || 1 };
-        } else if (frequency === 'every_x_weeks') {
-            newBuilderState = { ...newBuilderState, mode: 'cada', unit: 'weeks', interval: frequency_interval || 1, specificDays: frequency_days || [] };
-        } else if (frequency === 'every_x_months') {
-            newBuilderState = { ...newBuilderState, mode: 'cada', unit: 'months', interval: frequency_interval || 1 };
+        if (frequency === 'every_x_days' || frequency === 'every_x_weeks' || frequency === 'every_x_months') {
+            const unitMap = {
+                'every_x_days': 'days',
+                'every_x_weeks': 'weeks',
+                'every_x_months': 'months',
+            }
+            newBuilderState = { 
+                ...newBuilderState, 
+                mode: 'cada', 
+                unit: unitMap[frequency as keyof typeof unitMap] as 'days' | 'weeks' | 'months',
+                interval: frequency_interval || 1,
+                specificDays: frequency_days || []
+            };
         } else if (frequency === 'specific_days') {
             newBuilderState = { ...newBuilderState, mode: 'los', specificDays: frequency_days || [] };
         } else if (frequency === 'specific_day_of_month') {

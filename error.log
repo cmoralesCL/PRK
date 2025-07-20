@@ -79,3 +79,12 @@ Caught non-error object: {
 }
 --------------------------------------------------
 
+[2025-07-20T03:42:47.031Z] - DETAILED ERROR LOG
+Caught non-error object: {
+  "code": "23514",
+  "details": "Failing row contains (a714a4e2-4d6a-4a0c-9538-4fd6fee1b759, e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c, Habito semanal, habit, 2025-07-11, null, null, every_x_weeks, null, 1, f, null, null, 2025-07-20 03:42:46.938411+00, f, null, null, 1, null).",
+  "hint": null,
+  "message": "new row for relation \"habit_tasks\" violates check constraint \"habit_tasks_frequency_check\""
+}
+--------------------------------------------------
+
