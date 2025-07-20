@@ -12,6 +12,7 @@ export interface AreaPrk {
   id: string;
   life_prk_id: string; // Corresponds to life_prk_id in Supabase
   title: string;
+  description?: string | null;
   // targetValue y currentValue ya no son la fuente principal de progreso
   target_value: number; 
   current_value: number;

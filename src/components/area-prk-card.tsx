@@ -57,8 +57,8 @@ export function AreaPrkCard({
                         <Gauge className="h-5 w-5 text-accent" />
                         {areaPrk.title}
                     </CardTitle>
-                    <CardDescription>
-                        Progreso General
+                    <CardDescription className="pt-1">
+                        {areaPrk.description}
                     </CardDescription>
                 </div>
                 <div className='flex items-center'>

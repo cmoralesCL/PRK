@@ -84,11 +84,12 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
     revalidatePath('/');
 }
 
-export async function addAreaPrk(values: { title: string; life_prk_id: string }) {
+export async function addAreaPrk(values: { title: string; description?: string, life_prk_id: string }) {
     const supabase = createClient();
     try {
         const { data, error } = await supabase.from('area_prks').insert([{ 
             title: values.title,
+            description: values.description || '',
             unit: '%', // Hardcode default unit
             life_prk_id: values.life_prk_id,
             target_value: 100,
@@ -104,13 +105,14 @@ export async function addAreaPrk(values: { title: string; life_prk_id: string })
     revalidatePath('/');
 }
 
-export async function updateAreaPrk(id: string, values: { title: string; }) {
+export async function updateAreaPrk(id: string, values: { title: string; description?: string }) {
     const supabase = createClient();
     try {
         const { error } = await supabase
             .from('area_prks')
             .update({ 
                 title: values.title,
+                description: values.description || '',
             })
             .eq('id', id);
 
@@ -333,9 +335,14 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
 
     // Common checks for all types
-    if (task.archived || !task.start_date) {
+    if (!task.start_date) {
         return false; 
     }
+
+    if (task.archived && task.archived_at && isAfter(targetDate, parseISO(task.archived_at))) {
+        return false;
+    }
+
     const startDate = startOfDay(parseISO(task.start_date));
 
     // Must be on or after start date
@@ -540,12 +547,14 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
 
     return allHabitTasks.filter(task => {
         // Basic filtering
-        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date || task.archived) {
+        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date) {
+            return false;
+        }
+        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), periodStart)) {
             return false;
         }
         const taskStartDate = parseISO(task.start_date);
         if (isAfter(taskStartDate, monthEnd)) return false; // Use monthEnd as the widest possible range for this check
-        if (task.archived_at && isBefore(parseISO(task.archived_at), periodStart)) return false;
         if (task.due_date && isBefore(parseISO(task.due_date), periodStart)) return false;
 
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
@@ -626,7 +635,7 @@ export async function getDashboardData(selectedDateString: string) {
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) {
         await logError(habitTasksError, {at: 'getDashboardData - allHabitTasks'});
         throw habitTasksError;
@@ -677,7 +686,7 @@ export async function getCalendarData(monthDate: Date) {
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false);
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
     if (habitTasksError) {
         await logError(habitTasksError, {at: 'getCalendarData - allHabitTasks'});
         throw habitTasksError;
@@ -715,7 +724,7 @@ export async function getCalendarData(monthDate: Date) {
     
     const commitments = allHabitTasks.filter(task => {
         // Basic filtering: must be a commitment type, have a start date, and not be archived before the period.
-        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date || task.archived) {
+        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date) {
             return false;
         }
         const taskStartDate = parseISO(task.start_date);

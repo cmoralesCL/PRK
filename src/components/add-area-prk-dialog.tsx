@@ -24,11 +24,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import type { AreaPrk } from '@/lib/types';
+import { Textarea } from './ui/textarea';
 
 const formSchema = z.object({
   title: z.string().min(3, {
     message: 'El título debe tener al menos 3 caracteres.',
   }),
+  description: z.string().optional(),
 });
 
 export type AreaPrkFormValues = z.infer<typeof formSchema>;
@@ -47,6 +49,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
+      description: '',
     },
   });
 
@@ -55,10 +58,12 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
         if (isEditing && areaPrk) {
             form.reset({
                 title: areaPrk.title,
+                description: areaPrk.description || '',
             });
         } else {
             form.reset({
                 title: '',
+                description: '',
             });
         }
     }
@@ -95,6 +100,24 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
                   <FormLabel>Título</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej: Mejorar mi salud cardiovascular" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción (Opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Define cómo se ve el éxito para este PRK."
+                      className="resize-none"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
