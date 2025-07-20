@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -101,7 +102,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                         frequency: values.frequency,
                         frequency_days: values.frequency_days,
                         frequency_interval: values.frequency_interval,
-                        frequency_unit: values.frequency_unit,
+                        frequency_day_of_month: values.frequency_day_of_month,
                         measurement_type: values.measurement_type,
                         measurement_goal: values.measurement_goal,
                     };

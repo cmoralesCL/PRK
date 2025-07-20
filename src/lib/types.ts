@@ -1,4 +1,5 @@
 
+
 export interface LifePrk {
   id: string;
   title: string;
@@ -39,6 +40,7 @@ export interface HabitTask {
     | 'every_x_days' 
     | 'every_x_weeks_specific_day' 
     | 'every_x_months_specific_day'
+    | 'specific_day_of_month'
     | 'every_x_weeks_commitment'
     | 'every_x_months_commitment'
     | 'weekly' 
@@ -46,6 +48,7 @@ export interface HabitTask {
     | null;
   frequency_interval?: number | null; // For 'every_x...' frequencies
   frequency_days?: string[] | null; // For 'specific_days'
+  frequency_day_of_month?: number | null; // For 'specific_day_of_month'
   
   weight: number;
 

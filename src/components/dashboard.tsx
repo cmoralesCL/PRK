@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -179,7 +180,7 @@ export function Dashboard({
                     frequency: values.frequency,
                     frequency_days: values.frequency_days,
                     frequency_interval: values.frequency_interval,
-                    frequency_unit: values.frequency_unit,
+                    frequency_day_of_month: values.frequency_day_of_month,
                     measurement_type: values.measurement_type,
                     measurement_goal: values.measurement_type === 'quantitative' ? values.measurement_goal : undefined,
                 };
@@ -383,3 +384,4 @@ export function Dashboard({
     </>
   );
 }
+

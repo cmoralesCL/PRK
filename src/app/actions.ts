@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -128,6 +129,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.measurement_type = values.measurement_type;
         dataToInsert.measurement_goal = values.measurement_goal;
         dataToInsert.frequency_days = values.frequency_days;
+        dataToInsert.frequency_day_of_month = values.frequency_day_of_month;
         
         if (values.frequency?.startsWith('every_x_')) {
             dataToInsert.frequency_interval = values.frequency_interval;
@@ -155,6 +157,7 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         // Ensure habit-specific fields are nulled out if type is not habit
         updateData.frequency = null;
         updateData.frequency_days = null;
+        updateData.frequency_day_of_month = null;
         updateData.measurement_type = null;
         updateData.measurement_goal = null;
         updateData.frequency_interval = null;
@@ -383,6 +386,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             case 'every_x_months_specific_day':
                 const monthsDiff = differenceInMonths(targetDate, startDate);
                 return monthsDiff >= 0 && monthsDiff % interval! === 0 && targetDate.getDate() === startDate.getDate();
+            case 'specific_day_of_month':
+                if (!task.frequency_day_of_month) return false;
+                return targetDate.getDate() === task.frequency_day_of_month;
             default:
                 return false;
         }

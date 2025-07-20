@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,6 +58,7 @@ const formSchema = z.object({
         'every_x_days', 
         'every_x_weeks_specific_day', 
         'every_x_months_specific_day',
+        'specific_day_of_month',
         'every_x_weeks_commitment',
         'every_x_months_commitment',
         'weekly', 
@@ -64,6 +66,7 @@ const formSchema = z.object({
     ]).optional(),
     frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
+    frequency_day_of_month: z.coerce.number().min(1, "El día debe ser entre 1 y 31.").max(31, "El día debe ser entre 1 y 31.").optional(),
     measurement_type: z.enum(['binary', 'quantitative']).optional(),
     measurement_goal: z.object({
         target: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
@@ -86,6 +89,15 @@ const formSchema = z.object({
 }, {
     message: "Debes especificar un intervalo mayor a 0.",
     path: ["frequency_interval"],
+})
+.refine((data) => {
+    if (data.type === 'habit' && data.frequency === 'specific_day_of_month') {
+        return data.frequency_day_of_month != null && data.frequency_day_of_month > 0;
+    }
+    return true;
+}, {
+    message: "Debes especificar un día del mes.",
+    path: ["frequency_day_of_month"],
 })
 .refine((data) => {
     if (data.type === 'habit' && data.measurement_type === 'quantitative') {
@@ -169,6 +181,7 @@ export function AddHabitTaskDialog({
                 frequency: habitTask.frequency || 'daily',
                 frequency_days: habitTask.frequency_days || [],
                 frequency_interval: habitTask.frequency_interval,
+                frequency_day_of_month: habitTask.frequency_day_of_month,
                 measurement_type: habitTask.measurement_type === 'quantitative' ? 'quantitative' : 'binary',
                 ...(habitTask.measurement_type === 'quantitative' && {
                     measurement_goal: {
@@ -388,6 +401,7 @@ export function AddHabitTaskDialog({
                                     <SelectItem value="every_x_days">Intervalo de Días</SelectItem>
                                     <SelectItem value="every_x_weeks_specific_day">Intervalo Semanal (en un día específico)</SelectItem>
                                     <SelectItem value="every_x_months_specific_day">Intervalo Mensual (en un día específico)</SelectItem>
+                                    <SelectItem value="specific_day_of_month">Día Fijo del Mes</SelectItem>
                                 </SelectGroup>
                                 <SelectGroup>
                                     <SelectLabel>Compromisos por Período (en la barra lateral)</SelectLabel>
@@ -413,6 +427,22 @@ export function AddHabitTaskDialog({
                                     Intervalo (n)
                                 </FormLabel>
                                 <Input type="number" min="1" placeholder="Ej: 2" {...field} />
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                         />
+                    )}
+
+                    {frequency === 'specific_day_of_month' && (
+                         <FormField
+                            control={form.control}
+                            name="frequency_day_of_month"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>
+                                    Día del Mes (1-31)
+                                </FormLabel>
+                                <Input type="number" min="1" max="31" placeholder="Ej: 15" {...field} />
                                 <FormMessage />
                                 </FormItem>
                             )}
