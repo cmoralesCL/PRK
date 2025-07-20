@@ -62,9 +62,7 @@ const formSchema = z.object({
         'every_x_months',
         'specific_day_of_month',
         'weekly', 
-        'monthly',
-        'every_x_weeks_commitment',
-        'every_x_months_commitment'
+        'monthly'
     ]).optional(),
     frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
@@ -107,7 +105,7 @@ const daysOfWeek = [
 const dayIdToLabel = (id: string) => daysOfWeek.find(d => d.id === id)?.label || '';
 
 type FrequencyBuilderState = {
-    mode: 'cada' | 'los' | 'veces_por';
+    mode: 'cada' | 'los' | 'veces_por' | 'dia_fijo';
     interval: number;
     unit: 'days' | 'weeks' | 'months';
     specificDays: string[];
@@ -142,7 +140,7 @@ export function AddHabitTaskDialog({
   useEffect(() => {
     if (type !== 'habit') return;
 
-    const { mode, interval, unit, specificDays } = frequencyBuilder;
+    const { mode, interval, unit, specificDays, dayOfMonth } = frequencyBuilder;
     let newFrequency: HabitTaskFormValues['frequency'] = 'daily';
     let newInterval: number | undefined = undefined;
     let newDays: string[] | undefined = undefined;
@@ -160,7 +158,7 @@ export function AddHabitTaskDialog({
           break;
         case 'weeks':
           newFrequency = 'every_x_weeks';
-          newDays = specificDays;
+          newDays = specificDays.length > 0 ? specificDays : undefined;
           break;
         case 'months':
           newFrequency = 'every_x_months';
@@ -169,29 +167,22 @@ export function AddHabitTaskDialog({
     } else if (mode === 'los') {
       newFrequency = 'specific_days';
       newDays = specificDays;
+    } else if (mode === 'dia_fijo') {
+      newFrequency = 'specific_day_of_month';
+      newDayOfMonth = dayOfMonth;
     } else if (mode === 'veces_por') {
       newMeasurementType = form.getValues('measurement_type') || 'binary';
       newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
       switch (unit) {
         case 'weeks':
-          newFrequency = interval === 1 && !newMeasurementGoal?.target ? 'weekly' : 'every_x_weeks_commitment';
+          newFrequency = 'weekly';
           break;
         case 'months':
-          newFrequency = interval === 1 && !newMeasurementGoal?.target ? 'monthly' : 'every_x_months_commitment';
+          newFrequency = 'monthly';
           break;
       }
     }
     
-    // Handle the separate "specific day of month" frequency from the main dropdown
-    const selectedFrequency = form.watch('frequency');
-    if (selectedFrequency === 'specific_day_of_month') {
-        newFrequency = 'specific_day_of_month';
-        newDayOfMonth = form.getValues('frequency_day_of_month');
-        newInterval = undefined;
-        newDays = undefined;
-    }
-
-    // Set form values based on builder state or dropdown choice
     form.setValue('frequency', newFrequency, { shouldValidate: true });
     form.setValue('frequency_interval', newInterval, { shouldValidate: true });
     form.setValue('frequency_days', newDays, { shouldValidate: true });
@@ -227,7 +218,7 @@ export function AddHabitTaskDialog({
         form.reset(baseValues);
 
         // --- Populate Frequency Builder ---
-        const { frequency, frequency_interval, frequency_days, measurement_goal } = habitTask;
+        const { frequency, frequency_interval, frequency_days, frequency_day_of_month, measurement_goal } = habitTask;
         let newBuilderState: FrequencyBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
         
         if (frequency === 'daily') {
@@ -239,10 +230,12 @@ export function AddHabitTaskDialog({
         } else if (frequency === 'every_x_months') {
              newBuilderState = { mode: 'cada', interval: frequency_interval || 1, unit: 'months', specificDays: [], dayOfMonth: 1 };
         } else if (frequency === 'specific_days') {
-            newBuilderState = { ...newBuilderState, mode: 'los', specificDays: frequency_days || [] };
-        } else if (frequency?.endsWith('_commitment') || frequency === 'weekly' || frequency === 'monthly') {
+            newBuilderState = { mode: 'los', specificDays: frequency_days || [], interval: 1, unit: 'days', dayOfMonth: 1 };
+        } else if (frequency === 'specific_day_of_month') {
+            newBuilderState = { mode: 'dia_fijo', dayOfMonth: frequency_day_of_month || 1, interval: 1, unit: 'days', specificDays: [] };
+        } else if (frequency === 'weekly' || frequency === 'monthly') {
             const unit = frequency.includes('week') ? 'weeks' : 'months';
-            newBuilderState = { ...newBuilderState, mode: 'veces_por', unit: unit, interval: measurement_goal?.target || 1 };
+            newBuilderState = { mode: 'veces_por', unit: unit, interval: measurement_goal?.target || 1, specificDays: [], dayOfMonth: 1 };
         } 
         setFrequencyBuilder(newBuilderState);
 
@@ -338,7 +331,7 @@ export function AddHabitTaskDialog({
                 <FrequencyBuilder state={frequencyBuilder} setState={setFrequencyBuilder} form={form} />
             )}
             
-            {type === 'habit' && (frequencyBuilder.mode === 'veces_por' || watchedFrequency?.endsWith('_commitment')) && (
+            {type === 'habit' && (frequencyBuilder.mode === 'veces_por') && (
                 <FormField control={form.control} name="measurement_type" render={({ field }) => (
                     <FormItem><FormLabel>Tipo de Medición</FormLabel><Select onValueChange={(value) => {
                         field.onChange(value);
@@ -351,7 +344,7 @@ export function AddHabitTaskDialog({
                         </SelectContent></Select><FormMessage /></FormItem>
                 )}/>
             )}
-            { type === 'habit' && form.watch('measurement_type') === 'quantitative' && (frequencyBuilder.mode === 'veces_por' || watchedFrequency?.endsWith('_commitment')) && (
+            { type === 'habit' && form.watch('measurement_type') === 'quantitative' && (frequencyBuilder.mode === 'veces_por') && (
                  <FormField control={form.control} name="measurement_goal.unit" render={({ field }) => (
                     <FormItem><FormLabel>Unidad de Medida</FormLabel><FormControl><Input placeholder="Ej: páginas, km, etc." {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
@@ -379,35 +372,8 @@ export function AddHabitTaskDialog({
 
 // Sub-component for the interactive frequency builder
 function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderState; setState: (state: FrequencyBuilderState) => void; form: any }) {
-    const { mode, interval, unit, specificDays } = state;
-    const watchedFrequency = form.watch('frequency');
-
-    const handleModeChange = (newMode: FrequencyBuilderState['mode']) => {
-        const baseState = { ...state, mode: newMode };
-        if (newMode === 'cada') {
-            baseState.unit = 'days';
-            baseState.interval = 1;
-        }
-        if (newMode === 'los') {
-            baseState.specificDays = [];
-        }
-        if (newMode === 'veces_por') {
-            baseState.unit = 'weeks';
-            baseState.interval = 1;
-        }
-        setState(baseState);
-        // Also clear the specific day of month frequency if we switch to the builder
-        form.setValue('frequency', undefined);
-    };
-
-    const handleUnitChange = (newUnit: FrequencyBuilderState['unit']) => {
-        setState({ ...state, unit: newUnit });
-    };
-
-    const handleIntervalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setState({ ...state, interval: parseInt(e.target.value, 10) || 1 });
-    };
-
+    const { mode, interval, unit, specificDays, dayOfMonth } = state;
+    
     const handleDayToggle = (dayId: string) => {
         const newDays = specificDays.includes(dayId)
             ? specificDays.filter(d => d !== dayId)
@@ -417,90 +383,78 @@ function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderSt
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
-            <FormField
-              control={form.control}
-              name="frequency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Frecuencia</FormLabel>
-                  <Select onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value !== 'specific_day_of_month') {
-                         setState({ ...state, mode: 'cada', interval: 1, unit: 'days' })
-                      }
-                  }} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una frecuencia" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectLabel>En Días Fijos</SelectLabel>
-                            <SelectItem value="daily">Diaria (todos los días)</SelectItem>
-                            <SelectItem value="specific_days">Días Específicos de la Semana</SelectItem>
-                            <SelectItem value="every_x_days">Intervalo de Días</SelectItem>
-                            <SelectItem value="every_x_weeks">Intervalo Semanal/Mensual</SelectItem>
-                            <SelectItem value="specific_day_of_month">Día Fijo del Mes</SelectItem>
-                        </SelectGroup>
-                        <SelectGroup>
-                            <SelectLabel>Compromisos por Período</SelectLabel>
-                            <SelectItem value="weekly">Semanal (Nº de veces)</SelectItem>
-                            <SelectItem value="monthly">Mensual (Nº de veces)</SelectItem>
-                            <SelectItem value="every_x_weeks_commitment">Compromiso Semanal Recurrente</SelectItem>
-                            <SelectItem value="every_x_months_commitment">Compromiso Mensual Recurrente</SelectItem>
-                        </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormLabel>Frecuencia</FormLabel>
+          <div className="text-sm">Repetir esta acción...</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={mode} onValueChange={(newMode: FrequencyBuilderState['mode']) => setState({ ...state, mode: newMode })}>
+                <SelectTrigger className="w-auto focus:ring-0">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="cada">cada</SelectItem>
+                    <SelectItem value="los">los</SelectItem>
+                    <SelectItem value="veces_por">X veces por</SelectItem>
+                    <SelectItem value="dia_fijo">el día</SelectItem>
+                </SelectContent>
+            </Select>
 
-            { (watchedFrequency === 'every_x_days' || watchedFrequency === 'every_x_weeks' || watchedFrequency === 'every_x_months_commitment' || watchedFrequency === 'every_x_weeks_commitment') && (
-                 <FormField control={form.control} name="frequency_interval" render={({ field }) => (
-                    <FormItem><FormLabel>Cada (n)</FormLabel><FormControl><Input type="number" min="1" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-            )}
-
-            { watchedFrequency === 'specific_days' && (
-                 <div className="flex flex-wrap gap-1.5 pt-2">
-                    {daysOfWeek.map(day => (
-                        <Button
-                            type="button"
-                            key={day.id}
-                            variant={form.getValues('frequency_days')?.includes(day.id) ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                                const currentDays = form.getValues('frequency_days') || [];
-                                const newDays = currentDays.includes(day.id)
-                                    ? currentDays.filter(d => d !== day.id)
-                                    : [...currentDays, day.id];
-                                form.setValue('frequency_days', newDays, { shouldValidate: true });
-                            }}
-                            className="h-8 w-8 p-0"
-                        >
-                            {day.label}
-                        </Button>
-                    ))}
-                </div>
-            )}
-             <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
-
-            
-            {watchedFrequency === 'specific_day_of_month' && (
-                <FormField
-                    control={form.control}
-                    name="frequency_day_of_month"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Día del Mes</FormLabel>
-                            <FormControl>
-                                <Input type="number" min="1" max="31" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
+            {(mode === 'cada' || mode === 'veces_por') && (
+                <Input
+                    type="number"
+                    min="1"
+                    className="w-16"
+                    value={interval}
+                    onChange={(e) => setState({ ...state, interval: parseInt(e.target.value, 10) || 1 })}
                 />
             )}
+            
+            {(mode === 'cada' || mode === 'veces_por') && (
+                 <Select value={unit} onValueChange={(newUnit: FrequencyBuilderState['unit']) => setState({ ...state, unit: newUnit })}>
+                    <SelectTrigger className="w-auto focus:ring-0">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="days">{interval === 1 ? 'día' : 'días'}</SelectItem>
+                        <SelectItem value="weeks">{interval === 1 ? 'semana' : 'semanas'}</SelectItem>
+                        <SelectItem value="months">{interval === 1 ? 'mes' : 'meses'}</SelectItem>
+                    </SelectContent>
+                </Select>
+            )}
+
+            {mode === 'dia_fijo' && (
+               <>
+                 <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    className="w-16"
+                    value={dayOfMonth}
+                    onChange={(e) => setState({ ...state, dayOfMonth: parseInt(e.target.value, 10) || 1 })}
+                />
+                <span>de cada mes</span>
+               </>
+            )}
+
+          </div>
+
+          {(mode === 'los' || (mode === 'cada' && unit === 'weeks')) && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+                {daysOfWeek.map(day => (
+                    <Button
+                        type="button"
+                        key={day.id}
+                        variant={specificDays.includes(day.id) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleDayToggle(day.id)}
+                        className="h-8 w-8 p-0"
+                    >
+                        {day.label}
+                    </Button>
+                ))}
+            </div>
+          )}
+           <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
         </div>
     );
 }
-
     
