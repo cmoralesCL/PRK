@@ -147,6 +147,10 @@ export function AddHabitTaskDialog({
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           frequency_interval: habitTask.frequency_interval ?? '',
           frequency_day_of_month: habitTask.frequency_day_of_month ?? '',
+          measurement_goal: {
+            ...habitTask.measurement_goal,
+            target_count: habitTask.measurement_goal?.target_count ?? ''
+          }
         };
         form.reset(baseValues);
       } else { // Reset for new task
@@ -156,6 +160,7 @@ export function AddHabitTaskDialog({
           frequency: 'DIARIA',
           frequency_interval: '',
           frequency_day_of_month: '',
+          measurement_goal: { target_count: '' },
           ...defaultValues,
         });
       }
@@ -177,15 +182,17 @@ export function AddHabitTaskDialog({
     if (values.type === 'habit') {
         dataToSave.frequency = values.frequency;
         dataToSave.measurement_type = values.measurement_type;
-        dataToSave.measurement_goal = null;
+
+        // Reset all frequency related fields before setting them
         dataToSave.frequency_interval = null;
         dataToSave.frequency_days = null;
         dataToSave.frequency_day_of_month = null;
+        dataToSave.measurement_goal = null;
 
         const freq = values.frequency;
 
-        if (freq?.includes('INTERVALO') || freq?.includes('RECURRENTE')) {
-            dataToSave.frequency_interval = values.frequency_interval || null;
+        if (freq === 'INTERVALO_DIAS' || freq === 'INTERVALO_SEMANAL_DIAS_FIJOS' || freq === 'INTERVALO_MENSUAL_DIA_FIJO' || freq?.includes('RECURRENTE')) {
+            dataToSave.frequency_interval = values.frequency_interval;
         }
 
         if (freq === 'SEMANAL_DIAS_FIJOS' || freq === 'INTERVALO_SEMANAL_DIAS_FIJOS') {
@@ -193,26 +200,17 @@ export function AddHabitTaskDialog({
         }
 
         if (freq === 'MENSUAL_DIA_FIJO' || freq === 'INTERVALO_MENSUAL_DIA_FIJO') {
-            dataToSave.frequency_day_of_month = values.frequency_day_of_month || null;
+            dataToSave.frequency_day_of_month = values.frequency_day_of_month;
         }
 
         if (freq?.includes('ACUMULATIVO')) {
-             if(values.measurement_type === 'binary') {
+             if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
                 dataToSave.measurement_goal = {
-                    target_count: values.measurement_goal?.target_count
+                    target_count: values.measurement_goal?.target_count,
+                    unit: values.measurement_goal?.unit,
                 };
-             } else {
-                 dataToSave.measurement_goal = values.measurement_goal;
              }
         }
-
-    } else { // Task or Project
-        dataToSave.frequency = null;
-        dataToSave.measurement_type = null;
-        dataToSave.measurement_goal = null;
-        dataToSave.frequency_days = null;
-        dataToSave.frequency_day_of_month = null;
-        dataToSave.frequency_interval = null;
     }
     
     onSave(dataToSave);
@@ -452,7 +450,7 @@ function FrequencyBuilder({ form }: { form: any }) {
                         )}/>
                     )}
                      <FormField control={form.control} name="measurement_type" render={({ field }) => (
-                        <FormItem className='hidden'><FormControl><Input {...field} /></FormControl></FormItem>
+                        <FormItem className='hidden'><FormControl><Input {...field} value="binary" /></FormControl></FormItem>
                      )}/>
                 </div>
             )}
