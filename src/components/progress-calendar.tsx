@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addWeeks, subWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -42,6 +42,11 @@ export function ProgressCalendar({
   onDayClick,
 }: ProgressCalendarProps) {
   const [view, setView] = useState<'month' | 'week'>('month');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const changePeriod = (offset: number) => {
     const newDate = view === 'month' 
@@ -136,7 +141,7 @@ export function ProgressCalendar({
                       className={cn(
                         "h-40 border rounded-lg p-2 flex flex-col cursor-pointer transition-colors hover:bg-accent/50",
                         !isCurrentMonth && view === 'month' && "bg-muted/30 text-muted-foreground",
-                        isToday(day) && "border-primary border-2"
+                        isMounted && isToday(day) && "border-primary border-2"
                       )}
                     >
                       <div className={cn("font-semibold")}>
