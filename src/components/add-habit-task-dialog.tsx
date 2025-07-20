@@ -148,41 +148,33 @@ export function AddHabitTaskDialog({
     let newDayOfMonth: number | undefined = undefined;
   
     if (mode === 'los') {
-      newFrequency = 'specific_days';
-      newDays = specificDays;
-      newInterval = undefined;
-      newDayOfMonth = undefined;
+        newFrequency = 'specific_days';
+        newDays = specificDays;
     } else if (mode === 'dia_fijo') {
-      newFrequency = 'specific_day_of_month';
-      newDayOfMonth = dayOfMonth;
-      newInterval = undefined;
-      newDays = undefined;
+        newFrequency = 'specific_day_of_month';
+        newDayOfMonth = dayOfMonth;
     } else if (mode === 'veces_por') {
-      const newMeasurementType = form.getValues('measurement_type') || 'binary';
-      const newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
-      form.setValue('measurement_type', newMeasurementType, { shouldValidate: true });
-      form.setValue('measurement_goal', newMeasurementGoal, { shouldValidate: true });
+        const newMeasurementType = form.getValues('measurement_type') || 'binary';
+        const newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
+        form.setValue('measurement_type', newMeasurementType, { shouldValidate: true });
+        form.setValue('measurement_goal', newMeasurementGoal, { shouldValidate: true });
       
-      if (unit === 'weeks') {
-        newFrequency = 'weekly';
-      } else if (unit === 'months') {
-        newFrequency = 'monthly';
-      }
-      newInterval = undefined;
-      newDays = undefined;
-      newDayOfMonth = undefined;
+        if (unit === 'weeks') {
+            newFrequency = 'weekly';
+        } else if (unit === 'months') {
+            newFrequency = 'monthly';
+        }
     } else if (mode === 'cada') {
-      newInterval = interval;
-      if (unit === 'days') {
-        newFrequency = interval === 1 ? 'daily' : 'every_x_days';
-        if (interval === 1) newInterval = undefined;
-      } else if (unit === 'weeks') {
-        newFrequency = 'every_x_weeks';
-        newDays = specificDays.length > 0 ? specificDays : undefined;
-      } else if (unit === 'months') {
-        newFrequency = 'every_x_months';
-      }
-      newDayOfMonth = undefined;
+        newInterval = interval;
+        if (unit === 'days') {
+            newFrequency = interval === 1 ? 'daily' : 'every_x_days';
+            if (interval === 1) newInterval = undefined;
+        } else if (unit === 'weeks') {
+            newFrequency = 'every_x_weeks';
+            newDays = specificDays.length > 0 ? specificDays : undefined;
+        } else if (unit === 'months') {
+            newFrequency = 'every_x_months';
+        }
     }
     
     form.setValue('frequency', newFrequency, { shouldValidate: true });
@@ -383,7 +375,7 @@ function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderSt
           <FormLabel>Frecuencia</FormLabel>
           <div className="text-sm">Repetir esta acción...</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={mode} onValueChange={(newMode: FrequencyBuilderState['mode']) => setState({ ...state, mode: newMode })}>
+            <Select value={mode} onValueChange={(newMode: FrequencyBuilderState['mode']) => setState({ ...state, mode: newMode, specificDays: [] })}>
                 <SelectTrigger className="w-auto focus:ring-0">
                     <SelectValue />
                 </SelectTrigger>

@@ -189,3 +189,55 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-20T05:11:32.111Z] - DETAILED ERROR LOG
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (ce320877-a2b5-4447-a554-88d8faf15269, 5232709e-699c-4ea8-8473-4b5b8cb7a79e, vdvfdvfv, habit, 2025-07-10, null, null, every_x_weeks, {mon,wed,fri}, 1, f, null, null, 2025-07-20 05:11:32.030272+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "vdvfdvfv",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "5232709e-699c-4ea8-8473-4b5b8cb7a79e",
+  "start_date": "2025-07-10",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_days": [
+    "mon",
+    "wed",
+    "fri"
+  ],
+  "frequency_interval": 1
+}
+--------------------------------------------------
+
+[2025-07-20T05:21:10.907Z] - DETAILED ERROR LOG
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (5f26afe0-393e-4e01-880c-f2a78a9cd39e, e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c, sdfsf, habit, 2025-07-10, null, null, every_x_weeks, {mon,wed,fri}, 1, f, null, null, 2025-07-20 05:21:10.826128+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "sdfsf",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c",
+  "start_date": "2025-07-10",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_days": [
+    "mon",
+    "wed",
+    "fri"
+  ],
+  "frequency_interval": 1
+}
+--------------------------------------------------
+
