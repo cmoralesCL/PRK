@@ -1,7 +1,7 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers, Save } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -11,12 +11,7 @@ import { Input } from './ui/input';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Progress } from './ui/progress';
 
 interface HabitTaskListItemProps {
   item: HabitTask;
@@ -48,11 +43,13 @@ export function HabitTaskListItem({
   };
   const Icon = getIcon();
   const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
-  const [progressValue, setProgressValue] = useState(item.current_progress_value ?? '');
+  const [progressValue, setProgressValue] = useState('');
+  const [currentTotal, setCurrentTotal] = useState(item.current_progress_value ?? 0);
 
   useEffect(() => {
     setIsCompleted(item.completedToday ?? false);
-    setProgressValue(item.current_progress_value ?? '');
+    setCurrentTotal(item.current_progress_value ?? 0)
+    setProgressValue(''); // Reset input after a save
   }, [item.completedToday, item.current_progress_value]);
 
   const handleToggle = (checked: boolean) => {
@@ -65,7 +62,7 @@ export function HabitTaskListItem({
   const handleSaveQuantitative = () => {
     if (onToggle) {
       const numericValue = Number(progressValue);
-      if (!isNaN(numericValue)) {
+      if (!isNaN(numericValue) && numericValue > 0) {
         onToggle(item.id, true, selectedDate, numericValue);
       }
     }
@@ -86,8 +83,11 @@ export function HabitTaskListItem({
 
   // Dashboard & Dialog Variants
   if (item.measurement_type === 'quantitative') {
+    const target = item.measurement_goal?.target_count ?? 1;
+    const progressPercentage = target > 0 ? (currentTotal / target) * 100 : 0;
+
     return (
-        <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
+        <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
@@ -114,19 +114,28 @@ export function HabitTaskListItem({
                 </div>
             </div>
             {item.description && <p className="pl-8 text-xs text-muted-foreground">{item.description}</p>}
+            
+            <div className="pl-8 space-y-2">
+                 <div className="flex justify-between items-end">
+                    <span className="text-sm font-semibold text-primary">{currentTotal}</span>
+                    <span className="text-xs text-muted-foreground">/ {item.measurement_goal?.target_count} {item.measurement_goal?.unit}</span>
+                 </div>
+                 <Progress value={progressPercentage} className="h-2" />
+            </div>
+
             {onToggle && (
-                <div className="pl-8 flex items-center gap-2">
+                <div className="pl-8 flex items-center gap-2 pt-1">
                     <Input
                         type="number"
                         value={progressValue}
                         onChange={(e) => setProgressValue(e.target.value)}
-                        className="h-8 w-20"
-                        placeholder="Valor"
+                        className="h-8 w-24 bg-background"
+                        placeholder="Añadir..."
                     />
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        / {item.measurement_goal?.target} {item.measurement_goal?.unit}
-                    </span>
-                    <Button size="sm" className="h-8 ml-auto" onClick={handleSaveQuantitative}>Guardar</Button>
+                    <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>
+                      <Save className="h-4 w-4 mr-2"/>
+                      Guardar
+                    </Button>
                 </div>
             )}
         </div>

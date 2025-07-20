@@ -212,13 +212,16 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
                 .single();
 
             if (taskError || !task) {
+                await logError(taskError, { at: 'logHabitTaskCompletion - get task for percentage' });
                 throw new Error(`Could not find task with id ${habitTaskId} to calculate progress percentage.`);
             }
 
             const target = task.measurement_goal?.target_count;
             if (typeof target === 'number' && target > 0) {
+                // For quantitative goals, the percentage is the value over target
                 completionPercentage = progressValue / target;
             } else {
+                // For binary goals with a progress value (e.g. from a commitment), a value > 0 means 100% for that instance
                  completionPercentage = progressValue > 0 ? 1 : 0;
             }
         }
@@ -361,7 +364,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
         }
         
         // No due date means it's a one-off task for the start date, visible until one day after
-        return isWithinInterval(targetDate, { start: startDate, end: addDays(startDate, 1) });
+        return isSameDay(targetDate, startDate);
     }
     
     // For recurring habits
@@ -488,6 +491,12 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null };
+        }
+        
+        const hasFailedCriticalTask = relevantTasks.some(task => task.is_critical && !task.completedToday);
+
+        if (hasFailedCriticalTask) {
+            return { ...areaPrk, progress: 0 };
         }
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
@@ -645,28 +654,29 @@ export async function getCalendarData(monthDate: Date) {
                 return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
             
             case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+                if (!task.frequency_interval) return false;
                 // Check each week in the month's view to see if it's an "objective week"
                 for (let i = 0; i < daysInView.length; i += 7) {
                     const weekStart = daysInView[i];
-                    const weekDiff = differenceInWeeks(weekStart, taskStartDate, { weekStartsOn: 1 });
-                    const interval = task.frequency_interval || 1;
-                    if (weekDiff >= 0 && weekDiff % interval === 0) {
+                    const weekDiff = Math.floor(differenceInDays(startOfWeek(weekStart, { weekStartsOn: 1 }), startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
+
+                    if (weekDiff >= 0 && weekDiff % task.frequency_interval === 0) {
                         return true; // If at least one week in the view is active, show the commitment
                     }
                 }
                 return false;
 
             case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+                if (!task.frequency_interval) return false;
                 const monthDiff = differenceInMonths(monthStart, taskStartDate);
-                const interval = task.frequency_interval || 1;
-                return monthDiff >= 0 && monthDiff % interval === 0;
+                return monthDiff >= 0 && monthDiff % task.frequency_interval === 0;
 
             case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+                if (!task.frequency_interval) return false;
                 const currentQuarterStart = startOfQuarter(monthDate);
                 const taskQuarterStart = startOfQuarter(taskStartDate);
                 const quarterDiff = Math.floor(differenceInMonths(currentQuarterStart, taskQuarterStart) / 3);
-                const qInterval = task.frequency_interval || 1;
-                return quarterDiff >=0 && quarterDiff % qInterval === 0;
+                return quarterDiff >=0 && quarterDiff % task.frequency_interval === 0;
 
             default:
                 return false;
@@ -674,26 +684,21 @@ export async function getCalendarData(monthDate: Date) {
     }).map(task => {
         let logs: ProgressLog[] = [];
         let periodStart: Date, periodEnd: Date;
+        
+        const freq = task.frequency;
 
-        switch (task.frequency) {
-            case 'SEMANAL_ACUMULATIVO':
-            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-                periodStart = startOfWeek(monthDate, { weekStartsOn: 1 });
-                periodEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
-                break;
-            case 'MENSUAL_ACUMULATIVO':
-            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-                periodStart = monthStart;
-                periodEnd = monthEnd;
-                break;
-            case 'TRIMESTRAL_ACUMULATIVO':
-            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-                periodStart = startOfQuarter(monthDate);
-                periodEnd = endOfQuarter(monthDate);
-                break;
-            default: // ANUAL
-                periodStart = startOfYear(monthDate);
-                periodEnd = endOfQuarter(monthDate);
+        if(freq?.startsWith('SEMANAL')) {
+            periodStart = startOfWeek(monthDate, { weekStartsOn: 1 });
+            periodEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
+        } else if (freq?.startsWith('MENSUAL')) {
+            periodStart = monthStart;
+            periodEnd = monthEnd;
+        } else if (freq?.startsWith('TRIMESTRAL')) {
+            periodStart = startOfQuarter(monthDate);
+            periodEnd = endOfQuarter(monthDate);
+        } else { // ANUAL
+            periodStart = startOfYear(monthDate);
+            periodEnd = endOfQuarter(monthDate);
         }
 
         logs = allProgressLogs.filter(log => 
@@ -797,40 +802,55 @@ export async function getCalendarData(monthDate: Date) {
     
     // Accumulative commitments for the month
     commitments.forEach(task => {
-        let progressPercentage = 0;
+        if (!task.frequency) return;
         const target = task.measurement_goal?.target_count ?? 1;
+        let periodProgress = 0;
 
-        if (task.frequency === 'SEMANAL_ACUMULATIVO' || task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
+        // --- Calculate the progress for this specific commitment ---
+        if (task.frequency.startsWith('SEMANAL')) {
+            // Iterate through each week of the month
             let weekStart = startOfWeek(monthStart, {weekStartsOn: 1});
+            let weeksInPeriod = 0;
             while(weekStart <= monthEnd) {
                 const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
                 
+                // Check if this specific week is an "objective week"
+                if (task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE' && task.frequency_interval) {
+                   const weekDiff = Math.floor(differenceInDays(weekStart, startOfWeek(parseISO(task.start_date!), {weekStartsOn: 1})) / 7);
+                   if (weekDiff < 0 || weekDiff % task.frequency_interval !== 0) {
+                        weekStart = addDays(weekStart, 7);
+                        continue; // Skip this week
+                   }
+                }
+                weeksInPeriod++;
+
                 const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
                 
-                let weeklyProgress = 0;
                  if (task.measurement_type === 'quantitative') {
                     const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                    weeklyProgress = target > 0 ? (totalValue / target) : 0;
+                    periodProgress += target > 0 ? (totalValue / target) : 0;
                 } else if (task.measurement_type === 'binary') {
                     const completions = logs.filter(l => l.completion_percentage === 1).length;
-                    weeklyProgress = target > 0 ? (completions / target) : 0;
+                    periodProgress += target > 0 ? (completions / target) : 0;
                 }
-                progressPercentage += weeklyProgress;
-
                 weekStart = addDays(weekStart, 7);
             }
-        } else { // monthly or every_x_months_commitment
+             // Average the progress over the number of active weeks in the month
+            if(weeksInPeriod > 0) periodProgress /= weeksInPeriod;
+
+        } else { // Monthly, Quarterly, Annual commitments
             const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
              if (task.measurement_type === 'quantitative') {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = target > 0 ? (totalValue / target) : 0;
+                periodProgress = target > 0 ? (totalValue / target) : 0;
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
-                progressPercentage = target > 0 ? (completions / target) : 0;
+                periodProgress = target > 0 ? (completions / target) : 0;
             }
         }
-
-        totalMonthlyWeightedProgress += progressPercentage * task.weight;
+        
+        // --- Add its weighted progress to the monthly total ---
+        totalMonthlyWeightedProgress += Math.min(periodProgress, 1) * task.weight; // Cap progress at 100%
         totalMonthlyWeight += task.weight;
     });
 
@@ -842,7 +862,7 @@ export async function getCalendarData(monthDate: Date) {
         dailyProgress,
         habitTasks: habitTasksByDay,
         weeklyProgress,
-        monthlyProgress: monthlyProgress,
+        monthlyProgress: monthlyProgress > 100 ? 100 : monthlyProgress,
         areaPrks,
         commitments,
     };
