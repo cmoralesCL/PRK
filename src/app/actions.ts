@@ -130,10 +130,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.measurement_goal = values.measurement_goal;
         dataToInsert.frequency_days = values.frequency_days;
         dataToInsert.frequency_day_of_month = values.frequency_day_of_month;
-        
-        if (values.frequency?.startsWith('every_x_')) {
-            dataToInsert.frequency_interval = values.frequency_interval;
-        }
+        dataToInsert.frequency_interval = values.frequency_interval;
     }
 
 
@@ -163,10 +160,10 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         updateData.frequency_interval = null;
     } else {
         // If it is a habit but measurement is binary, null out goal
-        if (values.measurement_type === 'binary') {
+        if (values.measurement_type === 'binary' && values.frequency !== 'weekly' && values.frequency !== 'monthly') {
             updateData.measurement_goal = null;
         }
-        
+
         if (values.frequency?.startsWith('every_x_')) {
              updateData.frequency_interval = values.frequency_interval;
         } else {
@@ -362,7 +359,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 
     } else if (task.type === 'habit') {
         const interval = task.frequency_interval;
-        if (task.frequency?.startsWith('every_x_') && (interval === null || interval === undefined || interval < 1)) {
+
+        // Check for invalid interval for interval-based frequencies
+        if (task.frequency?.startsWith('every_x_') && (!interval || interval < 1)) {
             return false;
         }
         
@@ -371,21 +370,35 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return true;
             case 'weekly':
             case 'monthly':
-            case 'every_x_weeks_commitment':
-            case 'every_x_months_commitment':
-                return false; // These are handled as commitments, not on specific days.
+                return false; // These are commitments, not scheduled on specific days.
             case 'specific_days':
-                const dayOfWeek = format(targetDate, 'eee').toLowerCase();
-                return task.frequency_days?.includes(dayOfWeek) ?? false;
+                const dayOfWeek = getDay(targetDate); // Sunday is 0, Monday is 1...
+                // date-fns: Sunday=0, Monday=1, ..., Saturday=6
+                // Our convention: 'sun', 'mon', ...
+                const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                return task.frequency_days?.includes(dayMap[dayOfWeek]) ?? false;
             case 'every_x_days':
-                 const daysDiff = differenceInDays(targetDate, startDate);
-                return daysDiff >= 0 && daysDiff % interval! === 0;
-            case 'every_x_weeks_specific_day':
-                const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: getDay(startDate) as any });
-                return weeksDiff >= 0 && weeksDiff % interval! === 0 && getDay(targetDate) === getDay(startDate);
-            case 'every_x_months_specific_day':
+                if (!interval) return false;
+                const daysDiff = differenceInDays(targetDate, startDate);
+                return daysDiff >= 0 && daysDiff % interval === 0;
+            case 'every_x_weeks':
+                if (!interval) return false;
+                const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
+                if (weeksDiff < 0 || weeksDiff % interval !== 0) {
+                    return false;
+                }
+                 // If specific days are set, check if the current day is one of them
+                if (task.frequency_days && task.frequency_days.length > 0) {
+                    const currentDayOfWeek = getDay(targetDate);
+                    const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                    return task.frequency_days.includes(dayMap[currentDayOfWeek]);
+                }
+                // If no specific days, it occurs on the same day of the week as the start date
+                return getDay(targetDate) === getDay(startDate);
+            case 'every_x_months':
+                 if (!interval) return false;
                 const monthsDiff = differenceInMonths(targetDate, startDate);
-                return monthsDiff >= 0 && monthsDiff % interval! === 0 && targetDate.getDate() === startDate.getDate();
+                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === startDate.getDate();
             case 'specific_day_of_month':
                 if (!task.frequency_day_of_month) return false;
                 return targetDate.getDate() === task.frequency_day_of_month;
@@ -564,59 +577,29 @@ export async function getCalendarData(monthDate: Date) {
         }
 
         const taskStartDate = parseISO(task.start_date);
-        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000);
-        const taskInterval = { start: taskStartDate, end: taskEndDate };
-        
-        if (task.frequency === 'weekly' || task.frequency === 'monthly') {
-            const monthInterval = { start: monthStart, end: monthEnd };
-            return areIntervalsOverlapping(taskInterval, monthInterval);
+        const monthInterval = { start: monthStart, end: monthEnd };
+
+        if (!areIntervalsOverlapping({start: taskStartDate, end: task.archived_at ? parseISO(task.archived_at) : new Date()}, monthInterval)) {
+            return false;
         }
 
-        if (task.frequency === 'every_x_weeks_commitment') {
-            const interval = task.frequency_interval;
-            if (!interval || interval < 1) return false;
-            
-            const weekOfCalendar = startOfWeek(monthDate, { weekStartsOn: 1 });
-            const weeksDiff = differenceInWeeks(weekOfCalendar, startOfWeek(taskStartDate, { weekStartsOn: 1 }));
-            return weeksDiff >= 0 && weeksDiff % interval === 0;
-        }
-
-        if (task.frequency === 'every_x_months_commitment') {
-             const interval = task.frequency_interval;
-            if (!interval || interval < 1) return false;
-
-            const monthsDiff = differenceInMonths(monthStart, startOfMonth(taskStartDate));
-            return monthsDiff >= 0 && monthsDiff % interval === 0;
-        }
-
-        return false;
+        return task.frequency === 'weekly' || task.frequency === 'monthly';
     }).map(task => {
         let logs: ProgressLog[] = [];
-        const currentWeekStart = startOfWeek(monthDate, { weekStartsOn: 1 });
-        const currentWeekEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
+        const periodStart = task.frequency === 'weekly' ? startOfWeek(monthDate, { weekStartsOn: 1 }) : monthStart;
+        const periodEnd = task.frequency === 'weekly' ? endOfWeek(monthDate, { weekStartsOn: 1 }) : monthEnd;
 
-        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
-            logs = allProgressLogs.filter(log => 
-                log.habit_task_id === task.id &&
-                isWithinInterval(parseISO(log.completion_date), { start: currentWeekStart, end: currentWeekEnd })
-            );
-        } else { // monthly or every_x_months_commitment
-             logs = allProgressLogs.filter(log => 
-                log.habit_task_id === task.id &&
-                isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd })
-            );
-        }
+        logs = allProgressLogs.filter(log => 
+            log.habit_task_id === task.id &&
+            isWithinInterval(parseISO(log.completion_date), { start: periodStart, end: periodEnd })
+        );
 
         const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? 1 : 0)), 0);
         
         let completedToday = false; // "completedToday" here means "completed for the period"
-        if (task.measurement_type === 'binary') {
-            const targetCompletions = task.measurement_goal?.target ?? 1;
-            const actualCompletions = logs.filter(l => l.completion_percentage === 1).length;
-            completedToday = actualCompletions >= targetCompletions;
-        } else if (task.measurement_type === 'quantitative') {
-            const targetValue = task.measurement_goal?.target ?? 0;
-            completedToday = targetValue > 0 ? totalProgressValue >= targetValue : totalProgressValue > 0;
+        if (task.measurement_type === 'binary' || task.measurement_type === 'quantitative') {
+            const target = task.measurement_goal?.target ?? 1;
+            completedToday = target > 0 ? totalProgressValue >= target : totalProgressValue > 0;
         }
 
         return {
@@ -651,35 +634,25 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         // 2. Weekly commitments progress
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'every_x_weeks_commitment');
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
         weeklyCommitmentTasks.forEach(task => {
             if (!task.start_date) return;
             const taskStartDate = parseISO(task.start_date);
             
-            if(task.frequency === 'every_x_weeks_commitment') {
-                const interval = task.frequency_interval;
-                if(!interval || interval < 1) return;
-                const weeksDiff = differenceInWeeks(weekStart, startOfWeek(taskStartDate, { weekStartsOn: 1 }));
-                if (weeksDiff < 0 || weeksDiff % interval !== 0) {
-                    return; // Not an active week for this commitment
-                }
-            } else { // 'weekly'
-                const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
-                if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
-                    return;
-                }
+            const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
+            if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
+                return;
             }
-
 
             let progressPercentage = 0;
             const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
-            
-            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+            const target = task.measurement_goal?.target ?? 1;
+
+            if (task.measurement_type === 'quantitative') {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
+                progressPercentage = target > 0 ? (totalValue / target) : 0;
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
-                const target = task.measurement_goal?.target ?? 1;
                 progressPercentage = target > 0 ? (completions / target) : 0;
             }
             
@@ -714,68 +687,41 @@ export async function getCalendarData(monthDate: Date) {
             totalMonthlyWeight += task.weight;
         });
     });
-
-    // Weekly and Monthly commitments for the month
-    const accumulativeCommitments = allHabitTasks.filter(c => {
-        if (!c.start_date) return false;
-        const freq = c.frequency;
-        return freq === 'weekly' || freq === 'monthly' || freq === 'every_x_weeks_commitment' || freq === 'every_x_months_commitment';
-    });
-
-    accumulativeCommitments.forEach(task => {
+    
+    // Accumulative commitments for the month
+    commitments.forEach(task => {
         let progressPercentage = 0;
-        let logs;
-        
-        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
+        const target = task.measurement_goal?.target ?? 1;
+
+        if (task.frequency === 'weekly') {
             let weekStart = startOfWeek(monthStart, {weekStartsOn: 1});
             while(weekStart <= monthEnd) {
                 const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
                 
-                if (task.frequency === 'every_x_weeks_commitment') {
-                     const interval = task.frequency_interval;
-                     if (!interval || interval < 1) continue;
-                     const weeksDiff = differenceInWeeks(weekStart, startOfWeek(parseISO(task.start_date!), { weekStartsOn: 1 }));
-                     if(weeksDiff < 0 || weeksDiff % interval !== 0) {
-                         weekStart = addDays(weekStart, 7);
-                         continue;
-                     }
-                }
-
-                logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
                 
                 let weeklyProgress = 0;
-                 if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+                 if (task.measurement_type === 'quantitative') {
                     const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                    weeklyProgress = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
+                    weeklyProgress = target > 0 ? (totalValue / target) : 0;
                 } else if (task.measurement_type === 'binary') {
                     const completions = logs.filter(l => l.completion_percentage === 1).length;
-                    const target = task.measurement_goal?.target ?? 1;
                     weeklyProgress = target > 0 ? (completions / target) : 0;
                 }
                 progressPercentage += weeklyProgress;
 
                 weekStart = addDays(weekStart, 7);
             }
-
-        } else { // monthly or every_x_months
-            if (task.frequency === 'every_x_months_commitment') {
-                const interval = task.frequency_interval;
-                if (!interval || interval < 1) return;
-                const monthsDiff = differenceInMonths(monthStart, startOfMonth(parseISO(task.start_date!)));
-                if(monthsDiff < 0 || monthsDiff % interval !== 0) return;
-            }
-
-            logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
-             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
+        } else { // monthly
+            const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
+             if (task.measurement_type === 'quantitative') {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
+                progressPercentage = target > 0 ? (totalValue / target) : 0;
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
-                const target = task.measurement_goal?.target ?? 1;
                 progressPercentage = target > 0 ? (completions / target) : 0;
             }
         }
-
 
         totalMonthlyWeightedProgress += progressPercentage * task.weight;
         totalMonthlyWeight += task.weight;
@@ -825,5 +771,3 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
-
-    
