@@ -28,6 +28,7 @@ import {
     differenceInMonths,
     differenceInDays,
     isAfter,
+    isBefore,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -626,30 +627,45 @@ export async function getCalendarData(monthDate: Date) {
         }
 
         // Basic check: task must not have been archived before the start of the month view
-        if(task.archived_at && isAfter(monthStart, parseISO(task.archived_at))) {
+        if(task.archived_at && isBefore(parseISO(task.archived_at), monthStart)) {
             return false;
         }
         
+        // Basic check: if task has a due date, it must not end before the month starts
+        if (task.due_date && isBefore(parseISO(task.due_date), monthStart)) {
+            return false;
+        }
+
         const isCommitmentType = task.frequency === 'weekly' 
             || task.frequency === 'monthly' 
             || task.frequency === 'every_x_weeks_commitment' 
             || task.frequency === 'every_x_months_commitment';
 
         if (!isCommitmentType) return false;
+        
+        const monthInterval = { start: monthStart, end: monthEnd };
 
-        // Specific logic for recurring monthly commitments
+        if (task.frequency === 'monthly') {
+            const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
+            return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
+        }
+        
         if (task.frequency === 'every_x_months_commitment') {
+             if (isAfter(taskStartDate, monthEnd)) return false;
+
             const interval = task.frequency_interval || 1;
             const monthsDiff = differenceInMonths(monthStart, taskStartDate);
-            // Check if the current month is a valid interval month
-            if (monthsDiff < 0) return false; // Starts in the future
+            
+            if (monthsDiff < 0) { // Starts in a future month, but might overlap if start is mid-month
+                return areIntervalsOverlapping(monthInterval, { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : monthEnd }, { inclusive: true });
+            }
+            
             return monthsDiff % interval === 0;
         }
         
-        // For other commitments (weekly, monthly), just check they are active in the interval
-        const monthInterval = { start: monthStart, end: monthEnd };
+        // For weekly commitments, just check they are active in the interval
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-        return areIntervalsOverlapping(monthInterval, taskInterval);
+        return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
 
     }).map(task => {
         let logs: ProgressLog[] = [];
@@ -661,6 +677,7 @@ export async function getCalendarData(monthDate: Date) {
                 periodEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
                 break;
             case 'monthly':
+            case 'every_x_months_commitment':
                 periodStart = monthStart;
                 periodEnd = monthEnd;
                 break;
@@ -672,15 +689,6 @@ export async function getCalendarData(monthDate: Date) {
                 }
                 periodStart = start;
                 periodEnd = endOfWeek(start, { weekStartsOn: 1 });
-                break;
-            case 'every_x_months_commitment':
-                 if (!task.start_date) return task; // Should not happen due to filter
-                let mStart = startOfMonth(parseISO(task.start_date));
-                while(endOfMonth(mStart) < monthDate) {
-                    mStart = addMonths(mStart, task.frequency_interval || 1);
-                }
-                periodStart = mStart;
-                periodEnd = endOfMonth(mStart);
                 break;
             default:
                 periodStart = monthStart;

@@ -367,3 +367,51 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-20T06:28:10.059Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (bf54e26f-354b-48c9-ae99-e2590d337cbf, b8b73760-4dac-4a6e-8b49-1b43d412d767, asdadad, habit, 2025-07-03, null, null, every_x_months_commitment, null, 1, f, null, null, 2025-07-20 06:28:09.976692+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "data": {
+    "title": "asdadad",
+    "description": "",
+    "area_prk_id": "b8b73760-4dac-4a6e-8b49-1b43d412d767",
+    "weight": 1,
+    "is_critical": false,
+    "start_date": "2025-07-03",
+    "type": "habit",
+    "frequency": "every_x_months_commitment",
+    "frequency_interval": 1
+  }
+}
+--------------------------------------------------
+
+[2025-07-20T06:28:51.887Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (1aa2fe89-7fb4-492b-9a9a-e1a9f374fb00, e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c, asdad, habit, 2025-07-03, null, null, every_x_months_commitment, null, 1, f, null, null, 2025-07-20 06:28:51.803773+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "data": {
+    "title": "asdad",
+    "description": "",
+    "area_prk_id": "e3c3c0b1-30c4-4e61-9730-f4fa3783ea9c",
+    "weight": 1,
+    "is_critical": false,
+    "start_date": "2025-07-03",
+    "type": "habit",
+    "frequency": "every_x_months_commitment",
+    "frequency_interval": 1
+  }
+}
+--------------------------------------------------
+

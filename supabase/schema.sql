@@ -37,7 +37,7 @@ CREATE TABLE public.habit_tasks (
     created_at TIMESTAMPTZ DEFAULT now(),
     archived BOOLEAN DEFAULT false,
     start_date DATE,
-    frequency TEXT CHECK (frequency IN ('daily', 'weekly', 'monthly', 'specific_days')),
+    frequency TEXT CHECK (frequency IN ('daily', 'weekly', 'monthly', 'specific_days', 'every_x_months_commitment')),
     frequency_days TEXT[],
     weight NUMERIC DEFAULT 1,
     due_date DATE,
