@@ -14,6 +14,13 @@ function formatLogMessage(error: any, contextData?: any): string {
     const timestamp = new Date().toISOString();
     let errorMessage = `[${timestamp}] - DETAILED ERROR LOG\n`;
 
+    // Añadir el punto de origen de la función si se proporciona
+    if (contextData?.at) {
+        errorMessage += `Error occurred at: ${contextData.at}\n`;
+        // Eliminar 'at' del objeto de contexto para no duplicarlo
+        delete contextData.at;
+    }
+
     // Manejo de errores de base de datos (Supabase) o similares que son objetos
     if (typeof error === 'object' && error !== null && 'message' in error) {
         errorMessage += `Error Type: Database/API Error\n`;
@@ -47,8 +54,8 @@ function formatLogMessage(error: any, contextData?: any): string {
         }
     }
 
-    // Añadir datos de contexto si existen
-    if (contextData) {
+    // Añadir datos de contexto si existen y no están vacíos
+    if (contextData && Object.keys(contextData).length > 0) {
         errorMessage += `\nCONTEXT DATA:\n`;
         try {
             const prettyContext = JSON.stringify(contextData, null, 2);
@@ -65,7 +72,7 @@ function formatLogMessage(error: any, contextData?: any): string {
 /**
  * Registra un error en la consola y, si está en desarrollo, en un archivo de log.
  * @param error El error a registrar.
- * @param contextData Datos adicionales para contextualizar el error.
+ * @param contextData Datos adicionales para contextualizar el error. Incluir `at` para nombrar la función.
  */
 export function logError(error: any, contextData?: any): void {
     const message = formatLogMessage(error, contextData);

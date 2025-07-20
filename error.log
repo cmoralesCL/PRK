@@ -241,3 +241,29 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-20T05:24:32.109Z] - DETAILED ERROR LOG
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (14d63494-36dc-4cb7-bf21-e8feabd0a63a, 5232709e-699c-4ea8-8473-4b5b8cb7a79e, asdsadd, habit, 2025-07-10, null, null, every_x_weeks, {mon,wed,fri}, 1, f, null, null, 2025-07-20 05:24:32.029063+00, f, null, null, 1, null, ).
+Hint: null
+
+CONTEXT DATA:
+{
+  "title": "asdsadd",
+  "description": "",
+  "type": "habit",
+  "area_prk_id": "5232709e-699c-4ea8-8473-4b5b8cb7a79e",
+  "start_date": "2025-07-10",
+  "weight": 1,
+  "is_critical": false,
+  "frequency": "every_x_weeks",
+  "frequency_days": [
+    "mon",
+    "wed",
+    "fri"
+  ],
+  "frequency_interval": 1
+}
+--------------------------------------------------
+
