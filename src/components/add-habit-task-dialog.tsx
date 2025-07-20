@@ -59,7 +59,9 @@ const formSchema = z.object({
         'specific_days', 
         'every_x_days',
         'every_x_weeks',
+        'every_x_weeks_commitment',
         'every_x_months',
+        'every_x_months_commitment',
         'specific_day_of_month',
         'weekly', 
         'monthly'
@@ -110,6 +112,7 @@ type FrequencyBuilderState = {
     unit: 'days' | 'weeks' | 'months';
     specificDays: string[];
     dayOfMonth: number;
+    useSpecificDayOfMonth: boolean;
 };
 
 
@@ -133,14 +136,14 @@ export function AddHabitTaskDialog({
   
   // State for the interactive frequency builder
   const [frequencyBuilder, setFrequencyBuilder] = useState<FrequencyBuilderState>({
-    mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1,
+    mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1, useSpecificDayOfMonth: false,
   });
 
   // EFFECT 1: Sync Frequency Builder -> Form Fields
   useEffect(() => {
     if (type !== 'habit') return;
   
-    const { mode, interval, unit, specificDays, dayOfMonth } = frequencyBuilder;
+    const { mode, interval, unit, specificDays, dayOfMonth, useSpecificDayOfMonth } = frequencyBuilder;
     
     let newFrequency: HabitTaskFormValues['frequency'] | undefined = undefined;
     let newInterval: number | undefined = undefined;
@@ -179,10 +182,19 @@ export function AddHabitTaskDialog({
             if (interval === 1) newInterval = undefined;
             newDays = undefined;
         } else if (unit === 'weeks') {
+            // "cada X semana(s) los [dias]"
             newFrequency = 'every_x_weeks';
             newDays = specificDays.length > 0 ? specificDays : undefined;
         } else if (unit === 'months') {
-            newFrequency = 'every_x_months';
+            if (useSpecificDayOfMonth) {
+                // "cada X mes(es) el dia Y"
+                newFrequency = 'every_x_months';
+                newDayOfMonth = dayOfMonth;
+            } else {
+                // "cada X mes(es)" como compromiso
+                newFrequency = 'every_x_months_commitment';
+                newDayOfMonth = undefined;
+            }
             newDays = undefined;
         }
     }
@@ -218,23 +230,25 @@ export function AddHabitTaskDialog({
 
         // --- Populate Frequency Builder ---
         const { frequency, frequency_interval, frequency_days, frequency_day_of_month, measurement_goal } = habitTask;
-        let newBuilderState: FrequencyBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
+        let newBuilderState: FrequencyBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1, useSpecificDayOfMonth: false };
         
         if (frequency === 'daily') {
-             newBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
+             newBuilderState = { ...newBuilderState, mode: 'cada', interval: 1, unit: 'days' };
         } else if (frequency === 'every_x_days') {
-             newBuilderState = { mode: 'cada', interval: frequency_interval || 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
+             newBuilderState = { ...newBuilderState, mode: 'cada', interval: frequency_interval || 1, unit: 'days' };
         } else if (frequency === 'every_x_weeks') {
-             newBuilderState = { mode: 'cada', interval: frequency_interval || 1, unit: 'weeks', specificDays: frequency_days || [], dayOfMonth: 1 };
+             newBuilderState = { ...newBuilderState, mode: 'cada', interval: frequency_interval || 1, unit: 'weeks', specificDays: frequency_days || [] };
         } else if (frequency === 'every_x_months') {
-             newBuilderState = { mode: 'cada', interval: frequency_interval || 1, unit: 'months', specificDays: [], dayOfMonth: 1 };
+             newBuilderState = { ...newBuilderState, mode: 'cada', interval: frequency_interval || 1, unit: 'months', useSpecificDayOfMonth: true, dayOfMonth: frequency_day_of_month || 1 };
+        } else if (frequency === 'every_x_months_commitment') {
+             newBuilderState = { ...newBuilderState, mode: 'cada', interval: frequency_interval || 1, unit: 'months', useSpecificDayOfMonth: false };
         } else if (frequency === 'specific_days') {
-            newBuilderState = { mode: 'los', specificDays: frequency_days || [], interval: 1, unit: 'days', dayOfMonth: 1 };
+            newBuilderState = { ...newBuilderState, mode: 'los', specificDays: frequency_days || [] };
         } else if (frequency === 'specific_day_of_month') {
-            newBuilderState = { mode: 'dia_fijo', dayOfMonth: frequency_day_of_month || 1, interval: 1, unit: 'days', specificDays: [] };
+            newBuilderState = { ...newBuilderState, mode: 'dia_fijo', dayOfMonth: frequency_day_of_month || 1 };
         } else if (frequency === 'weekly' || frequency === 'monthly') {
             const unit = frequency.includes('week') ? 'weeks' : 'months';
-            newBuilderState = { mode: 'veces_por', unit: unit, interval: measurement_goal?.target || 1, specificDays: [], dayOfMonth: 1 };
+            newBuilderState = { ...newBuilderState, mode: 'veces_por', unit: unit, interval: measurement_goal?.target || 1 };
         } 
         setFrequencyBuilder(newBuilderState);
 
@@ -245,7 +259,7 @@ export function AddHabitTaskDialog({
           ...defaultValues,
         });
         // Reset builder state to a clean, default state
-        setFrequencyBuilder({ mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 });
+        setFrequencyBuilder({ mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1, useSpecificDayOfMonth: false });
       }
     }
   }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
@@ -347,6 +361,10 @@ export function AddHabitTaskDialog({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
+                        disabled={(date) => {
+                           const startDate = form.getValues('start_date');
+                           return startDate ? date < startDate : false;
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
@@ -401,7 +419,7 @@ export function AddHabitTaskDialog({
 
 // Sub-component for the interactive frequency builder
 function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderState; setState: (state: FrequencyBuilderState) => void; form: any }) {
-    const { mode, interval, unit, specificDays, dayOfMonth } = state;
+    const { mode, interval, unit, specificDays, dayOfMonth, useSpecificDayOfMonth } = state;
     
     const handleDayToggle = (dayId: string) => {
         const newDays = specificDays.includes(dayId)
@@ -482,6 +500,38 @@ function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderSt
                 ))}
             </div>
           )}
+
+          {mode === 'cada' && unit === 'months' && (
+             <div className="space-y-2 pt-2">
+                 <div className="flex items-center space-x-2">
+                     <Checkbox
+                         id="specific-day-of-month-check"
+                         checked={useSpecificDayOfMonth}
+                         onCheckedChange={(checked) => setState({ ...state, useSpecificDayOfMonth: !!checked })}
+                     />
+                     <label
+                         htmlFor="specific-day-of-month-check"
+                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                     >
+                         ¿En un día concreto del mes?
+                     </label>
+                 </div>
+                 {useSpecificDayOfMonth && (
+                     <div className="flex items-center gap-2 pl-4">
+                         <span>El día</span>
+                         <Input
+                             type="number"
+                             min="1"
+                             max="31"
+                             className="w-16"
+                             value={dayOfMonth}
+                             onChange={(e) => setState({ ...state, dayOfMonth: parseInt(e.target.value, 10) || 1 })}
+                         />
+                     </div>
+                 )}
+             </div>
+          )}
+
            <FormMessage>{form.formState.errors.frequency_days?.message}</FormMessage>
         </div>
     );

@@ -41,7 +41,9 @@ export interface HabitTask {
     | 'specific_days' 
     | 'every_x_days'
     | 'every_x_weeks'
+    | 'every_x_weeks_commitment'
     | 'every_x_months'
+    | 'every_x_months_commitment'
     | 'specific_day_of_month'
     | 'weekly' // Represents a weekly commitment
     | 'monthly' // Represents a monthly commitment

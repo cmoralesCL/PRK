@@ -177,7 +177,7 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
             measurement_type: values.measurement_type,
             measurement_goal: values.measurement_type === 'binary' ? null : values.measurement_goal,
             frequency_days: values.frequency === 'specific_days' || values.frequency === 'every_x_weeks' ? values.frequency_days : null,
-            frequency_day_of_month: values.frequency === 'specific_day_of_month' ? values.frequency_day_of_month : null,
+            frequency_day_of_month: values.frequency === 'specific_day_of_month' || values.frequency === 'every_x_months' ? values.frequency_day_of_month : null,
             frequency_interval: values.frequency?.startsWith('every_x_') ? values.frequency_interval : null,
         };
     } else {
@@ -437,9 +437,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 // If no specific days, it occurs on the same day of the week as the start date
                 return getDay(targetDate) === getDay(startDate);
             case 'every_x_months':
-                 if (!interval) return false;
+                 if (!interval || !task.frequency_day_of_month) return false;
                 const monthsDiff = differenceInMonths(targetDate, startDate);
-                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === startDate.getDate();
+                return monthsDiff >= 0 && monthsDiff % interval === 0 && targetDate.getDate() === task.frequency_day_of_month;
             case 'specific_day_of_month':
                 if (!task.frequency_day_of_month) return false;
                 return targetDate.getDate() === task.frequency_day_of_month;
@@ -620,7 +620,7 @@ export async function getCalendarData(monthDate: Date) {
         const taskStartDate = parseISO(task.start_date);
         const monthInterval = { start: monthStart, end: monthEnd };
 
-        if (!areIntervalsOverlapping({start: taskStartDate, end: task.archived_at ? parseISO(task.archived_at) : new Date()}, monthInterval)) {
+        if (!areIntervalsOverlapping({start: taskStartDate, end: task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000)}, monthInterval)) {
             return false;
         }
 
