@@ -113,6 +113,7 @@ export function HabitTaskListItem({
                     )}
                 </div>
             </div>
+            {item.description && <p className="pl-8 text-xs text-muted-foreground">{item.description}</p>}
             {onToggle && (
                 <div className="pl-8 flex items-center gap-2">
                     <Input
@@ -144,16 +145,19 @@ export function HabitTaskListItem({
         />
         <div className="flex flex-col flex-grow gap-1">
             <div className="flex items-center justify-between">
-                <Label
-                    htmlFor={item.id}
-                    className={cn(
-                        'text-sm font-medium leading-none flex-grow',
-                        isCompleted && 'line-through text-muted-foreground',
-                        !onToggle ? "cursor-default" : "cursor-pointer"
-                    )}
-                >
-                    {item.title}
-                </Label>
+                <div className="flex flex-col gap-1">
+                    <Label
+                        htmlFor={item.id}
+                        className={cn(
+                            'text-sm font-medium leading-none flex-grow',
+                            isCompleted && 'line-through text-muted-foreground',
+                            !onToggle ? "cursor-default" : "cursor-pointer"
+                        )}
+                    >
+                        {item.title}
+                    </Label>
+                    {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                </div>
                 <div className="flex items-center transition-opacity">
                     {onEdit && (
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>

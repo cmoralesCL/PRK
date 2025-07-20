@@ -57,7 +57,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
         setHabitTaskDialogOpen(true);
     };
 
-    const handleOpenAddCommitmentDialog = (frequency: 'weekly' | 'monthly' | 'quarterly') => {
+    const handleOpenAddCommitmentDialog = (frequency: 'weekly' | 'monthly' | 'every_x_weeks_commitment' | 'every_x_months_commitment') => {
         setEditingHabitTask(null);
         setSelectedDateForDialog(new Date()); 
         setDefaultHabitTaskValues({
@@ -86,6 +86,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
             try {
                 const commonData = {
                     title: values.title,
+                    description: values.description,
                     type: values.type,
                     area_prk_id: values.area_prk_id,
                     start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],

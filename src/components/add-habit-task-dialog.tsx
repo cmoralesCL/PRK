@@ -21,7 +21,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  useFormField,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,11 +38,12 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { AreaPrk, HabitTask } from '@/lib/types';
-import { useEffect, useState, useTransition } from 'react';
-import { Label } from './ui/label';
+import { useEffect, useState } from 'react';
+import { Textarea } from './ui/textarea';
 
 const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
+    description: z.string().optional(),
     area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
     type: z.enum(['task', 'project', 'habit']),
     start_date: z.date().optional(),
@@ -60,7 +60,9 @@ const formSchema = z.object({
         'every_x_months',
         'specific_day_of_month',
         'weekly', 
-        'monthly'
+        'monthly',
+        'every_x_weeks_commitment',
+        'every_x_months_commitment'
     ]).optional(),
     frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
     frequency_days: z.array(z.string()).optional(),
@@ -121,7 +123,7 @@ export function AddHabitTaskDialog({
   const form = useForm<HabitTaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '', type: 'task', start_date: defaultDate || new Date(),
+      title: '', description: '', type: 'task', start_date: defaultDate || new Date(),
       area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
       ...defaultValues
     },
@@ -148,18 +150,17 @@ export function AddHabitTaskDialog({
     let newMeasurementGoal: { target?: number, unit?: string } | undefined = undefined;
 
     if (mode === 'cada') {
-        if (interval === 1 && unit === 'days') {
-            newFrequency = 'daily';
-        } else {
-            newFrequency = `every_x_${unit}` as 'every_x_days' | 'every_x_weeks' | 'every_x_months';
+        if (unit === 'days') {
+            newFrequency = interval === 1 ? 'daily' : 'every_x_days';
+            newInterval = interval > 1 ? interval : undefined;
+        } else if (unit === 'weeks') {
+            newFrequency = 'every_x_weeks';
             newInterval = interval;
-            if(unit === 'weeks') {
-                newDays = specificDays;
-            } else if (unit === 'months' && dayOfMonth > 0) {
-                newFrequency = 'specific_day_of_month';
-                newDayOfMonth = dayOfMonth;
-                newInterval = undefined; 
-            }
+            newDays = specificDays;
+        } else if (unit === 'months') {
+            newFrequency = 'every_x_months';
+            newInterval = interval;
+            // Note: specific day of month is handled differently now. See specific_day_of_month frequency type.
         }
     } else if (mode === 'los') {
         newFrequency = 'specific_days';
@@ -169,6 +170,15 @@ export function AddHabitTaskDialog({
         if (unit === 'months') newFrequency = 'monthly';
         newMeasurementType = form.getValues('measurement_type') || 'binary';
         newMeasurementGoal = { ...form.getValues('measurement_goal'), target: interval };
+    }
+
+    // Handle specific day of month as a separate frequency
+    const selectedFrequency = form.watch('frequency');
+    if (selectedFrequency === 'specific_day_of_month') {
+        newFrequency = 'specific_day_of_month';
+        newDayOfMonth = form.getValues('frequency_day_of_month');
+        newInterval = undefined;
+        newDays = undefined;
     }
     
     // Set form values based on builder state
@@ -190,7 +200,9 @@ export function AddHabitTaskDialog({
       if (isEditing && habitTask) {
         // --- Populate Form ---
         const baseValues: any = {
-          title: habitTask.title, type: habitTask.type, area_prk_id: habitTask.area_prk_id,
+          title: habitTask.title,
+          description: habitTask.description,
+          type: habitTask.type, area_prk_id: habitTask.area_prk_id,
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           weight: habitTask.weight || 1, is_critical: habitTask.is_critical || false,
@@ -201,7 +213,7 @@ export function AddHabitTaskDialog({
         form.reset(baseValues);
 
         // --- Populate Frequency Builder ---
-        const { frequency, frequency_interval, frequency_days, frequency_day_of_month, measurement_goal } = habitTask;
+        const { frequency, frequency_interval, frequency_days, measurement_goal } = habitTask;
         let newBuilderState: FrequencyBuilderState = { mode: 'cada', interval: 1, unit: 'days', specificDays: [], dayOfMonth: 1 };
         
         if (frequency === 'every_x_days' || frequency === 'every_x_weeks' || frequency === 'every_x_months') {
@@ -219,10 +231,9 @@ export function AddHabitTaskDialog({
             };
         } else if (frequency === 'specific_days') {
             newBuilderState = { ...newBuilderState, mode: 'los', specificDays: frequency_days || [] };
-        } else if (frequency === 'specific_day_of_month') {
-            newBuilderState = { ...newBuilderState, mode: 'cada', unit: 'months', dayOfMonth: frequency_day_of_month || 1 };
-        } else if (frequency === 'weekly' || frequency === 'monthly') {
-            newBuilderState = { ...newBuilderState, mode: 'veces_por', unit: frequency === 'weekly' ? 'weeks' : 'months', interval: measurement_goal?.target || 1 };
+        } else if (frequency === 'weekly' || frequency === 'monthly' || frequency === 'every_x_weeks_commitment' || frequency === 'every_x_months_commitment') {
+            const unit = frequency.includes('week') ? 'weeks' : 'months';
+            newBuilderState = { ...newBuilderState, mode: 'veces_por', unit: unit, interval: measurement_goal?.target || 1 };
         } else if (frequency === 'daily') {
             newBuilderState = { ...newBuilderState, mode: 'cada', unit: 'days', interval: 1 };
         }
@@ -230,7 +241,7 @@ export function AddHabitTaskDialog({
 
       } else { // Reset for new task
         form.reset({
-          title: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
+          title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
           ...defaultValues,
         });
@@ -246,6 +257,8 @@ export function AddHabitTaskDialog({
     onOpenChange(false);
   };
   
+  const watchedFrequency = form.watch('frequency');
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -258,6 +271,24 @@ export function AddHabitTaskDialog({
             <FormField control={form.control} name="title" render={({ field }) => (
               <FormItem><FormLabel>Título</FormLabel><FormControl><Input placeholder="Ej: Correr 5km" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción (Opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Añade notas, enlaces o detalles aquí."
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField control={form.control} name="type" render={({ field }) => (
               <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} value={field.value}>
@@ -297,9 +328,9 @@ export function AddHabitTaskDialog({
             )}
 
             {type === 'habit' && (
-                <FrequencyBuilder state={frequencyBuilder} setState={setFrequencyBuilder} />
+                <FrequencyBuilder state={frequencyBuilder} setState={setFrequencyBuilder} form={form} />
             )}
-             { type === 'habit' && frequencyBuilder.mode === 'veces_por' && (
+             { type === 'habit' && (watchedFrequency === 'weekly' || watchedFrequency === 'monthly') && (
                 <FormField control={form.control} name="measurement_type" render={({ field }) => (
                     <FormItem><FormLabel>Tipo de Medición</FormLabel><Select onValueChange={(value) => {
                         field.onChange(value);
@@ -312,7 +343,7 @@ export function AddHabitTaskDialog({
                         </SelectContent></Select><FormMessage /></FormItem>
                 )}/>
             )}
-            { type === 'habit' && frequencyBuilder.mode === 'veces_por' && form.watch('measurement_type') === 'quantitative' && (
+            { type === 'habit' && form.watch('measurement_type') === 'quantitative' && (watchedFrequency === 'weekly' || watchedFrequency === 'monthly') && (
                  <FormField control={form.control} name="measurement_goal.unit" render={({ field }) => (
                     <FormItem><FormLabel>Unidad de Medida</FormLabel><FormControl><Input placeholder="Ej: páginas, km, etc." {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
@@ -339,8 +370,9 @@ export function AddHabitTaskDialog({
 
 
 // Sub-component for the interactive frequency builder
-function FrequencyBuilder({ state, setState }: { state: FrequencyBuilderState; setState: (state: FrequencyBuilderState) => void; }) {
-    const { mode, interval, unit, specificDays } = state;
+function FrequencyBuilder({ state, setState, form }: { state: FrequencyBuilderState; setState: (state: FrequencyBuilderState) => void; form: any }) {
+    const { mode, interval, unit, specificDays, dayOfMonth } = state;
+    const watchedFrequency = form.watch('frequency');
 
     const handleModeChange = (newMode: FrequencyBuilderState['mode']) => {
         // Reset parts of state when mode changes to avoid weird combinations
@@ -433,9 +465,25 @@ function FrequencyBuilder({ state, setState }: { state: FrequencyBuilderState; s
                     ))}
                 </div>
             )}
-             <FormMessage>
-                {mode === 'los' && specificDays.length === 0 && 'Por favor, selecciona al menos un día.'}
+            <FormMessage>
+                {(mode === 'los' || (mode === 'cada' && unit === 'weeks')) && specificDays.length === 0 && 'Por favor, selecciona al menos un día.'}
             </FormMessage>
+            
+            {watchedFrequency === 'specific_day_of_month' && (
+                <FormField
+                    control={form.control}
+                    name="frequency_day_of_month"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Día del Mes</FormLabel>
+                            <FormControl>
+                                <Input type="number" min="1" max="31" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
         </div>
     );
 }

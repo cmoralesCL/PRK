@@ -116,6 +116,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     
     const dataToInsert: any = {
         title: values.title,
+        description: values.description,
         area_prk_id: values.area_prk_id,
         weight: values.weight,
         is_critical: values.is_critical,
@@ -370,6 +371,8 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 return true;
             case 'weekly':
             case 'monthly':
+            case 'every_x_weeks_commitment':
+            case 'every_x_months_commitment':
                 return false; // These are commitments, not scheduled on specific days.
             case 'specific_days':
                 const dayOfWeek = getDay(targetDate); // Sunday is 0, Monday is 1...
@@ -583,11 +586,41 @@ export async function getCalendarData(monthDate: Date) {
             return false;
         }
 
-        return task.frequency === 'weekly' || task.frequency === 'monthly';
+        return task.frequency === 'weekly' || task.frequency === 'monthly' || task.frequency === 'every_x_weeks_commitment' || task.frequency === 'every_x_months_commitment';
     }).map(task => {
         let logs: ProgressLog[] = [];
-        const periodStart = task.frequency === 'weekly' ? startOfWeek(monthDate, { weekStartsOn: 1 }) : monthStart;
-        const periodEnd = task.frequency === 'weekly' ? endOfWeek(monthDate, { weekStartsOn: 1 }) : monthEnd;
+        let periodStart, periodEnd;
+
+        switch (task.frequency) {
+            case 'weekly':
+                periodStart = startOfWeek(monthDate, { weekStartsOn: 1 });
+                periodEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
+                break;
+            case 'monthly':
+                periodStart = monthStart;
+                periodEnd = monthEnd;
+                break;
+            case 'every_x_weeks_commitment':
+                // For recurring commitments, we need to find the specific period for the selected monthDate
+                let start = startOfWeek(parseISO(task.start_date!), { weekStartsOn: 1 });
+                while (endOfWeek(start, { weekStartsOn: 1 }) < monthDate) {
+                    start = addDays(start, (task.frequency_interval || 1) * 7);
+                }
+                periodStart = start;
+                periodEnd = endOfWeek(start, { weekStartsOn: 1 });
+                break;
+            case 'every_x_months_commitment':
+                let mStart = startOfMonth(parseISO(task.start_date!));
+                while(endOfMonth(mStart) < monthDate) {
+                    mStart = addMonths(mStart, task.frequency_interval || 1);
+                }
+                periodStart = mStart;
+                periodEnd = endOfMonth(mStart);
+                break;
+            default:
+                periodStart = monthStart;
+                periodEnd = monthEnd;
+        }
 
         logs = allProgressLogs.filter(log => 
             log.habit_task_id === task.id &&

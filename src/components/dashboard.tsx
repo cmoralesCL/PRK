@@ -164,6 +164,7 @@ export function Dashboard({
         try {
             const commonData = {
                 title: values.title,
+                description: values.description,
                 area_prk_id: values.area_prk_id,
                 weight: values.weight,
                 is_critical: values.is_critical,
@@ -384,4 +385,3 @@ export function Dashboard({
     </>
   );
 }
-
