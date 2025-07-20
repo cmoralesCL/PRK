@@ -20,8 +20,6 @@ import {
     endOfWeek, 
     isWithinInterval,
     startOfYear,
-    endOfYear,
-    startOfQuarter,
     endOfQuarter,
     addMonths,
     areIntervalsOverlapping,
@@ -131,11 +129,8 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.measurement_goal = values.measurement_goal;
         dataToInsert.frequency_days = values.frequency_days;
         
-        if (values.frequency === 'every_x_days' || values.frequency === 'every_x_weeks' || values.frequency === 'every_x_months') {
+        if (values.frequency?.startsWith('every_x_')) {
             dataToInsert.frequency_interval = values.frequency_interval;
-            if (values.frequency === 'every_x_days') dataToInsert.frequency_unit = 'days';
-            if (values.frequency === 'every_x_weeks') dataToInsert.frequency_unit = 'weeks';
-            if (values.frequency === 'every_x_months') dataToInsert.frequency_unit = 'months';
         }
     }
 
@@ -163,21 +158,16 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         updateData.measurement_type = null;
         updateData.measurement_goal = null;
         updateData.frequency_interval = null;
-        updateData.frequency_unit = null;
     } else {
         // If it is a habit but measurement is binary, null out goal
         if (values.measurement_type === 'binary') {
             updateData.measurement_goal = null;
         }
         
-        if (values.frequency === 'every_x_days' || values.frequency === 'every_x_weeks' || values.frequency === 'every_x_months') {
+        if (values.frequency?.startsWith('every_x_')) {
              updateData.frequency_interval = values.frequency_interval;
-            if (values.frequency === 'every_x_days') updateData.frequency_unit = 'days';
-            if (values.frequency === 'every_x_weeks') updateData.frequency_unit = 'weeks';
-            if (values.frequency === 'every_x_months') updateData.frequency_unit = 'months';
         } else {
             updateData.frequency_interval = null;
-            updateData.frequency_unit = null;
         }
     }
 
@@ -369,17 +359,17 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 
     } else if (task.type === 'habit') {
         const interval = task.frequency_interval;
-        if (interval === null || interval === undefined || interval < 1) {
-             if (task.frequency === 'every_x_days' || task.frequency === 'every_x_weeks' || task.frequency === 'every_x_months') {
-                return false;
-             }
+        if (task.frequency?.startsWith('every_x_') && (interval === null || interval === undefined || interval < 1)) {
+            return false;
         }
         
         switch (task.frequency) {
             case 'daily':
                 return true;
-            case 'weekly': // Acumulativo
-            case 'monthly': // Acumulativo
+            case 'weekly':
+            case 'monthly':
+            case 'every_x_weeks_commitment':
+            case 'every_x_months_commitment':
                 return false; // These are handled as commitments, not on specific days.
             case 'specific_days':
                 const dayOfWeek = format(targetDate, 'eee').toLowerCase();
@@ -387,10 +377,10 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
             case 'every_x_days':
                  const daysDiff = differenceInDays(targetDate, startDate);
                 return daysDiff >= 0 && daysDiff % interval! === 0;
-            case 'every_x_weeks':
+            case 'every_x_weeks_specific_day':
                 const weeksDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: getDay(startDate) as any });
                 return weeksDiff >= 0 && weeksDiff % interval! === 0 && getDay(targetDate) === getDay(startDate);
-            case 'every_x_months':
+            case 'every_x_months_specific_day':
                 const monthsDiff = differenceInMonths(targetDate, startDate);
                 return monthsDiff >= 0 && monthsDiff % interval! === 0 && targetDate.getDate() === startDate.getDate();
             default:
@@ -419,15 +409,19 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
         );
         
         let completedToday = !!completionLog;
+        let progressValue = completionLog?.progress_value;
+        let completionPercentage = completionLog?.completion_percentage ?? 0;
 
         if (task.measurement_type === 'quantitative' && task.measurement_goal?.target && completionLog) {
-            completedToday = (completionLog.progress_value ?? 0) >= task.measurement_goal.target;
+            completedToday = (progressValue ?? 0) >= task.measurement_goal.target;
+        } else if (completionLog) {
+            completedToday = completionPercentage >= 1;
         }
 
         return {
             ...task,
             completedToday: completedToday,
-            current_progress_value: completionLog?.progress_value,
+            current_progress_value: progressValue,
             completion_date: completionLog ? dateString : (task.type !== 'habit' ? task.completion_date : undefined),
         };
     });
@@ -515,13 +509,12 @@ export async function getCalendarData(monthDate: Date) {
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
-    const monthInterval = { start: monthStart, end: monthEnd };
-
+    
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     
     const daysInView = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-    const daysInMonth = eachDayOfInterval(monthInterval);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
     if (lifePrksError) throw lifePrksError;
@@ -560,29 +553,48 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     const commitments = allHabitTasks.filter(task => {
-        if (task.type !== 'habit' || (task.frequency !== 'weekly' && task.frequency !== 'monthly')) {
+        if (task.type !== 'habit' || !task.start_date) {
             return false;
         }
 
-        if (!task.start_date) return false;
-
         const taskStartDate = parseISO(task.start_date);
-        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
-
+        const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000);
         const taskInterval = { start: taskStartDate, end: taskEndDate };
         
-        return areIntervalsOverlapping(taskInterval, monthInterval);
+        if (task.frequency === 'weekly' || task.frequency === 'monthly') {
+            const monthInterval = { start: monthStart, end: monthEnd };
+            return areIntervalsOverlapping(taskInterval, monthInterval);
+        }
+
+        if (task.frequency === 'every_x_weeks_commitment') {
+            const interval = task.frequency_interval;
+            if (!interval || interval < 1) return false;
+            
+            const weekOfCalendar = startOfWeek(monthDate, { weekStartsOn: 1 });
+            const weeksDiff = differenceInWeeks(weekOfCalendar, startOfWeek(taskStartDate, { weekStartsOn: 1 }));
+            return weeksDiff >= 0 && weeksDiff % interval === 0;
+        }
+
+        if (task.frequency === 'every_x_months_commitment') {
+             const interval = task.frequency_interval;
+            if (!interval || interval < 1) return false;
+
+            const monthsDiff = differenceInMonths(monthStart, startOfMonth(taskStartDate));
+            return monthsDiff >= 0 && monthsDiff % interval === 0;
+        }
+
+        return false;
     }).map(task => {
-        let logs;
+        let logs: ProgressLog[] = [];
         const currentWeekStart = startOfWeek(monthDate, { weekStartsOn: 1 });
         const currentWeekEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
 
-        if (task.frequency === 'weekly') {
+        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
             logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: currentWeekStart, end: currentWeekEnd })
             );
-        } else { // monthly
+        } else { // monthly or every_x_months_commitment
              logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
                 isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd })
@@ -591,7 +603,7 @@ export async function getCalendarData(monthDate: Date) {
 
         const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? 1 : 0)), 0);
         
-        let completedToday = false;
+        let completedToday = false; // "completedToday" here means "completed for the period"
         if (task.measurement_type === 'binary') {
             const targetCompletions = task.measurement_goal?.target ?? 1;
             const actualCompletions = logs.filter(l => l.completion_percentage === 1).length;
@@ -633,14 +645,25 @@ export async function getCalendarData(monthDate: Date) {
         });
 
         // 2. Weekly commitments progress
-        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
+        const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'every_x_weeks_commitment');
         weeklyCommitmentTasks.forEach(task => {
             if (!task.start_date) return;
             const taskStartDate = parseISO(task.start_date);
-            const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
-            if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
-                return;
+            
+            if(task.frequency === 'every_x_weeks_commitment') {
+                const interval = task.frequency_interval;
+                if(!interval || interval < 1) return;
+                const weeksDiff = differenceInWeeks(weekStart, startOfWeek(taskStartDate, { weekStartsOn: 1 }));
+                if (weeksDiff < 0 || weeksDiff % interval !== 0) {
+                    return; // Not an active week for this commitment
+                }
+            } else { // 'weekly'
+                const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
+                if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
+                    return;
+                }
             }
+
 
             let progressPercentage = 0;
             const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
@@ -664,7 +687,7 @@ export async function getCalendarData(monthDate: Date) {
 
         weeklyProgress.push({
             id: format(weekStart, 'yyyy-MM-dd'),
-            progress: combinedAvgProgress,
+            progress: combinedAvgProgress > 100 ? 100 : combinedAvgProgress,
         });
 
         weekIndex += 7;
@@ -687,41 +710,63 @@ export async function getCalendarData(monthDate: Date) {
     });
 
     // Weekly and Monthly commitments for the month
-    const accumulativeCommitments = commitments.filter(c => c.frequency === 'weekly' || c.frequency === 'monthly');
+    const accumulativeCommitments = allHabitTasks.filter(c => {
+        if (!c.start_date) return false;
+        const freq = c.frequency;
+        return freq === 'weekly' || freq === 'monthly' || freq === 'every_x_weeks_commitment' || freq === 'every_x_months_commitment';
+    });
+
     accumulativeCommitments.forEach(task => {
         let progressPercentage = 0;
         let logs;
         
-        if (task.frequency === 'weekly') {
-            // For weekly commitments, we need to check each week of the month
+        if (task.frequency === 'weekly' || task.frequency === 'every_x_weeks_commitment') {
             let weekStart = startOfWeek(monthStart, {weekStartsOn: 1});
             while(weekStart <= monthEnd) {
                 const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
-                logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                
+                if (task.frequency === 'every_x_weeks_commitment') {
+                     const interval = task.frequency_interval;
+                     if (!interval || interval < 1) continue;
+                     const weeksDiff = differenceInWeeks(weekStart, startOfWeek(parseISO(task.start_date!), { weekStartsOn: 1 }));
+                     if(weeksDiff < 0 || weeksDiff % interval !== 0) {
+                         weekStart = addDays(weekStart, 7);
+                         continue;
+                     }
+                }
 
+                logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+                
                 let weeklyProgress = 0;
                  if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                     const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                    weeklyProgress = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : (totalValue > 0 ? 1 : 0);
+                    weeklyProgress = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
                 } else if (task.measurement_type === 'binary') {
                     const completions = logs.filter(l => l.completion_percentage === 1).length;
                     const target = task.measurement_goal?.target ?? 1;
-                    weeklyProgress = target > 0 ? (completions / target) : (completions > 0 ? 1 : 0);
+                    weeklyProgress = target > 0 ? (completions / target) : 0;
                 }
                 progressPercentage += weeklyProgress;
 
                 weekStart = addDays(weekStart, 7);
             }
 
-        } else { // monthly
+        } else { // monthly or every_x_months
+            if (task.frequency === 'every_x_months_commitment') {
+                const interval = task.frequency_interval;
+                if (!interval || interval < 1) return;
+                const monthsDiff = differenceInMonths(monthStart, startOfMonth(parseISO(task.start_date!)));
+                if(monthsDiff < 0 || monthsDiff % interval !== 0) return;
+            }
+
             logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
              if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                 const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : (totalValue > 0 ? 1 : 0);
+                progressPercentage = task.measurement_goal.target > 0 ? (totalValue / task.measurement_goal.target) : 0;
             } else if (task.measurement_type === 'binary') {
                 const completions = logs.filter(l => l.completion_percentage === 1).length;
                 const target = task.measurement_goal?.target ?? 1;
-                progressPercentage = target > 0 ? (completions / target) : (completions > 0 ? 1 : 0);
+                progressPercentage = target > 0 ? (completions / target) : 0;
             }
         }
 
@@ -738,7 +783,7 @@ export async function getCalendarData(monthDate: Date) {
         dailyProgress,
         habitTasks: habitTasksByDay,
         weeklyProgress,
-        monthlyProgress,
+        monthlyProgress: monthlyProgress,
         areaPrks,
         commitments,
     };
@@ -774,3 +819,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    

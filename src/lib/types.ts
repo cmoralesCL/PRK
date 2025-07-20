@@ -34,8 +34,16 @@ export interface HabitTask {
   start_date?: string; // Corresponds to start_date
   
   // Frequency for interval-based habits
-  frequency?: 'daily' | 'specific_days' | 'every_x_days' | 'every_x_weeks' | 'every_x_months' | 'weekly' | 'monthly' | null;
-  frequency_unit?: 'days' | 'weeks' | 'months' | null;
+  frequency?: 'daily' 
+    | 'specific_days' 
+    | 'every_x_days' 
+    | 'every_x_weeks_specific_day' 
+    | 'every_x_months_specific_day'
+    | 'every_x_weeks_commitment'
+    | 'every_x_months_commitment'
+    | 'weekly' 
+    | 'monthly' 
+    | null;
   frequency_interval?: number | null; // For 'every_x...' frequencies
   frequency_days?: string[] | null; // For 'specific_days'
   
@@ -72,3 +80,5 @@ export interface WeeklyProgressSnapshot {
   id: string; // Will be the start date of the week 'yyyy-MM-dd'
   progress: number;
 }
+
+    
