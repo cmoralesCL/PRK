@@ -129,9 +129,14 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         dataToInsert.frequency = values.frequency;
         dataToInsert.measurement_type = values.measurement_type;
         dataToInsert.measurement_goal = values.measurement_goal;
-        dataToInsert.frequency_unit = values.frequency_unit;
-        dataToInsert.frequency_interval = values.frequency_interval;
         dataToInsert.frequency_days = values.frequency_days;
+        
+        if (values.frequency === 'every_x_days' || values.frequency === 'every_x_weeks' || values.frequency === 'every_x_months') {
+            dataToInsert.frequency_interval = values.frequency_interval;
+            if (values.frequency === 'every_x_days') dataToInsert.frequency_unit = 'days';
+            if (values.frequency === 'every_x_weeks') dataToInsert.frequency_unit = 'weeks';
+            if (values.frequency === 'every_x_months') dataToInsert.frequency_unit = 'months';
+        }
     }
 
 
@@ -163,6 +168,15 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         // If it is a habit but measurement is binary, null out goal
         if (values.measurement_type === 'binary') {
             updateData.measurement_goal = null;
+        }
+        
+        if (values.frequency === 'every_x_days' || values.frequency === 'every_x_weeks' || values.frequency === 'every_x_months') {
+            if (values.frequency === 'every_x_days') updateData.frequency_unit = 'days';
+            if (values.frequency === 'every_x_weeks') updateData.frequency_unit = 'weeks';
+            if (values.frequency === 'every_x_months') updateData.frequency_unit = 'months';
+        } else {
+            updateData.frequency_interval = null;
+            updateData.frequency_unit = null;
         }
     }
 
@@ -431,7 +445,8 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
-            if (task.completedToday) {
+            const log = task.completedToday;
+            if (log) {
                  if (task.measurement_type === 'quantitative' && task.measurement_goal?.target) {
                     const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target;
                     return sum + (progressPercentage * task.weight);
@@ -552,21 +567,22 @@ export async function getCalendarData(monthDate: Date) {
         return areIntervalsOverlapping(taskInterval, monthInterval);
     }).map(task => {
         let logs;
+        const currentWeekStart = startOfWeek(monthDate, { weekStartsOn: 1 });
+        const currentWeekEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
+
         if (task.frequency === 'weekly') {
-            const weekForCommitmentsStart = startOfWeek(monthDate, { weekStartsOn: 1 });
-            const weekForCommitmentsEnd = endOfWeek(monthDate, { weekStartsOn: 1 });
             logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
-                isWithinInterval(parseISO(log.completion_date), { start: weekForCommitmentsStart, end: weekForCommitmentsEnd })
+                isWithinInterval(parseISO(log.completion_date), { start: currentWeekStart, end: currentWeekEnd })
             );
-        } else { // This else block handles monthly
+        } else { // monthly
              logs = allProgressLogs.filter(log => 
                 log.habit_task_id === task.id &&
-                isWithinInterval(parseISO(log.completion_date), { start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
+                isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd })
             );
         }
 
-        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? log.completion_percentage : 0)), 0);
+        const totalProgressValue = logs.reduce((sum, log) => sum + (log.progress_value ?? (log.completion_percentage ? 1 : 0)), 0);
         
         let completedToday = false;
         if (task.measurement_type === 'binary') {
@@ -595,7 +611,7 @@ export async function getCalendarData(monthDate: Date) {
         let totalWeightedProgress = 0;
         let totalWeight = 0;
 
-        // 1. Daily tasks progress (already weighted by day)
+        // 1. Daily tasks progress
         weekDays.forEach(d => {
             const dayString = format(d, 'yyyy-MM-dd');
             const tasks = habitTasksByDay[dayString] ?? [];
@@ -612,10 +628,10 @@ export async function getCalendarData(monthDate: Date) {
             }
         });
 
-        // 2. Weekly commitments progress (now with weight)
+        // 2. Weekly commitments progress
         const weeklyCommitmentTasks = commitments.filter(c => c.frequency === 'weekly');
         weeklyCommitmentTasks.forEach(task => {
-             if (!task.start_date) return;
+            if (!task.start_date) return;
             const taskStartDate = parseISO(task.start_date);
             const taskEndDate = task.archived_at ? parseISO(task.archived_at) : new Date(8640000000000000); 
             if(!areIntervalsOverlapping({start: weekStart, end: weekEnd}, {start: taskStartDate, end: taskEndDate})) {
@@ -732,3 +748,5 @@ export async function endOfSemester(date: Date): Promise<Date> {
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
 }
+
+    
