@@ -22,6 +22,7 @@ import {
     isWithinInterval,
     startOfYear,
     endOfQuarter,
+    startOfQuarter,
     addMonths,
     areIntervalsOverlapping,
     differenceInWeeks,
@@ -327,43 +328,48 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
 
-    if (task.archived) {
-        return false;
-    }
-
-    if (!task.start_date) {
+    // Common checks for all types
+    if (task.archived || !task.start_date) {
         return false; 
     }
     const startDate = startOfDay(parseISO(task.start_date));
 
-    if (targetDate < startDate) {
+    // Must be on or after start date
+    if (isBefore(targetDate, startDate)) {
         return false;
     }
     
+    // Check due date if it exists
     const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
-    if (endDate && targetDate > endDate) {
+    if (endDate && isAfter(targetDate, endDate)) {
         return false;
     }
 
+    // --- Type Specific Logic ---
+    // For single-instance tasks/projects
     if (task.type === 'task' || task.type === 'project') {
-        const completionDate = task.completion_date ? parseISO(task.completion_date) : null;
+        const completionDate = task.completion_date ? startOfDay(parseISO(task.completion_date)) : null;
 
-        if (completionDate && startOfDay(completionDate) < targetDate) {
+        // If completed, only show it on the day it was completed
+        if (completionDate) {
+            return isSameDay(targetDate, completionDate);
+        }
+
+        // If not completed, it's active until its due date (or just on start_date if no due_date)
+        if (endDate) {
+            return isWithinInterval(targetDate, { start: startDate, end: endDate });
+        }
+        
+        // No due date means it's a one-off task for the start date
+        return isSameDay(targetDate, startDate);
+    }
+    
+    // For recurring habits
+    if (task.type === 'habit') {
+        // Frequencies for commitments should not appear on the calendar
+        if (task.frequency?.includes('ACUMULATIVO')) {
             return false;
         }
-        
-        if (!endDate) { // No due date, active only on start date
-            return isSameDay(targetDate, startDate);
-        }
-
-        // Allow one day past due date to show up
-        if (targetDate >= startDate && targetDate <= addDays(startOfDay(endDate), 1)) {
-            return true;
-        }
-        
-        return false;
-
-    } else if (task.type === 'habit') {
 
         switch (task.frequency) {
             case 'DIARIA':
@@ -371,20 +377,18 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 
             case 'SEMANAL_DIAS_FIJOS':
                 // date-fns: Sunday=0, Monday=1, ..., Saturday=6
-                // Our convention from `frecuencia.md` 'L', 'M', 'X', 'J', 'V', 'S', 'D'
                 const dayMap = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
                 const dayOfWeek = getDay(targetDate);
                 return task.frequency_days?.includes(dayMap[dayOfWeek]) ?? false;
             
             case 'INTERVALO_DIAS':
                 if (!task.frequency_interval) return false;
-                
-                const diff = differenceInDays(targetDate, startDate);
-                return diff >= 0 && diff % task.frequency_interval === 0;
+                const diffDays = differenceInDays(targetDate, startDate);
+                return diffDays >= 0 && diffDays % task.frequency_interval === 0;
             
             case 'INTERVALO_SEMANAL_DIAS_FIJOS':
                 if (!task.frequency_interval || !task.frequency_days) return false;
-                const weekDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 });
+                const weekDiff = differenceInWeeks(targetDate, startDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
                 if (weekDiff < 0 || weekDiff % task.frequency_interval !== 0) {
                     return false;
                 }
@@ -392,46 +396,28 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
                 const dayOfWeekWeekly = getDay(targetDate);
                 return task.frequency_days.includes(dayMapWeekly[dayOfWeekWeekly]);
 
-
             case 'MENSUAL_DIA_FIJO':
                 if (!task.frequency_day_of_month) return false;
                 const dateDay = targetDate.getDate();
                 const lastDayOfMonth = endOfMonth(targetDate).getDate();
 
-                // Handle edge cases like 31st for months with 30 days
-                if (task.frequency_day_of_month > lastDayOfMonth) {
-                    return dateDay === lastDayOfMonth;
-                }
-                return dateDay === task.frequency_day_of_month;
+                // Handle cases like setting 31 for a month with 30 days. It should fall on the last day.
+                return dateDay === Math.min(task.frequency_day_of_month, lastDayOfMonth);
             
             case 'INTERVALO_MENSUAL_DIA_FIJO':
                 if (!task.frequency_interval || !task.frequency_day_of_month) return false;
                 const monthDiff = differenceInMonths(targetDate, startDate);
-                 if (monthDiff < 0 || monthDiff % task.frequency_interval !== 0) {
+                if (monthDiff < 0 || monthDiff % task.frequency_interval !== 0) {
                     return false;
                 }
                 const dateDayMonthly = targetDate.getDate();
                 const lastDayOfMonthMonthly = endOfMonth(targetDate).getDate();
-                if (task.frequency_day_of_month > lastDayOfMonthMonthly) {
-                    return dateDayMonthly === lastDayOfMonthMonthly;
-                }
-                return dateDayMonthly === task.frequency_day_of_month;
-
+                return dateDayMonthly === Math.min(task.frequency_day_of_month, lastDayOfMonthMonthly);
 
             case 'ANUAL_FECHA_FIJA':
                 const startMonth = startDate.getMonth();
                 const startDay = startDate.getDate();
                 return targetDate.getMonth() === startMonth && targetDate.getDate() === startDay;
-
-            // Frequencies for commitments are not active on specific dates
-            case 'SEMANAL_ACUMULATIVO':
-            case 'MENSUAL_ACUMULATIVO':
-            case 'TRIMESTRAL_ACUMULATIVO':
-            case 'ANUAL_ACUMULATIVO':
-            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-                return false; 
 
             default:
                 return false;
@@ -627,43 +613,57 @@ export async function getCalendarData(monthDate: Date) {
     }
     
     const commitments = allHabitTasks.filter(task => {
-        if (task.type !== 'habit' || !task.start_date || task.archived) {
+        // Basic filtering: must be a commitment type, have a start date, and not be archived before the period.
+        if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date || task.archived) {
             return false;
         }
-
         const taskStartDate = parseISO(task.start_date);
-        
         if (isAfter(taskStartDate, monthEnd)) return false;
-        if(task.archived_at && isBefore(parseISO(task.archived_at), monthStart)) return false;
+        if (task.archived_at && isBefore(parseISO(task.archived_at), monthStart)) return false;
         if (task.due_date && isBefore(parseISO(task.due_date), monthStart)) return false;
 
-        const isCommitmentType = task.frequency?.includes('ACUMULATIVO');
-        if (!isCommitmentType) return false;
-        
-        const monthInterval = { start: monthStart, end: monthEnd };
-
-        if (task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE') {
-             if (isAfter(taskStartDate, monthEnd)) return false;
-            const interval = task.frequency_interval || 1;
-            const monthsDiff = differenceInMonths(monthStart, taskStartDate);
-            if (monthsDiff < 0) { 
-                return areIntervalsOverlapping(monthInterval, { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : monthEnd }, { inclusive: true });
-            }
-            return monthsDiff % interval === 0;
-        }
-        
-        if (task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
-            const weekDiff = differenceInWeeks(monthStart, taskStartDate, { weekStartsOn: 1 });
-            const interval = task.frequency_interval || 1;
-            return weekDiff >= 0 && weekDiff % interval === 0;
-        }
-        
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-        return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
+        const monthInterval = { start: monthStart, end: monthEnd };
+        
+        // --- Logic to determine if a commitment is active in the current month ---
+        switch (task.frequency) {
+            case 'SEMANAL_ACUMULATIVO':
+            case 'MENSUAL_ACUMULATIVO':
+            case 'ANUAL_ACUMULATIVO':
+            case 'TRIMESTRAL_ACUMULATIVO':
+                // For non-recurring commitments, just check if the task's active period overlaps with the current month.
+                return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
+            
+            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
+                // Check each week in the month's view to see if it's an "objective week"
+                for (let i = 0; i < daysInView.length; i += 7) {
+                    const weekStart = daysInView[i];
+                    const weekDiff = differenceInWeeks(weekStart, taskStartDate, { weekStartsOn: 1 });
+                    const interval = task.frequency_interval || 1;
+                    if (weekDiff >= 0 && weekDiff % interval === 0) {
+                        return true; // If at least one week in the view is active, show the commitment
+                    }
+                }
+                return false;
 
+            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
+                const monthDiff = differenceInMonths(monthStart, taskStartDate);
+                const interval = task.frequency_interval || 1;
+                return monthDiff >= 0 && monthDiff % interval === 0;
+
+            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+                const currentQuarterStart = startOfQuarter(monthDate);
+                const taskQuarterStart = startOfQuarter(taskStartDate);
+                const quarterDiff = Math.floor(differenceInMonths(currentQuarterStart, taskQuarterStart) / 3);
+                const qInterval = task.frequency_interval || 1;
+                return quarterDiff >=0 && quarterDiff % qInterval === 0;
+
+            default:
+                return false;
+        }
     }).map(task => {
         let logs: ProgressLog[] = [];
-        let periodStart, periodEnd;
+        let periodStart: Date, periodEnd: Date;
 
         switch (task.frequency) {
             case 'SEMANAL_ACUMULATIVO':
@@ -676,9 +676,14 @@ export async function getCalendarData(monthDate: Date) {
                 periodStart = monthStart;
                 periodEnd = monthEnd;
                 break;
-            default: // Includes TRIMESTRAL
-                periodStart = monthStart;
-                periodEnd = monthEnd;
+            case 'TRIMESTRAL_ACUMULATIVO':
+            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
+                periodStart = startOfQuarter(monthDate);
+                periodEnd = endOfQuarter(monthDate);
+                break;
+            default: // ANUAL
+                periodStart = startOfYear(monthDate);
+                periodEnd = endOfQuarter(monthDate);
         }
 
         logs = allProgressLogs.filter(log => 
