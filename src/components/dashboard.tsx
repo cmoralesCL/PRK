@@ -178,6 +178,8 @@ export function Dashboard({
                     type: 'habit',
                     frequency: values.frequency,
                     frequency_days: values.frequency_days,
+                    frequency_interval: values.frequency_interval,
+                    frequency_unit: values.frequency_unit,
                     measurement_type: values.measurement_type,
                     measurement_goal: values.measurement_type === 'quantitative' ? values.measurement_goal : undefined,
                 };
