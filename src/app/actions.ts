@@ -2,6 +2,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -515,9 +516,9 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         }
 
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
+        
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
-            const log = task.completedToday;
-            if (log) {
+            if (task.completedToday) {
                  if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
                     const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
                     return sum + (progressPercentage * task.weight);
