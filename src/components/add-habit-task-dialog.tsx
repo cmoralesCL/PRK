@@ -42,6 +42,8 @@ import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 
+const numberPreprocess = (val: any) => (val === '' || val === null ? undefined : val);
+
 const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
     description: z.string().optional(),
@@ -54,13 +56,13 @@ const formSchema = z.object({
     
     // Habit specific fields
     frequency: z.custom<HabitFrequency>().optional(),
-    frequency_interval: z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional(),
+    frequency_interval: z.preprocess(numberPreprocess, z.coerce.number().min(1, "El intervalo debe ser al menos 1.").optional()),
     frequency_days: z.array(z.string()).optional(),
-    frequency_day_of_month: z.coerce.number().min(1, "El día debe ser entre 1 y 31.").max(31, "El día debe ser entre 1 y 31.").optional(),
+    frequency_day_of_month: z.preprocess(numberPreprocess, z.coerce.number().min(1, "El día debe ser entre 1 y 31.").max(31, "El día debe ser entre 1 y 31.").optional()),
     
     measurement_type: z.enum(['binary', 'quantitative']).optional(),
     measurement_goal: z.object({
-        target_count: z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional(),
+        target_count: z.preprocess(numberPreprocess, z.coerce.number().min(1, "El objetivo debe ser mayor que 0.").optional()),
         unit: z.string().optional(),
     }).optional(),
 }).superRefine((data, ctx) => {
@@ -175,14 +177,11 @@ export function AddHabitTaskDialog({
     if (values.type === 'habit') {
         dataToSave.frequency = values.frequency;
         dataToSave.measurement_type = values.measurement_type;
-        dataToSave.measurement_goal = values.measurement_goal;
-
-        // Clean up fields based on frequency
+        dataToSave.measurement_goal = null;
         dataToSave.frequency_interval = null;
         dataToSave.frequency_days = null;
         dataToSave.frequency_day_of_month = null;
 
-        // Add fields based on frequency
         const freq = values.frequency;
 
         if (freq?.includes('INTERVALO') || freq?.includes('RECURRENTE')) {
@@ -203,10 +202,8 @@ export function AddHabitTaskDialog({
                     target_count: values.measurement_goal?.target_count
                 };
              } else {
-                 dataToSave.measurement_goal = null;
+                 dataToSave.measurement_goal = values.measurement_goal;
              }
-        } else {
-            dataToSave.measurement_goal = null;
         }
 
     } else { // Task or Project
@@ -368,7 +365,7 @@ function FrequencyBuilder({ form }: { form: any }) {
         } else {
             setBehavior('date');
         }
-    }, [form]);
+    }, [form, frequency]);
 
 
     const handleBehaviorChange = (value: 'date' | 'period') => {
@@ -531,4 +528,5 @@ function FrequencyBuilder({ form }: { form: any }) {
             )}
         </div>
     );
-}
+
+    
