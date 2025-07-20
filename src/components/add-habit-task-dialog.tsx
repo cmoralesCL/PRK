@@ -141,7 +141,8 @@ export function AddHabitTaskDialog({
     if (type !== 'habit') return;
 
     const { mode, interval, unit, specificDays, dayOfMonth } = frequencyBuilder;
-    let newFrequency: HabitTaskFormValues['frequency'] = 'daily';
+    
+    let newFrequency: HabitTaskFormValues['frequency'] | undefined = undefined;
     let newInterval: number | undefined = undefined;
     let newDays: string[] | undefined = undefined;
     let newDayOfMonth: number | undefined = undefined;
@@ -149,11 +150,9 @@ export function AddHabitTaskDialog({
     if (mode === 'los') {
         newFrequency = 'specific_days';
         newDays = specificDays;
-        newInterval = undefined;
     } else if (mode === 'dia_fijo') {
         newFrequency = 'specific_day_of_month';
         newDayOfMonth = dayOfMonth;
-        newInterval = undefined;
     } else if (mode === 'cada') {
         newInterval = interval;
         if (unit === 'days') {
@@ -176,7 +175,6 @@ export function AddHabitTaskDialog({
         } else if (unit === 'months') {
             newFrequency = 'monthly';
         }
-        newInterval = undefined;
     }
     
     form.setValue('frequency', newFrequency, { shouldValidate: true });
