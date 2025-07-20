@@ -83,19 +83,31 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
     const handleSaveHabitTask = (values: HabitTaskFormValues) => {
         startTransition(async () => {
             try {
-                const habitTaskData = {
+                const commonData = {
                     title: values.title,
                     type: values.type,
                     area_prk_id: values.area_prk_id,
                     start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
-                    frequency: values.frequency,
-                    frequency_days: values.frequency_days,
                     weight: values.weight,
                     is_critical: values.is_critical,
-                    measurement_type: values.measurement_type,
-                    measurement_goal: values.measurement_goal,
                 };
+    
+                let habitTaskData: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at'>>;
+    
+                if (values.type === 'habit') {
+                    habitTaskData = {
+                        ...commonData,
+                        frequency: values.frequency,
+                        frequency_days: values.frequency_days,
+                        frequency_interval: values.frequency_interval,
+                        frequency_unit: values.frequency_unit,
+                        measurement_type: values.measurement_type,
+                        measurement_goal: values.measurement_goal,
+                    };
+                } else {
+                    habitTaskData = { ...commonData };
+                }
                 
                 if (editingHabitTask) {
                     await updateHabitTask(editingHabitTask.id, habitTaskData);
