@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import type { HabitTask } from '@/lib/types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { format, parseISO, isToday, startOfToday } from 'date-fns';
+import { format, parseISO, isToday, startOfToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
 import { Progress } from './ui/progress';
@@ -47,8 +47,7 @@ export function HabitTaskListItem({
   const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
   const [progressValue, setProgressValue] = useState('');
   const [currentTotal, setCurrentTotal] = useState(item.current_progress_value ?? 0);
-
-  const [hasLoggedToday, setHasLoggedToday] = useState(false);
+  const [hasLogForSelectedDate, setHasLogForSelectedDate] = useState(false);
 
 
   useEffect(() => {
@@ -57,14 +56,12 @@ export function HabitTaskListItem({
     setProgressValue(''); // Reset input after a save
     
     // Check if there's a log for the selected date for accumulative binary tasks
-    if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO') && item.id) {
-        // This is a proxy. The real check is in the parent component that fetches logs.
-        // Here, we just rely on `item.hasLoggedToday` if provided, or manage a local state.
-        // A more robust way would be to pass this state down from the parent.
-        // For now, we assume a log exists if progress > previous progress
+    if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO')) {
+        const logExists = item.logs?.some(log => isSameDay(parseISO(log.completion_date), selectedDate));
+        setHasLogForSelectedDate(!!logExists);
     }
 
-  }, [item.completedToday, item.current_progress_value, item.id, item.measurement_type, item.frequency]);
+  }, [item.completedToday, item.current_progress_value, item.logs, selectedDate, item.measurement_type, item.frequency]);
 
   const handleToggle = (checked: boolean) => {
     setIsCompleted(checked);
@@ -111,7 +108,6 @@ export function HabitTaskListItem({
   if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO')) {
       const target = item.measurement_goal?.target_count ?? 1;
       const progressPercentage = target > 0 ? (currentTotal / target) * 100 : 0;
-      const hasLogForSelectedDate = item.logs?.some(log => format(parseISO(log.completion_date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
 
       return (
         <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
@@ -151,7 +147,7 @@ export function HabitTaskListItem({
 
             {onToggle && (
                 <div className="pl-8 flex items-center gap-2 pt-1">
-                    <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={!!hasLogForSelectedDate}>
+                    <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
                       <Plus className="h-4 w-4 mr-2"/>
                       Log
                     </Button>
