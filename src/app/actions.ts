@@ -4,6 +4,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -320,14 +321,43 @@ export async function archiveAreaPrk(id: string) {
 
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
+    
     try {
-        const { error } = await supabase.from('habit_tasks').update({ archived: true, archived_at: archiveDate }).eq('id', id);
-        if(error) throw error;
-    } catch (error) {
+        // Step 1: Check for future completion logs
+        const { data: futureLogs, error: checkError } = await supabase
+            .from('progress_logs')
+            .select('id')
+            .eq('habit_task_id', id)
+            .gte('completion_date', archiveDate)
+            .limit(1);
+
+        if (checkError) {
+            await logError(checkError, { at: 'archiveHabitTask - check future logs', id, archiveDate });
+            throw new Error("Error checking for future logs.");
+        }
+
+        if (futureLogs && futureLogs.length > 0) {
+            // Found future logs, abort archiving
+            throw new Error("No se puede archivar: existen registros de finalización en el futuro para esta acción.");
+        }
+        
+        // Step 2: No future logs found, proceed with archiving
+        const { error: archiveError } = await supabase
+            .from('habit_tasks')
+            .update({ archived: true, archived_at: archiveDate })
+            .eq('id', id);
+
+        if (archiveError) {
+            throw archiveError;
+        }
+        
+    } catch (error: any) {
+        // Log the original error, but throw a new one with a potentially user-friendly message
         await logError(error, { at: 'archiveHabitTask', id, archiveDate });
-        console.error("Error archiving habit/task:", error);
-        throw new Error("Failed to archive habit/task.");
+        console.error("Error archiving habit/task:", error.message);
+        throw new Error(error.message || "Failed to archive habit/task.");
     }
+
     revalidatePath('/');
     revalidatePath('/calendar');
 }
