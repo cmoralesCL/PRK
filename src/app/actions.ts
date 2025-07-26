@@ -9,6 +9,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -139,6 +140,10 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     
     const dataToInsert: any = { ...values };
 
+    if (dataToInsert.frequency === 'UNICA') {
+        dataToInsert.frequency = null;
+    }
+
     try {
         const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
         if(error) {
@@ -158,6 +163,10 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     const supabase = createClient();
     
     const updateData: any = { ...values };
+
+    if (updateData.frequency === 'UNICA') {
+        updateData.frequency = null;
+    }
 
     try {
         const { error } = await supabase
@@ -301,6 +310,21 @@ export async function archiveAreaPrk(id: string) {
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
     try {
+        const { data: futureLogs, error: futureLogsError } = await supabase
+            .from('progress_logs')
+            .select('id')
+            .eq('habit_task_id', id)
+            .gte('completion_date', archiveDate);
+
+        if (futureLogsError) {
+             await logError(futureLogsError, { at: 'archiveHabitTask - check future logs', id, archiveDate });
+             throw new Error("Error al verificar registros futuros.");
+        }
+
+        if (futureLogs && futureLogs.length > 0) {
+            throw new Error("Existen registros completados en el futuro para esta tarea. No se puede archivar.");
+        }
+        
         const { error } = await supabase
             .from('habit_tasks')
             .update({ archived: true, archived_at: archiveDate })
@@ -310,6 +334,9 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
     } catch (error) {
         await logError(error, { at: 'archiveHabitTask', id, archiveDate });
         console.error("Error archiving habit/task:", error);
+        if (error instanceof Error) {
+            throw error; // Re-throw the specific error message
+        }
         throw new Error("Failed to archive habit/task.");
     }
 
@@ -338,23 +365,24 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     if (task.archived && task.archived_at && isAfter(targetDate, startOfDay(parseISO(task.archived_at)))) {
         return false;
     }
-
-    // Must be on or after start date
-    if (isBefore(targetDate, startDate)) {
-        return false;
-    }
     
     // Check due date if it exists
     const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
 
     // A one-off task with no frequency is active only within its start/due date range.
     if (!task.frequency) {
-        if (endDate) {
-            // Active if targetDate is between start and end (inclusive)
-            return isWithinInterval(targetDate, { start: startDate, end: endDate });
+        if (isSameDay(targetDate, startDate)) {
+            return true;
         }
-        // If no end date, it's a one-day task, active only on the start date.
+        if (endDate) {
+            return isWithinInterval(targetDate, { start: startDate, end: endDate }) && !task.completion_date;
+        }
         return isSameDay(targetDate, startDate);
+    }
+    
+    // Must be on or after start date for recurring tasks
+    if (isBefore(targetDate, startDate)) {
+        return false;
     }
     
     // If it's a recurring task/habit, it can't be active past its due_date.

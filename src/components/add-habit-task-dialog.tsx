@@ -75,7 +75,7 @@ const formSchema = z.object({
         });
     }
 
-    if (!data.frequency) return;
+    if (!data.frequency || data.frequency === 'UNICA') return;
 
     // --- Validations for specific frequencies based on 'frecuencia.md' ---
     const freq = data.frequency;
@@ -150,6 +150,7 @@ export function AddHabitTaskDialog({
     defaultValues: {
       title: '', description: '', type: 'task', start_date: defaultDate || new Date(),
       area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
+      frequency: 'UNICA',
       frequency_interval: '',
       frequency_day_of_month: '',
       frequency_days: [],
@@ -165,6 +166,7 @@ export function AddHabitTaskDialog({
         // --- Populate Form ---
         form.reset({
           ...habitTask,
+          frequency: habitTask.frequency ?? 'UNICA',
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
           frequency_interval: habitTask.frequency_interval ?? '',
@@ -179,7 +181,7 @@ export function AddHabitTaskDialog({
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
           area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
-          frequency: 'DIARIA',
+          frequency: 'UNICA',
           frequency_days: [],
           frequency_interval: '',
           frequency_day_of_month: '',
@@ -204,7 +206,7 @@ export function AddHabitTaskDialog({
     };
 
     // --- Frequency Data ---
-    dataToSave.frequency = values.frequency;
+    dataToSave.frequency = values.frequency === 'UNICA' ? null : values.frequency;
     dataToSave.measurement_type = values.measurement_type;
 
     // Reset all frequency related fields before setting them
@@ -215,7 +217,7 @@ export function AddHabitTaskDialog({
 
     const freq = values.frequency;
     
-    if (freq) {
+    if (freq && freq !== 'UNICA') {
         if (freq.includes('INTERVALO') || freq.includes('RECURRENTE')) {
             dataToSave.frequency_interval = values.frequency_interval;
         }
@@ -239,7 +241,7 @@ export function AddHabitTaskDialog({
              dataToSave.measurement_type = 'binary';
         }
     } else {
-        // If no frequency is set, it's a simple one-off task.
+        // If 'UNICA' or no frequency is set, it's a simple one-off task.
         dataToSave.frequency = null;
         dataToSave.measurement_type = 'binary';
     }
@@ -429,7 +431,7 @@ function FrequencyBuilder({ form }: { form: any }) {
     const handleBehaviorChange = (value: 'date' | 'period') => {
         setBehavior(value);
         if (value === 'date') {
-            form.setValue('frequency', 'DIARIA');
+            form.setValue('frequency', 'UNICA');
             form.setValue('measurement_type', 'binary');
         } else {
             form.setValue('frequency', 'SEMANAL_ACUMULATIVO');
@@ -463,9 +465,10 @@ function FrequencyBuilder({ form }: { form: any }) {
                 <div className="space-y-4 pt-2">
                     <FormField control={form.control} name="frequency" render={({ field }) => (
                       <FormItem>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value ?? 'UNICA'}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una frecuencia" /></SelectTrigger></FormControl>
                             <SelectContent>
+                                <SelectItem value="UNICA">Acción Única (una sola vez)</SelectItem>
                                 <SelectItem value="DIARIA">Diaria</SelectItem>
                                 <SelectItem value="SEMANAL_DIAS_FIJOS">Días Específicos de la Semana</SelectItem>
                                 <SelectItem value="MENSUAL_DIA_FIJO">Día Fijo del Mes</SelectItem>

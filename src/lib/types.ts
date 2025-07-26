@@ -1,6 +1,7 @@
 
 
 
+
 export interface LifePrk {
   id: string;
   title: string;
@@ -27,6 +28,7 @@ export interface AreaPrk {
 export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
 export type HabitFrequency = 
+  | 'UNICA'
   | 'DIARIA'
   | 'SEMANAL_DIAS_FIJOS'
   | 'MENSUAL_DIA_FIJO'
