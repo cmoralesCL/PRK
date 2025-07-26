@@ -23,8 +23,6 @@ interface CalendarViewProps {
     weeklyProgressData: WeeklyProgressSnapshot[];
     monthlyProgress: number;
     onDayClick: (day: Date) => void;
-    referenceDate: Date;
-    onReferenceDateChange: (date: Date) => void;
 }
 
 export function CalendarView({ 
@@ -35,8 +33,6 @@ export function CalendarView({
     weeklyProgressData,
     monthlyProgress,
     onDayClick,
-    referenceDate,
-    onReferenceDateChange
 }: CalendarViewProps) {
     const router = useRouter();
     const { toast } = useToast();
@@ -51,8 +47,7 @@ export function CalendarView({
 
     const handleMonthChange = (newMonth: Date) => {
         startTransition(() => {
-            const refDateString = format(referenceDate, 'yyyy-MM-dd');
-            router.push(`/calendar?month=${format(newMonth, 'yyyy-MM-dd')}&ref_date=${refDateString}`);
+            router.push(`/calendar?month=${format(newMonth, 'yyyy-MM-dd')}`);
         });
     }
 
@@ -125,11 +120,8 @@ export function CalendarView({
         <>
             <Header 
                 onAddLifePrk={() => {}} 
-                selectedDate={referenceDate} 
-                onDateChange={onReferenceDateChange} 
                 hideAddButton={true} 
-                hideDatePicker={false} 
-                datePickerLabel="Fecha de Referencia (Testing)"
+                hideDatePicker={true} 
             />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <ProgressCalendar

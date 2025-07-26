@@ -13,6 +13,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -365,15 +366,18 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     
     // A one-off task with no frequency is active only on its start date, regardless of completion.
     if (task.frequency === null || task.frequency === 'UNICA') {
-        const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : startDate;
-        // Don't show after one day of completion or due date to avoid clutter
-        if (task.completion_date && isAfter(targetDate, addDays(startOfDay(parseISO(task.completion_date)), 1))) {
-            return false;
+        const isCompleted = !!task.completion_date;
+        if (isCompleted) {
+            // If completed, only show it on its completion date, not after.
+            return isSameDay(targetDate, startOfDay(parseISO(task.completion_date)));
         }
-        if (isAfter(targetDate, addDays(endDate, 1))) {
-            return false;
+        // If not completed, it's active on or after start date, until due date (if any)
+        const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
+        if (isAfter(targetDate, startDate) && !endDate) {
+            // One-off task with no due date becomes "overdue" but remains active
+            return true;
         }
-        return isWithinInterval(targetDate, { start: startDate, end: endDate });
+        return isWithinInterval(targetDate, { start: startDate, end: endDate || addDays(startDate, 365 * 10) }); // Show for a long time if no due date
     }
     
     // Must be on or after start date for recurring tasks
@@ -675,8 +679,9 @@ export async function getDashboardData(selectedDateString: string) {
 }
 
 
-export async function getCalendarData(monthDate: Date, referenceDate: Date) {
+export async function getCalendarData(monthDate: Date) {
     const supabase = createClient();
+    const referenceDate = new Date();
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);

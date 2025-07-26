@@ -26,10 +26,9 @@ interface CalendarPageClientProps {
         commitments: HabitTask[];
     };
     initialMonthString: string;
-    initialReferenceDateString: string;
 }
 
-export function CalendarPageClient({ initialData, initialMonthString, initialReferenceDateString }: CalendarPageClientProps) {
+export function CalendarPageClient({ initialData, initialMonthString }: CalendarPageClientProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -44,8 +43,8 @@ export function CalendarPageClient({ initialData, initialMonthString, initialRef
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
     const [wasCommitmentPanelOpen, setWasCommitmentPanelOpen] = useState(false);
     
-    // State is now derived from the initial string prop to avoid hydration issues
-    const [referenceDate, setReferenceDate] = useState(() => parseISO(initialReferenceDateString));
+    // Reference date for actions is now always the current date.
+    const [referenceDate, setReferenceDate] = useState(() => new Date());
 
     const handleOpenAddTaskDialog = (date: Date) => {
         setEditingHabitTask(null);
@@ -113,15 +112,6 @@ export function CalendarPageClient({ initialData, initialMonthString, initialRef
         });
     }
 
-    const handleReferenceDateChange = (date: Date) => {
-        const currentMonth = parseISO(initialMonthString);
-        const currentMonthString = format(currentMonth, 'yyyy-MM-dd');
-        const refDateString = format(date, 'yyyy-MM-dd');
-        // Update state on the client side immediately for responsiveness
-        setReferenceDate(date);
-        router.push(`/calendar?month=${currentMonthString}&ref_date=${refDateString}`);
-    };
-
     return (
         <div className="flex flex-1 h-screen overflow-hidden">
             <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
@@ -133,8 +123,6 @@ export function CalendarPageClient({ initialData, initialMonthString, initialRef
                     weeklyProgressData={initialData.weeklyProgress || []}
                     monthlyProgress={initialData.monthlyProgress}
                     onDayClick={handleDayClick}
-                    referenceDate={referenceDate}
-                    onReferenceDateChange={handleReferenceDateChange}
                 />
             </main>
             <aside className={cn(
