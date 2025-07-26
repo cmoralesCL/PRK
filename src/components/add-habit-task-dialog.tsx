@@ -114,7 +114,7 @@ const formSchema = z.object({
     }
     
     // Rule: Accumulative frequencies must have a measurement goal.
-    if (freq.includes('ACUMULATIVO')) {
+    if (freq.includes('ACUMULATIVO') || (data.measurement_type === 'quantitative' && freq !== 'UNICA')) {
         if (data.measurement_type === 'binary' && data.measurement_goal?.target_count === undefined) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
         }
@@ -238,20 +238,19 @@ export function AddHabitTaskDialog({
             dataToSave.frequency_day_of_month = values.frequency_day_of_month;
         }
         
-        if (freq.includes('ACUMULATIVO')) {
-             if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
-                dataToSave.measurement_goal = {
-                    target_count: values.measurement_goal?.target_count,
-                    unit: values.measurement_goal?.unit,
-                };
-             }
-        } else {
-             dataToSave.measurement_type = 'binary';
-        }
-    } else {
-        // If 'UNICA' or no frequency is set, it's a simple one-off task.
+    }
+    
+    if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
+        dataToSave.measurement_goal = {
+            target_count: values.measurement_goal?.target_count,
+            unit: values.measurement_goal?.unit,
+        };
+    }
+
+    if (freq === 'UNICA') {
         dataToSave.frequency = null;
         dataToSave.measurement_type = 'binary';
+        dataToSave.measurement_goal = null;
     }
     
     onSave(dataToSave);
@@ -456,6 +455,8 @@ function FrequencyBuilder({ form }: { form: any }) {
             : [...currentDays, dayId];
         form.setValue('frequency_days', newDays, { shouldValidate: true });
     };
+    
+    const showMeasurementOptions = frequency !== 'UNICA';
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
@@ -475,7 +476,12 @@ function FrequencyBuilder({ form }: { form: any }) {
                 <div className="space-y-4 pt-2">
                     <FormField control={form.control} name="frequency" render={({ field }) => (
                       <FormItem>
-                        <Select onValueChange={field.onChange} value={field.value ?? 'UNICA'}>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value === 'UNICA') {
+                                form.setValue('measurement_type', 'binary');
+                            }
+                        }} value={field.value ?? 'UNICA'}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una frecuencia" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="UNICA">Acción Única (una sola vez)</SelectItem>
@@ -530,9 +536,6 @@ function FrequencyBuilder({ form }: { form: any }) {
                            <FormItem><FormLabel>El día del mes</FormLabel><FormControl><Input type="number" min="1" max="31" placeholder="Ej: 15" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                     )}
-                     <FormField control={form.control} name="measurement_type" render={({ field }) => (
-                        <FormItem className='hidden'><FormControl><Input {...field} value="binary" /></FormControl></FormItem>
-                     )}/>
                 </div>
             )}
 
@@ -540,10 +543,7 @@ function FrequencyBuilder({ form }: { form: any }) {
                  <div className="space-y-4 pt-2">
                      <FormField control={form.control} name="frequency" render={({ field }) => (
                       <FormItem>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            form.setValue('measurement_type', 'binary'); // Default to binary for commitments
-                        }} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un período" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="SEMANAL_ACUMULATIVO">Por Semana (Acumulativo)</SelectItem>
@@ -571,8 +571,12 @@ function FrequencyBuilder({ form }: { form: any }) {
                            </FormItem>
                         )}/>
                     )}
-
-                    <FormField
+                </div>
+            )}
+            
+            {showMeasurementOptions && (
+                 <div className="space-y-4 pt-4 border-t mt-4">
+                     <FormField
                         control={form.control}
                         name="measurement_type"
                         render={({ field }) => (
@@ -587,13 +591,13 @@ function FrequencyBuilder({ form }: { form: any }) {
                                         <FormControl>
                                             <RadioGroupItem value="binary" id="binary" />
                                         </FormControl>
-                                        <Label htmlFor="binary">Contar Tareas (X veces)</Label>
+                                        <Label htmlFor="binary">Completar Tarea</Label>
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-2">
                                         <FormControl>
                                             <RadioGroupItem value="quantitative" id="quantitative" />
                                         </FormControl>
-                                        <Label htmlFor="quantitative">Sumar Valores (N unidades)</Label>
+                                        <Label htmlFor="quantitative">Sumar Valores</Label>
                                     </FormItem>
                                 </RadioGroup>
                             </FormItem>
@@ -605,7 +609,7 @@ function FrequencyBuilder({ form }: { form: any }) {
                            <FormItem><FormLabel>Meta (veces por período)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                     )}
-                    {measurementType === 'quantitative' && frequency?.includes('ACUMULATIVO') && (
+                    {measurementType === 'quantitative' && (
                         <div className="flex gap-2">
                              <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
                                <FormItem className="flex-grow"><FormLabel>Meta (valor total)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 100" {...field} /></FormControl><FormMessage /></FormItem>
@@ -615,7 +619,6 @@ function FrequencyBuilder({ form }: { form: any }) {
                             )}/>
                         </div>
                     )}
-
                 </div>
             )}
         </div>

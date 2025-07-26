@@ -14,6 +14,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -740,24 +741,24 @@ export async function getCalendarData(monthDate: Date) {
         habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
     }
     
-    const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, referenceDate)
+    const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, monthDate)
         .map(task => {
             let periodStartForLogs: Date, periodEndForLogs: Date;
             
             const freq = task.frequency;
             
             if(freq?.startsWith('SEMANAL')) {
-                periodStartForLogs = startOfWeek(referenceDate, { weekStartsOn: 1 });
-                periodEndForLogs = endOfWeek(referenceDate, { weekStartsOn: 1 });
+                periodStartForLogs = startOfWeek(monthDate, { weekStartsOn: 1 });
+                periodEndForLogs = endOfWeek(monthDate, { weekStartsOn: 1 });
             } else if (freq?.startsWith('MENSUAL')) {
-                periodStartForLogs = startOfMonth(referenceDate);
-                periodEndForLogs = endOfMonth(referenceDate);
+                periodStartForLogs = startOfMonth(monthDate);
+                periodEndForLogs = endOfMonth(monthDate);
             } else if (freq?.startsWith('TRIMESTRAL')) {
-                periodStartForLogs = startOfQuarter(referenceDate);
-                periodEndForLogs = endOfQuarter(referenceDate);
+                periodStartForLogs = startOfQuarter(monthDate);
+                periodEndForLogs = endOfQuarter(monthDate);
             } else { // ANUAL
-                periodStartForLogs = startOfYear(referenceDate);
-                periodEndForLogs = endOfYear(referenceDate);
+                periodStartForLogs = startOfYear(monthDate);
+                periodEndForLogs = endOfYear(monthDate);
             }
 
             const logs = allProgressLogs.filter(log => 

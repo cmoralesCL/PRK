@@ -171,7 +171,7 @@ export function HabitTaskListItem({
   // Dashboard & Dialog Variants
   if (item.measurement_type === 'quantitative') {
     const target = item.measurement_goal?.target_count ?? 1;
-    const progressPercentage = target > 0 ? (currentTotal / target) * 100 : 0;
+    const progressPercentage = target > 0 ? ((item.current_progress_value ?? 0) / target) * 100 : 0;
 
     return (
         <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
@@ -204,13 +204,13 @@ export function HabitTaskListItem({
             
             <div className="pl-8 space-y-2">
                  <div className="flex justify-between items-end">
-                    <span className="text-sm font-semibold text-primary">{currentTotal}</span>
+                    <span className="text-sm font-semibold text-primary">{item.current_progress_value ?? 0}</span>
                     <span className="text-xs text-muted-foreground">/ {item.measurement_goal?.target_count} {item.measurement_goal?.unit}</span>
                  </div>
                  <Progress value={progressPercentage} className="h-2" />
             </div>
 
-            {onToggle && (
+            {onToggle && !isCompleted && (
                 <div className="pl-8 flex items-center gap-2 pt-1">
                     <Input
                         type="number"
