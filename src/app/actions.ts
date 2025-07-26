@@ -6,6 +6,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -368,29 +369,25 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     
     // Check due date if it exists
     const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
+    
+    // --- Type Specific Logic ---
+    // For single-instance tasks/projects
+    if (task.type === 'task' || task.type === 'project') {
+        // A single action task is active on its start date, or within its start/due date range.
+        // It should not appear after its due date, regardless of completion.
+        if (endDate) {
+            // Active if targetDate is between start and end (inclusive)
+            return isWithinInterval(targetDate, { start: startDate, end: endDate });
+        }
+        // If no end date, it's active only on the start date.
+        return isSameDay(targetDate, startDate);
+    }
+    
+    // If it's a habit, it can't be active past its due_date.
     if (endDate && isAfter(targetDate, endDate)) {
         return false;
     }
 
-    // --- Type Specific Logic ---
-    // For single-instance tasks/projects
-    if (task.type === 'task' || task.type === 'project') {
-        const completionDate = task.completion_date ? startOfDay(parseISO(task.completion_date)) : null;
-
-        // If completed, only show it for one day after completion for visibility
-        if (completionDate) {
-            return isWithinInterval(targetDate, { start: completionDate, end: addDays(completionDate, 1) });
-        }
-
-        // If not completed, it's active until its due date (or just on start_date if no due_date)
-        if (endDate) {
-            return isWithinInterval(targetDate, { start: startDate, end: endDate });
-        }
-        
-        // No due date means it's a one-off task for the start date, visible until one day after
-        return isSameDay(targetDate, startDate);
-    }
-    
     // For recurring habits
     if (task.type === 'habit') {
         // Frequencies for commitments should not appear on the calendar
