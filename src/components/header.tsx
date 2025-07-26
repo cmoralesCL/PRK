@@ -18,8 +18,8 @@ import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
   onAddLifePrk: () => void;
-  selectedDate: Date;
-  onDateChange: (date: Date) => void;
+  selectedDate?: Date;
+  onDateChange?: (date: Date) => void;
   hideDatePicker?: boolean;
   hideAddButton?: boolean;
   datePickerLabel?: string;
@@ -64,7 +64,7 @@ export function Header({
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            {!hideDatePicker && (
+            {!hideDatePicker && selectedDate && onDateChange && (
                  <Popover>
                  <PopoverTrigger asChild>
                    <Button
