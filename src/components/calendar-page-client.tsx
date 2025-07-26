@@ -2,9 +2,9 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, parse } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -26,10 +26,10 @@ interface CalendarPageClientProps {
         commitments: HabitTask[];
     };
     initialMonthString: string;
-    referenceDate: Date;
+    initialReferenceDateString: string;
 }
 
-export function CalendarPageClient({ initialData, initialMonthString, referenceDate }: CalendarPageClientProps) {
+export function CalendarPageClient({ initialData, initialMonthString, initialReferenceDateString }: CalendarPageClientProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -44,6 +44,9 @@ export function CalendarPageClient({ initialData, initialMonthString, referenceD
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
     const [wasCommitmentPanelOpen, setWasCommitmentPanelOpen] = useState(false);
     
+    // State is now derived from the initial string prop to avoid hydration issues
+    const [referenceDate, setReferenceDate] = useState(() => parseISO(initialReferenceDateString));
+
     const handleOpenAddTaskDialog = (date: Date) => {
         setEditingHabitTask(null);
         setDefaultHabitTaskValues(undefined);
@@ -111,9 +114,11 @@ export function CalendarPageClient({ initialData, initialMonthString, referenceD
     }
 
     const handleReferenceDateChange = (date: Date) => {
-        const currentMonth = parse(initialMonthString, 'yyyy-MM-dd', new Date());
+        const currentMonth = parseISO(initialMonthString);
         const currentMonthString = format(currentMonth, 'yyyy-MM-dd');
         const refDateString = format(date, 'yyyy-MM-dd');
+        // Update state on the client side immediately for responsiveness
+        setReferenceDate(date);
         router.push(`/calendar?month=${currentMonthString}&ref_date=${refDateString}`);
     };
 

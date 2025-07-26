@@ -1,5 +1,5 @@
 
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { getCalendarData } from '@/app/actions';
 import { CalendarPageClient } from '@/components/calendar-page-client';
 
@@ -8,20 +8,21 @@ export const dynamic = 'force-dynamic';
 // This is the main page component, a Server Component.
 // Its only job is to fetch data and pass it to the Client Component.
 export default async function CalendarPage({ searchParams }: { searchParams: { month?: string, ref_date?: string } }) {
-  const monthDate = searchParams.month ? new Date(searchParams.month) : new Date();
-  monthDate.setHours(0, 0, 0, 0);
+  const today = new Date();
   
-  const referenceDate = searchParams.ref_date ? new Date(searchParams.ref_date) : new Date();
-  referenceDate.setHours(0, 0, 0, 0);
+  const monthString = searchParams.month || format(today, 'yyyy-MM-dd');
+  const monthDate = parseISO(monthString);
+  
+  const refDateString = searchParams.ref_date || format(today, 'yyyy-MM-dd');
+  const referenceDate = parseISO(refDateString);
 
   const initialData = await getCalendarData(monthDate, referenceDate);
-  const initialMonthString = format(monthDate, 'yyyy-MM-dd');
 
   return (
     <CalendarPageClient 
         initialData={initialData}
-        initialMonthString={initialMonthString}
-        referenceDate={referenceDate}
+        initialMonthString={monthString}
+        initialReferenceDateString={refDateString}
     />
   );
 }
