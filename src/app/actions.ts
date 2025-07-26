@@ -7,6 +7,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -201,10 +202,10 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     revalidatePath('/calendar');
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string, progressValue?: number) {
+export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     try {
-        if (type === 'project' || type === 'task') {
+        if (type === 'task') {
             const { error: updateError } = await supabase
                 .from('habit_tasks')
                 .update({ completion_date: completionDate })
@@ -263,10 +264,10 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
     }
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'project' | 'task', completionDate: string) {
+export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
     try {
-        if (type === 'project' || type === 'task') {
+        if (type === 'task') {
             const { error } = await supabase
                 .from('habit_tasks')
                 .update({ completion_date: null })
@@ -372,7 +373,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     
     // --- Type Specific Logic ---
     // For single-instance tasks/projects
-    if (task.type === 'task' || task.type === 'project') {
+    if (task.type === 'task') {
         // A single action task is active on its start date, or within its start/due date range.
         // It should not appear after its due date, regardless of completion.
         if (endDate) {

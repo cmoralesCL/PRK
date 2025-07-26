@@ -36,8 +36,6 @@ export function HabitTaskListItem({
     switch (item.type) {
       case 'habit':
         return Repeat;
-      case 'project':
-        return Layers;
       case 'task':
       default:
         return CheckSquare;

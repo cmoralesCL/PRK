@@ -48,7 +48,7 @@ const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
     description: z.string().optional(),
     area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
-    type: z.enum(['task', 'project', 'habit']),
+    type: z.enum(['task', 'habit']),
     start_date: z.date().optional(),
     due_date: z.date().optional(),
     weight: z.coerce.number().min(1, { message: 'El impacto debe ser al menos 1.' }).max(5, { message: 'El impacto no puede ser mayor a 5.' }).default(1),
@@ -276,15 +276,48 @@ export function AddHabitTaskDialog({
               )}
             />
             
-            <FormField control={form.control} name="type" render={({ field }) => (
-              <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} value={field.value}>
-                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                <SelectContent>
-                  <SelectItem value="task">Tarea (Acción única)</SelectItem>
-                  <SelectItem value="project">Proyecto (Agrupa Tareas)</SelectItem>
-                  <SelectItem value="habit">Hábito (Acción recurrente)</SelectItem>
-                </SelectContent></Select><FormMessage /></FormItem>
-            )}/>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Tipo de Acción</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="task" id="task" className="peer sr-only" />
+                        </FormControl>
+                        <Label
+                          htmlFor="task"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          Tarea
+                          <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción única con fecha de inicio/fin.</span>
+                        </Label>
+                      </FormItem>
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="habit" id="habit" className="peer sr-only" />
+                        </FormControl>
+                         <Label
+                          htmlFor="habit"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          Hábito
+                           <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción recurrente que se repite en el tiempo.</span>
+                        </Label>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
              <FormField control={form.control} name="area_prk_id" render={({ field }) => (
                 <FormItem><FormLabel>PRK de Área Asociado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>

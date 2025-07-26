@@ -1,5 +1,6 @@
 
 
+
 export interface LifePrk {
   id: string;
   title: string;
@@ -47,7 +48,7 @@ export interface HabitTask {
   area_prk_id: string; // Corresponds to area_prk_id in Supabase
   title: string;
   description?: string | null;
-  type: 'habit' | 'project' | 'task';
+  type: 'habit' | 'task';
   created_at?: string;
   archived: boolean;
   archived_at?: string | null;
