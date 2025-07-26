@@ -8,6 +8,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -156,32 +157,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
 export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at'>>): Promise<void> {
     const supabase = createClient();
     
-    const updateData: any = {};
-
-    const fieldsToCopy: (keyof typeof values)[] = ['title', 'description', 'area_prk_id', 'weight', 'is_critical', 'start_date', 'due_date', 'type'];
-    fieldsToCopy.forEach(field => {
-        if(values[field] !== undefined) {
-            updateData[field] = values[field];
-        }
-    });
-
-    if (values.type === 'habit') {
-        updateData.frequency = values.frequency;
-        updateData.measurement_type = values.measurement_type;
-        updateData.measurement_goal = values.measurement_goal;
-        updateData.frequency_days = values.frequency_days;
-        updateData.frequency_day_of_month = values.frequency_day_of_month;
-        updateData.frequency_interval = values.frequency_interval;
-        updateData.frequency_unit = values.frequency_unit;
-    } else {
-        updateData.frequency = null;
-        updateData.measurement_type = null;
-        updateData.measurement_goal = null;
-        updateData.frequency_days = null;
-        updateData.frequency_day_of_month = null;
-        updateData.frequency_interval = null;
-        updateData.frequency_unit = null;
-    }
+    const updateData: any = { ...values };
 
     try {
         const { error } = await supabase
@@ -370,95 +346,89 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     
     // Check due date if it exists
     const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
-    
-    // --- Type Specific Logic ---
-    // For single-instance tasks/projects
-    if (task.type === 'task') {
-        // A single action task is active on its start date, or within its start/due date range.
-        // It should not appear after its due date, regardless of completion.
+
+    // A one-off task with no frequency is active only within its start/due date range.
+    if (!task.frequency) {
         if (endDate) {
             // Active if targetDate is between start and end (inclusive)
             return isWithinInterval(targetDate, { start: startDate, end: endDate });
         }
-        // If no end date, it's active only on the start date.
+        // If no end date, it's a one-day task, active only on the start date.
         return isSameDay(targetDate, startDate);
     }
     
-    // If it's a habit, it can't be active past its due_date.
+    // If it's a recurring task/habit, it can't be active past its due_date.
     if (endDate && isAfter(targetDate, endDate)) {
         return false;
     }
 
-    // For recurring habits
-    if (task.type === 'habit') {
-        // Frequencies for commitments should not appear on the calendar
-        if (task.frequency?.includes('ACUMULATIVO')) {
-            return false;
-        }
+    // --- Frequency Logic (applies to both tasks and habits) ---
+    // Frequencies for commitments should not appear on the calendar
+    if (task.frequency.includes('ACUMULATIVO')) {
+        return false;
+    }
 
-        switch (task.frequency) {
-            case 'DIARIA':
-                return true;
+    switch (task.frequency) {
+        case 'DIARIA':
+            return true;
 
-            case 'SEMANAL_DIAS_FIJOS':
-                // date-fns: Sunday=0, Monday=1, ..., Saturday=6
-                const dayMap = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-                const dayOfWeek = getDay(targetDate);
-                return task.frequency_days?.includes(dayMap[dayOfWeek]) ?? false;
+        case 'SEMANAL_DIAS_FIJOS':
+            // date-fns: Sunday=0, Monday=1, ..., Saturday=6
+            const dayMap = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            const dayOfWeek = getDay(targetDate);
+            return task.frequency_days?.includes(dayMap[dayOfWeek]) ?? false;
+        
+        case 'INTERVALO_DIAS':
+            if (!task.frequency_interval) return false;
+            const diffDays = differenceInDays(targetDate, startDate);
+            return diffDays >= 0 && diffDays % task.frequency_interval === 0;
+        
+        case 'INTERVALO_SEMANAL_DIAS_FIJOS': {
+            if (!task.frequency_interval || !task.frequency_days) return false;
             
-            case 'INTERVALO_DIAS':
-                if (!task.frequency_interval) return false;
-                const diffDays = differenceInDays(targetDate, startDate);
-                return diffDays >= 0 && diffDays % task.frequency_interval === 0;
-            
-            case 'INTERVALO_SEMANAL_DIAS_FIJOS': {
-                if (!task.frequency_interval || !task.frequency_days) return false;
-                
-                const startOfWeekDate = startOfWeek(startDate, { weekStartsOn: 1 });
-                const targetWeekStartDate = startOfWeek(targetDate, { weekStartsOn: 1 });
-                const weekDiffInDays = differenceInDays(targetWeekStartDate, startOfWeekDate);
+            const startOfWeekDate = startOfWeek(startDate, { weekStartsOn: 1 });
+            const targetWeekStartDate = startOfWeek(targetDate, { weekStartsOn: 1 });
+            const weekDiffInDays = differenceInDays(targetWeekStartDate, startOfWeekDate);
 
-                if (weekDiffInDays < 0) return false;
+            if (weekDiffInDays < 0) return false;
 
-                const weekDiff = Math.floor(weekDiffInDays / 7);
+            const weekDiff = Math.floor(weekDiffInDays / 7);
 
-                if (weekDiff % task.frequency_interval !== 0) {
-                    return false;
-                }
-
-                const dayMapWeekly = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-                const dayOfWeekWeekly = getDay(targetDate);
-                return task.frequency_days.includes(dayMapWeekly[dayOfWeekWeekly]);
+            if (weekDiff % task.frequency_interval !== 0) {
+                return false;
             }
 
-            case 'MENSUAL_DIA_FIJO':
-                if (!task.frequency_day_of_month) return false;
-                const dateDay = targetDate.getDate();
-                const lastDayOfMonth = endOfMonth(targetDate).getDate();
-
-                // Handle cases like setting 31 for a month with 30 days. It should fall on the last day.
-                return dateDay === Math.min(task.frequency_day_of_month, lastDayOfMonth);
-            
-            case 'INTERVALO_MENSUAL_DIA_FIJO':
-                if (!task.frequency_interval || !task.frequency_day_of_month) return false;
-                const monthDiff = differenceInMonths(targetDate, startDate);
-                if (monthDiff < 0 || monthDiff % task.frequency_interval !== 0) {
-                    return false;
-                }
-                const dateDayMonthly = targetDate.getDate();
-                const lastDayOfMonthMonthly = endOfMonth(targetDate).getDate();
-                return dateDayMonthly === Math.min(task.frequency_day_of_month, lastDayOfMonthMonthly);
-
-            case 'ANUAL_FECHA_FIJA':
-                const startMonth = startDate.getMonth();
-                const startDay = startDate.getDate();
-                return targetDate.getMonth() === startMonth && targetDate.getDate() === startDay;
-
-            default:
-                return false;
+            const dayMapWeekly = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            const dayOfWeekWeekly = getDay(targetDate);
+            return task.frequency_days.includes(dayMapWeekly[dayOfWeekWeekly]);
         }
+
+        case 'MENSUAL_DIA_FIJO':
+            if (!task.frequency_day_of_month) return false;
+            const dateDay = targetDate.getDate();
+            const lastDayOfMonth = endOfMonth(targetDate).getDate();
+
+            // Handle cases like setting 31 for a month with 30 days. It should fall on the last day.
+            return dateDay === Math.min(task.frequency_day_of_month, lastDayOfMonth);
+        
+        case 'INTERVALO_MENSUAL_DIA_FIJO':
+            if (!task.frequency_interval || !task.frequency_day_of_month) return false;
+            const monthDiff = differenceInMonths(targetDate, startDate);
+            if (monthDiff < 0 || monthDiff % task.frequency_interval !== 0) {
+                return false;
+            }
+            const dateDayMonthly = targetDate.getDate();
+            const lastDayOfMonthMonthly = endOfMonth(targetDate).getDate();
+            return dateDayMonthly === Math.min(task.frequency_day_of_month, lastDayOfMonthMonthly);
+
+        case 'ANUAL_FECHA_FIJA':
+            const startMonth = startDate.getMonth();
+            const startDay = startDate.getDate();
+            return targetDate.getMonth() === startMonth && targetDate.getDate() === startDay;
+
+        default:
+            return false;
     }
-    return false;
 }
 
 /**

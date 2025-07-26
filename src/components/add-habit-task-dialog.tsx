@@ -75,7 +75,7 @@ const formSchema = z.object({
         });
     }
 
-    if (data.type !== 'habit' || !data.frequency) return;
+    if (!data.frequency) return;
 
     // --- Validations for specific frequencies based on 'frecuencia.md' ---
     const freq = data.frequency;
@@ -203,19 +203,20 @@ export function AddHabitTaskDialog({
         is_critical: values.is_critical,
     };
 
-    if (values.type === 'habit') {
-        dataToSave.frequency = values.frequency;
-        dataToSave.measurement_type = values.measurement_type;
+    // --- Frequency Data ---
+    dataToSave.frequency = values.frequency;
+    dataToSave.measurement_type = values.measurement_type;
 
-        // Reset all frequency related fields before setting them
-        dataToSave.frequency_interval = null;
-        dataToSave.frequency_days = null;
-        dataToSave.frequency_day_of_month = null;
-        dataToSave.measurement_goal = null;
+    // Reset all frequency related fields before setting them
+    dataToSave.frequency_interval = null;
+    dataToSave.frequency_days = null;
+    dataToSave.frequency_day_of_month = null;
+    dataToSave.measurement_goal = null;
 
-        const freq = values.frequency;
-        
-        if (freq?.includes('INTERVALO') || freq?.includes('RECURRENTE')) {
+    const freq = values.frequency;
+    
+    if (freq) {
+        if (freq.includes('INTERVALO') || freq.includes('RECURRENTE')) {
             dataToSave.frequency_interval = values.frequency_interval;
         }
 
@@ -227,7 +228,7 @@ export function AddHabitTaskDialog({
             dataToSave.frequency_day_of_month = values.frequency_day_of_month;
         }
         
-        if (freq?.includes('ACUMULATIVO')) {
+        if (freq.includes('ACUMULATIVO')) {
              if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
                 dataToSave.measurement_goal = {
                     target_count: values.measurement_goal?.target_count,
@@ -237,6 +238,10 @@ export function AddHabitTaskDialog({
         } else {
              dataToSave.measurement_type = 'binary';
         }
+    } else {
+        // If no frequency is set, it's a simple one-off task.
+        dataToSave.frequency = null;
+        dataToSave.measurement_type = 'binary';
     }
     
     onSave(dataToSave);
@@ -297,7 +302,7 @@ export function AddHabitTaskDialog({
                           className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                         >
                           Tarea
-                          <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción única con fecha de inicio/fin.</span>
+                          <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción única o recurrente.</span>
                         </Label>
                       </FormItem>
                       <FormItem>
@@ -309,7 +314,7 @@ export function AddHabitTaskDialog({
                           className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                         >
                           Hábito
-                           <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción recurrente que se repite en el tiempo.</span>
+                           <span className="text-xs font-normal text-muted-foreground mt-1 text-center">Una acción recurrente para formar una costumbre.</span>
                         </Label>
                       </FormItem>
                     </RadioGroup>
@@ -340,9 +345,7 @@ export function AddHabitTaskDialog({
               name="due_date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>
-                    {type === 'habit' ? 'Fecha de Finalización (Opcional)' : 'Fecha Límite (Opcional)'}
-                  </FormLabel>
+                  <FormLabel>Fecha Límite (Opcional)</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -380,9 +383,7 @@ export function AddHabitTaskDialog({
               )}
             />
 
-            {type === 'habit' && (
-                <FrequencyBuilder form={form} />
-            )}
+            <FrequencyBuilder form={form} />
             
             <FormField control={form.control} name="weight" render={({ field }) => (
               <FormItem><FormLabel>Nivel de Impacto (1-5)</FormLabel><Input type="number" min="1" max="5" placeholder="1" {...field} /><FormMessage /></FormItem>
@@ -446,7 +447,7 @@ function FrequencyBuilder({ form }: { form: any }) {
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
-            <FormLabel>Frecuencia del Hábito</FormLabel>
+            <FormLabel>Frecuencia</FormLabel>
             <RadioGroup value={behavior} onValueChange={handleBehaviorChange} className="flex gap-4">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="date" id="date" />
