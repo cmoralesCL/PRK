@@ -15,6 +15,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -524,11 +525,15 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
+            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
+                // Always count partial progress for quantitative tasks
+                const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
+                // Cap progress at 100% for the calculation
+                const cappedProgress = Math.min(progressPercentage, 1);
+                return sum + (cappedProgress * task.weight);
+            }
             if (task.completedToday) {
-                 if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-                    const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
-                    return sum + (progressPercentage * task.weight);
-                }
+                 // For binary tasks, progress is 1 (100%)
                 return sum + (1 * task.weight);
             }
             return sum;
@@ -682,7 +687,6 @@ export async function getDashboardData(selectedDateString: string) {
 
 export async function getCalendarData(monthDate: Date) {
     const supabase = createClient();
-    const referenceDate = new Date();
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
@@ -798,9 +802,14 @@ export async function getCalendarData(monthDate: Date) {
             const tasks = habitTasksByDay[dayString] ?? [];
             if (tasks.length > 0) {
                 tasks.forEach(task => {
-                    const log = allProgressLogs.find(l => l.habit_task_id === task.id && l.completion_date === dayString);
-                    const progressPercentage = log?.completion_percentage ?? 0;
-                    totalWeightedProgress += progressPercentage * task.weight;
+                    let progressPercentage = 0;
+                    if (task.measurement_type === 'quantitative') {
+                        const target = task.measurement_goal?.target_count ?? 1;
+                        progressPercentage = target > 0 ? ((task.current_progress_value ?? 0) / target) : 0;
+                    } else if (task.completedToday) {
+                        progressPercentage = 1;
+                    }
+                    totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
                     totalWeight += task.weight;
                 });
             }
@@ -848,9 +857,14 @@ export async function getCalendarData(monthDate: Date) {
         const dayString = format(day, 'yyyy-MM-dd');
         const tasks = habitTasksByDay[dayString] ?? [];
         tasks.forEach(task => {
-            const log = allProgressLogs.find(l => l.habit_task_id === task.id && l.completion_date === dayString);
-            const progressPercentage = log?.completion_percentage ?? 0;
-            totalMonthlyWeightedProgress += progressPercentage * task.weight;
+            let progressPercentage = 0;
+            if (task.measurement_type === 'quantitative') {
+                const target = task.measurement_goal?.target_count ?? 1;
+                progressPercentage = target > 0 ? ((task.current_progress_value ?? 0) / target) : 0;
+            } else if (task.completedToday) {
+                progressPercentage = 1;
+            }
+            totalMonthlyWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
             totalMonthlyWeight += task.weight;
         });
     });
