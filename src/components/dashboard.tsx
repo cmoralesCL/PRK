@@ -1,7 +1,4 @@
 
-
-
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -86,7 +83,7 @@ export function Dashboard({
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = format(date, 'yyyy-MM-dd');
     setSelectedDate(date);
     // startTransition para no bloquear la UI mientras navega
     startTransition(() => {

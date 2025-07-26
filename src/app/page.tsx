@@ -2,11 +2,12 @@
 import * as React from 'react';
 import { Dashboard } from '@/components/dashboard';
 import { getDashboardData } from '@/app/actions';
+import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home({ searchParams }: { searchParams: { date?: string } }) {
-  const selectedDate = searchParams.date || new Date().toISOString().split('T')[0];
+  const selectedDate = searchParams.date || format(new Date(), 'yyyy-MM-dd');
 
   const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDate);
 
