@@ -10,6 +10,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -190,12 +191,17 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     try {
-        if (type === 'task') {
-            const { error: updateError } = await supabase
-                .from('habit_tasks')
-                .update({ completion_date: completionDate })
-                .eq('id', habitTaskId);
-            if (updateError) throw updateError;
+        if (type === 'task' && !progressValue) {
+            // Only mark one-off tasks as completed if no progress value is given
+            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).single();
+            if (taskError) throw taskError;
+            if (!taskDetails.frequency) {
+                 const { error: updateError } = await supabase
+                    .from('habit_tasks')
+                    .update({ completion_date: completionDate })
+                    .eq('id', habitTaskId);
+                if (updateError) throw updateError;
+            }
         }
 
         let completionPercentage = 1.0; 
@@ -253,11 +259,15 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
     const supabase = createClient();
     try {
         if (type === 'task') {
-            const { error } = await supabase
-                .from('habit_tasks')
-                .update({ completion_date: null })
-                .eq('id', habitTaskId);
-            if (error) throw error;
+             const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).single();
+            if (taskError) throw taskError;
+            if (!taskDetails.frequency) {
+                 const { error } = await supabase
+                    .from('habit_tasks')
+                    .update({ completion_date: null })
+                    .eq('id', habitTaskId);
+                if (error) throw error;
+            }
         }
         
         const { error } = await supabase
@@ -310,21 +320,6 @@ export async function archiveAreaPrk(id: string) {
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
     try {
-        const { data: futureLogs, error: futureLogsError } = await supabase
-            .from('progress_logs')
-            .select('id')
-            .eq('habit_task_id', id)
-            .gte('completion_date', archiveDate);
-
-        if (futureLogsError) {
-             await logError(futureLogsError, { at: 'archiveHabitTask - check future logs', id, archiveDate });
-             throw new Error("Error al verificar registros futuros.");
-        }
-
-        if (futureLogs && futureLogs.length > 0) {
-            throw new Error("Existen registros completados en el futuro para esta tarea. No se puede archivar.");
-        }
-        
         const { error } = await supabase
             .from('habit_tasks')
             .update({ archived: true, archived_at: archiveDate })
@@ -369,14 +364,8 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
     // Check due date if it exists
     const endDate = task.due_date ? startOfDay(parseISO(task.due_date)) : null;
 
-    // A one-off task with no frequency is active only within its start/due date range.
-    if (!task.frequency) {
-        if (isSameDay(targetDate, startDate)) {
-            return true;
-        }
-        if (endDate) {
-            return isWithinInterval(targetDate, { start: startDate, end: endDate }) && !task.completion_date;
-        }
+    // A one-off task with no frequency is active only on its start date, regardless of completion.
+    if (task.frequency === null || task.frequency === 'UNICA') {
         return isSameDay(targetDate, startDate);
     }
     
@@ -491,7 +480,7 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
             ...task,
             completedToday: completedToday,
             current_progress_value: progressValue,
-            completion_date: completionLog ? dateString : (task.type !== 'habit' ? task.completion_date : undefined),
+            completion_date: completionLog ? dateString : ((task.type === 'task' && !task.frequency) ? task.completion_date : undefined),
         };
     });
 }
@@ -748,39 +737,45 @@ export async function getCalendarData(monthDate: Date) {
              return false;
         }
 
-        if (isAfter(taskStartDate, endOfMonth(monthDate))) return false;
-        if (task.due_date && isBefore(parseISO(task.due_date), refDateStartOfMonth)) return false;
+        if (isAfter(taskStartDate, calendarEnd)) return false;
+        if (task.due_date && isBefore(parseISO(task.due_date), calendarStart)) return false;
         
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-        const monthInterval = { start: monthStart, end: monthEnd };
+        const viewInterval = { start: calendarStart, end: calendarEnd };
+
+        if (!areIntervalsOverlapping(viewInterval, taskInterval, { inclusive: true })) {
+            return false;
+        }
 
         switch (task.frequency) {
             case 'SEMANAL_ACUMULATIVO':
             case 'MENSUAL_ACUMULATIVO':
             case 'TRIMESTRAL_ACUMULATIVO':
             case 'ANUAL_ACUMULATIVO':
-                return areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true });
+                return true;
 
             case 'SEMANAL_ACUMULATIVO_RECURRENTE':
                 if (!task.frequency_interval) return false;
+                // Check if any week within the view is an "active" week for the commitment
                 for (let i = 0; i < daysInView.length; i += 7) {
                     const weekStart = daysInView[i];
-                    if (areIntervalsOverlapping({ start: weekStart, end: addDays(weekStart, 6) }, taskInterval)) {
-                        const weekDiff = Math.floor(differenceInDays(startOfWeek(weekStart, { weekStartsOn: 1 }), startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
-                        if (weekDiff >= 0 && weekDiff % task.frequency_interval === 0) return true;
+                    const weekDiff = Math.floor(differenceInDays(weekStart, startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
+                    if (weekDiff >= 0 && weekDiff % task.frequency_interval === 0) {
+                        // This week is active, check if it overlaps with the task's general date range
+                        if (areIntervalsOverlapping({ start: weekStart, end: addDays(weekStart, 6) }, taskInterval)) {
+                            return true; // Found an active week in view
+                        }
                     }
                 }
                 return false;
 
             case 'MENSUAL_ACUMULATIVO_RECURRENTE':
                 if (!task.frequency_interval) return false;
-                if (!areIntervalsOverlapping(monthInterval, taskInterval)) return false;
                 const monthDiff = differenceInMonths(monthStart, startOfMonth(taskStartDate));
                 return monthDiff >= 0 && monthDiff % task.frequency_interval === 0;
 
             case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
                  if (!task.frequency_interval) return false;
-                if (!areIntervalsOverlapping(monthInterval, taskInterval)) return false;
                 const currentQuarterStart = startOfQuarter(monthDate);
                 const taskQuarterStart = startOfQuarter(taskStartDate);
                 const quarterDiff = Math.floor(differenceInMonths(currentQuarterStart, taskQuarterStart) / 3);
@@ -796,7 +791,7 @@ export async function getCalendarData(monthDate: Date) {
         let referenceDateForPeriod = monthDate;
         if(task.frequency?.startsWith('SEMANAL')) {
             // For weekly commitments, the reference date should be within the month's view
-             referenceDateForPeriod = isWithinInterval(new Date(), {start: monthStart, end: monthEnd}) ? new Date() : monthStart;
+             referenceDateForPeriod = isWithinInterval(new Date(), {start: calendarStart, end: calendarEnd}) ? new Date() : calendarStart;
         }
 
         if(freq?.startsWith('SEMANAL')) {
