@@ -91,3 +91,32 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-26T03:26:56.106Z] - DETAILED ERROR LOG
+Error occurred at: addHabitTask
+Error Type: Database/API Error
+Message: new row for relation "habit_tasks" violates check constraint "habit_tasks_frequency_check"
+Code: 23514
+Details: Failing row contains (ecd008b1-4f23-4c63-9eaa-0815e076a244, 06dad509-e1f9-4d32-84e1-2b18e9e1060e, Tareas Acción única, task, 2025-08-04, 2025-08-22, null, DIARIA, null, 1, f, binary, null, 2025-07-26 03:26:56.012391+00, f, null, null, null, null, Tareas Acción única).
+Hint: null
+
+CONTEXT DATA:
+{
+  "values": {
+    "title": "Tareas Acción única",
+    "description": "Tareas Acción única",
+    "area_prk_id": "06dad509-e1f9-4d32-84e1-2b18e9e1060e",
+    "type": "task",
+    "start_date": "2025-08-04",
+    "due_date": "2025-08-22",
+    "weight": 1,
+    "is_critical": false,
+    "frequency": "DIARIA",
+    "measurement_type": "binary",
+    "frequency_interval": null,
+    "frequency_days": null,
+    "frequency_day_of_month": null,
+    "measurement_goal": null
+  }
+}
+--------------------------------------------------
+
