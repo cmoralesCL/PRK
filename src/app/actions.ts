@@ -12,6 +12,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -671,7 +672,7 @@ export async function getDashboardData(selectedDateString: string) {
 }
 
 
-export async function getCalendarData(monthDate: Date) {
+export async function getCalendarData(monthDate: Date, referenceDate: Date) {
     const supabase = createClient();
 
     const monthStart = startOfMonth(monthDate);
@@ -805,24 +806,24 @@ export async function getCalendarData(monthDate: Date) {
         
         const freq = task.frequency;
         
-        let referenceDateForPeriod = monthDate;
+        let referenceDateForPeriod = referenceDate;
         if(task.frequency?.startsWith('SEMANAL')) {
             // For weekly commitments, the reference date should be within the month's view
-             referenceDateForPeriod = isWithinInterval(new Date(), {start: calendarStart, end: calendarEnd}) ? new Date() : calendarStart;
+             referenceDateForPeriod = isWithinInterval(referenceDate, {start: calendarStart, end: calendarEnd}) ? referenceDate : calendarStart;
         }
 
         if(freq?.startsWith('SEMANAL')) {
             periodStartForLogs = startOfWeek(referenceDateForPeriod, { weekStartsOn: 1 });
             periodEndForLogs = endOfWeek(referenceDateForPeriod, { weekStartsOn: 1 });
         } else if (freq?.startsWith('MENSUAL')) {
-            periodStartForLogs = monthStart;
-            periodEndForLogs = monthEnd;
+            periodStartForLogs = startOfMonth(referenceDate);
+            periodEndForLogs = endOfMonth(referenceDate);
         } else if (freq?.startsWith('TRIMESTRAL')) {
-            periodStartForLogs = startOfQuarter(monthDate);
-            periodEndForLogs = endOfQuarter(monthDate);
+            periodStartForLogs = startOfQuarter(referenceDate);
+            periodEndForLogs = endOfQuarter(referenceDate);
         } else { // ANUAL
-            periodStartForLogs = startOfYear(monthDate);
-            periodEndForLogs = endOfYear(monthDate);
+            periodStartForLogs = startOfYear(referenceDate);
+            periodEndForLogs = endOfYear(referenceDate);
         }
 
         const logs = allProgressLogs.filter(log => 

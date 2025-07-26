@@ -26,11 +26,12 @@ interface CalendarPageClientProps {
         commitments: HabitTask[];
     };
     initialMonthString: string;
-    selectedDate: Date;
+    referenceDate: Date;
 }
 
-export function CalendarPageClient({ initialData, initialMonthString, selectedDate }: CalendarPageClientProps) {
+export function CalendarPageClient({ initialData, initialMonthString, referenceDate }: CalendarPageClientProps) {
     const { toast } = useToast();
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
@@ -109,6 +110,13 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
         });
     }
 
+    const handleReferenceDateChange = (date: Date) => {
+        const currentMonth = parse(initialMonthString, 'yyyy-MM-dd', new Date());
+        const currentMonthString = format(currentMonth, 'yyyy-MM-dd');
+        const refDateString = format(date, 'yyyy-MM-dd');
+        router.push(`/calendar?month=${currentMonthString}&ref_date=${refDateString}`);
+    };
+
     return (
         <div className="flex flex-1 h-screen overflow-hidden">
             <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
@@ -120,6 +128,8 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
                     weeklyProgressData={initialData.weeklyProgress || []}
                     monthlyProgress={initialData.monthlyProgress}
                     onDayClick={handleDayClick}
+                    referenceDate={referenceDate}
+                    onReferenceDateChange={handleReferenceDateChange}
                 />
             </main>
             <aside className={cn(
@@ -128,7 +138,7 @@ export function CalendarPageClient({ initialData, initialMonthString, selectedDa
             )}>
                 <CommitmentsSidebar
                     commitments={initialData.commitments || []}
-                    selectedDate={selectedDate}
+                    selectedDate={referenceDate}
                     isOpen={isSidebarOpen}
                     setIsOpen={setSidebarOpen}
                     onAddCommitment={handleOpenAddCommitmentDialog}

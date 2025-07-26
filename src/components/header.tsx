@@ -22,9 +22,17 @@ interface HeaderProps {
   onDateChange: (date: Date) => void;
   hideDatePicker?: boolean;
   hideAddButton?: boolean;
+  datePickerLabel?: string;
 }
 
-export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicker = false, hideAddButton = false }: HeaderProps) {
+export function Header({ 
+  onAddLifePrk, 
+  selectedDate, 
+  onDateChange, 
+  hideDatePicker = false, 
+  hideAddButton = false,
+  datePickerLabel = "Fecha" 
+}: HeaderProps) {
   const pathname = usePathname();
 
   const navLinks = [
@@ -62,11 +70,12 @@ export function Header({ onAddLifePrk, selectedDate, onDateChange, hideDatePicke
                    <Button
                      variant={'outline'}
                      className={cn(
-                       'w-[240px] justify-start text-left font-normal hidden md:flex',
+                       'w-[280px] justify-start text-left font-normal hidden md:flex',
                        !selectedDate && 'text-muted-foreground'
                      )}
                    >
                      <CalendarIcon className="mr-2 h-4 w-4" />
+                     <span>{datePickerLabel}: </span>
                      {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
                    </Button>
                  </PopoverTrigger>
