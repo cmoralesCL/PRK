@@ -11,16 +11,27 @@ import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CommitmentsCardProps {
+  title?: string;
+  description?: string;
   commitments: HabitTask[];
   selectedDate: Date;
   onToggle: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
-  onUndo: (id: string, date: Date) => void;
+  onUndo?: (id: string, date: Date) => void;
   onEdit: (task: HabitTask) => void;
   onArchive: (id: string) => void;
 }
 
 
-export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, onEdit, onArchive }: CommitmentsCardProps) {
+export function CommitmentsCard({ 
+    title = "Compromisos",
+    description = "Tareas importantes sin día fijo. ¡No las olvides!",
+    commitments, 
+    selectedDate, 
+    onToggle, 
+    onUndo, 
+    onEdit, 
+    onArchive 
+}: CommitmentsCardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const weeklyCommitments = commitments.filter(c => c.frequency?.startsWith('SEMANAL'));
@@ -28,7 +39,20 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, o
   // Add other periods as needed
 
   if (commitments.length === 0) {
-    return null;
+    return (
+        <Card className="shadow-md">
+            <CardHeader>
+                <CardTitle className="font-headline text-lg flex items-center gap-2">
+                    <ListTodo className="h-5 w-5 text-primary" />
+                    {title}
+                </CardTitle>
+                <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground text-center py-4">No hay compromisos para este período.</p>
+            </CardContent>
+        </Card>
+    );
   }
   
   const renderCommitmentList = (tasks: HabitTask[]) => {
@@ -44,7 +68,7 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, o
                 onToggle={onToggle}
                 onUndo={onUndo}
                 onEdit={onEdit}
-                onArchive={onArchive}
+                onArchive={() => onArchive(commitment.id)}
                 selectedDate={selectedDate}
                 variant="dashboard"
               />
@@ -62,9 +86,9 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, o
               <div>
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <ListTodo className="h-5 w-5 text-primary" />
-                  Compromisos
+                  {title}
                 </CardTitle>
-                <CardDescription>Tareas importantes sin día fijo. ¡No las olvides!</CardDescription>
+                <CardDescription>{description}</CardDescription>
               </div>
               <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </CardHeader>
@@ -78,10 +102,10 @@ export function CommitmentsCard({ commitments, selectedDate, onToggle, onUndo, o
                 <TabsTrigger value="monthly">Mensual</TabsTrigger>
                 {/* <TabsTrigger value="quarterly">Trimestral</TabsTrigger> */}
               </TabsList>
-              <TabsContent value="weekly">
+              <TabsContent value="weekly" className="pt-4">
                 {renderCommitmentList(weeklyCommitments)}
               </TabsContent>
-              <TabsContent value="monthly">
+              <TabsContent value="monthly" className="pt-4">
                  {renderCommitmentList(monthlyCommitments)}
               </TabsContent>
               {/* <TabsContent value="quarterly">

@@ -2,14 +2,14 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot, HabitFrequency } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
+import { addHabitTask, updateHabitTask, archiveHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 
 import { CalendarView } from '@/components/calendar-view';
 import { CommitmentsSidebar } from '@/components/commitments-sidebar';
@@ -112,6 +112,38 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
         });
     }
 
+    const handleToggleCommitment = (id: string, completed: boolean, date: Date, progressValue?: number) => {
+        const task = initialData.commitments.find(ht => ht.id === id);
+        if (!task) return;
+
+        const completionDate = date.toISOString().split('T')[0];
+        
+        startTransition(async () => {
+            try {
+                await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+                toast({ title: '¡Progreso registrado!' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
+            }
+        });
+    };
+
+    const handleUndoCommitment = (id: string, date: Date) => {
+        const task = initialData.commitments.find(ht => ht.id === id);
+        if (!task) return;
+
+        const completionDate = date.toISOString().split('T')[0];
+        startTransition(async () => {
+            try {
+                await removeHabitTaskCompletion(id, task.type, completionDate);
+                toast({ title: 'Registro deshecho' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
+            }
+        });
+    };
+
+
     return (
         <div className="flex flex-1 h-screen overflow-hidden">
             <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
@@ -122,7 +154,12 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
                     areaPrks={initialData.areaPrks || []}
                     weeklyProgressData={initialData.weeklyProgress || []}
                     monthlyProgress={initialData.monthlyProgress}
+                    commitments={initialData.commitments}
                     onDayClick={handleDayClick}
+                    onToggleCommitment={handleToggleCommitment}
+                    onUndoCommitment={handleUndoCommitment}
+                    onEditCommitment={handleOpenEditTaskDialog}
+                    onArchiveCommitment={(id) => handleArchiveHabitTask(id, new Date())}
                 />
             </main>
             <aside className={cn(

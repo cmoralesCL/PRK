@@ -11,8 +11,9 @@ import { Header } from '@/components/header';
 import { ProgressCalendar } from '@/components/progress-calendar';
 import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
 import { DayDetailDialog } from './day-detail-dialog';
+import { CommitmentsCard } from './commitments-card';
 
 
 interface CalendarViewProps {
@@ -22,7 +23,12 @@ interface CalendarViewProps {
     areaPrks: AreaPrk[];
     weeklyProgressData: WeeklyProgressSnapshot[];
     monthlyProgress: number;
+    commitments: HabitTask[];
     onDayClick: (day: Date) => void;
+    onToggleCommitment: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
+    onUndoCommitment: (id: string, date: Date) => void;
+    onEditCommitment: (task: HabitTask) => void;
+    onArchiveCommitment: (id: string) => void;
 }
 
 export function CalendarView({ 
@@ -32,7 +38,12 @@ export function CalendarView({
     areaPrks,
     weeklyProgressData,
     monthlyProgress,
+    commitments,
     onDayClick,
+    onToggleCommitment,
+    onUndoCommitment,
+    onEditCommitment,
+    onArchiveCommitment,
 }: CalendarViewProps) {
     const router = useRouter();
     const { toast } = useToast();
@@ -123,7 +134,7 @@ export function CalendarView({
                 hideAddButton={true} 
                 hideDatePicker={true} 
             />
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 <ProgressCalendar
                   currentMonth={currentMonth}
                   onMonthChange={handleMonthChange}
@@ -132,6 +143,16 @@ export function CalendarView({
                   weeklyProgressData={weeklyProgressData}
                   monthlyProgress={monthlyProgress}
                   onDayClick={onDayClick}
+                />
+                 <CommitmentsCard
+                    title="Compromisos del Período"
+                    description="Metas flexibles para el período visible en el calendario."
+                    commitments={commitments}
+                    selectedDate={new Date()} // Use current date for logging actions
+                    onToggle={onToggleCommitment}
+                    onUndo={onUndoCommitment}
+                    onEdit={onEditCommitment}
+                    onArchive={onArchiveCommitment}
                 />
             </main>
             <AddHabitTaskDialog 
