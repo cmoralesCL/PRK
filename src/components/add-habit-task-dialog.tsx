@@ -75,7 +75,7 @@ const formSchema = z.object({
         });
     }
 
-    if (!data.frequency || data.frequency === 'UNICA') return;
+    if (!data.frequency) return;
 
     // --- Validations for specific frequencies based on 'frecuencia.md' ---
     const freq = data.frequency;
@@ -113,9 +113,9 @@ const formSchema = z.object({
         }
     }
     
-    // Rule: Accumulative frequencies must have a measurement goal.
-    if (freq.includes('ACUMULATIVO') || (data.measurement_type === 'quantitative' && freq !== 'UNICA')) {
-        if (data.measurement_type === 'binary' && data.measurement_goal?.target_count === undefined) {
+    // Rule: Accumulative frequencies OR quantitative tasks must have a measurement goal.
+    if (freq.includes('ACUMULATIVO') || data.measurement_type === 'quantitative') {
+        if (data.measurement_type === 'binary' && freq.includes('ACUMULATIVO') && data.measurement_goal?.target_count === undefined) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'El objetivo (X veces) es requerido.', path: ['measurement_goal.target_count'] });
         }
         if (data.measurement_type === 'quantitative' && data.measurement_goal?.target_count === undefined) {
@@ -237,7 +237,6 @@ export function AddHabitTaskDialog({
         if (freq === 'MENSUAL_DIA_FIJO' || freq === 'INTERVALO_MENSUAL_DIA_FIJO') {
             dataToSave.frequency_day_of_month = values.frequency_day_of_month;
         }
-        
     }
     
     if (values.measurement_type === 'binary' || values.measurement_type === 'quantitative') {
@@ -249,8 +248,9 @@ export function AddHabitTaskDialog({
 
     if (freq === 'UNICA') {
         dataToSave.frequency = null;
-        dataToSave.measurement_type = 'binary';
-        dataToSave.measurement_goal = null;
+         if (values.measurement_type === 'binary') {
+            dataToSave.measurement_goal = null;
+        }
     }
     
     onSave(dataToSave);
@@ -456,7 +456,7 @@ function FrequencyBuilder({ form }: { form: any }) {
         form.setValue('frequency_days', newDays, { shouldValidate: true });
     };
     
-    const showMeasurementOptions = frequency !== 'UNICA';
+    const showMeasurementOptions = true;
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
@@ -478,7 +478,7 @@ function FrequencyBuilder({ form }: { form: any }) {
                       <FormItem>
                         <Select onValueChange={(value) => {
                             field.onChange(value);
-                            if (value === 'UNICA') {
+                            if (value === 'UNICA' && form.getValues('measurement_type') === undefined) {
                                 form.setValue('measurement_type', 'binary');
                             }
                         }} value={field.value ?? 'UNICA'}>
