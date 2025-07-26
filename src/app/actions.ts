@@ -11,6 +11,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -366,6 +367,9 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
 
     // A one-off task with no frequency is active only on its start date, regardless of completion.
     if (task.frequency === null || task.frequency === 'UNICA') {
+        if (endDate) {
+            return isWithinInterval(targetDate, { start: startDate, end: endDate });
+        }
         return isSameDay(targetDate, startDate);
     }
     
@@ -731,58 +735,71 @@ export async function getCalendarData(monthDate: Date) {
         if (!task.frequency?.includes('ACUMULATIVO') || !task.start_date) return false;
         
         const taskStartDate = parseISO(task.start_date);
-        const refDateStartOfMonth = startOfMonth(monthDate);
 
-        if (task.archived && task.archived_at && isBefore(refDateStartOfMonth, startOfDay(parseISO(task.archived_at)))) {
+        // Check archive status: Don't include if archived before the start of the view
+        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), calendarEnd)) {
              return false;
         }
-
+        
         if (isAfter(taskStartDate, calendarEnd)) return false;
         if (task.due_date && isBefore(parseISO(task.due_date), calendarStart)) return false;
         
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-        const viewInterval = { start: calendarStart, end: calendarEnd };
 
-        if (!areIntervalsOverlapping(viewInterval, taskInterval, { inclusive: true })) {
+        // Check if any part of the task's general date range overlaps with the calendar's view
+        if (!areIntervalsOverlapping({ start: calendarStart, end: calendarEnd }, taskInterval, { inclusive: true })) {
             return false;
         }
 
-        switch (task.frequency) {
-            case 'SEMANAL_ACUMULATIVO':
-            case 'MENSUAL_ACUMULATIVO':
-            case 'TRIMESTRAL_ACUMULATIVO':
-            case 'ANUAL_ACUMULATIVO':
-                return true;
-
-            case 'SEMANAL_ACUMULATIVO_RECURRENTE':
-                if (!task.frequency_interval) return false;
-                // Check if any week within the view is an "active" week for the commitment
-                for (let i = 0; i < daysInView.length; i += 7) {
-                    const weekStart = daysInView[i];
-                    const weekDiff = Math.floor(differenceInDays(weekStart, startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
-                    if (weekDiff >= 0 && weekDiff % task.frequency_interval === 0) {
-                        // This week is active, check if it overlaps with the task's general date range
-                        if (areIntervalsOverlapping({ start: weekStart, end: addDays(weekStart, 6) }, taskInterval)) {
-                            return true; // Found an active week in view
-                        }
+        // --- Specific frequency checks ---
+        if (task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
+            if (!task.frequency_interval) return false;
+            // Check if ANY week in the current view is an active week for this commitment
+            for (let d = calendarStart; d <= calendarEnd; d = addDays(d, 7)) {
+                const weekStartOfLoop = startOfWeek(d, { weekStartsOn: 1 });
+                const weekDiff = Math.floor(differenceInDays(weekStartOfLoop, startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
+                
+                if (weekDiff >= 0 && weekDiff % task.frequency_interval === 0) {
+                    // This is an active week. Check if this week overlaps with the task's general active interval
+                    const loopWeekInterval = { start: weekStartOfLoop, end: endOfWeek(weekStartOfLoop, { weekStartsOn: 1 }) };
+                    if (areIntervalsOverlapping(loopWeekInterval, taskInterval)) {
+                        return true; // Found an active week, so include this task.
                     }
                 }
-                return false;
-
-            case 'MENSUAL_ACUMULATIVO_RECURRENTE':
-                if (!task.frequency_interval) return false;
-                const monthDiff = differenceInMonths(monthStart, startOfMonth(taskStartDate));
-                return monthDiff >= 0 && monthDiff % task.frequency_interval === 0;
-
-            case 'TRIMESTRAL_ACUMULATIVO_RECURRENTE':
-                 if (!task.frequency_interval) return false;
-                const currentQuarterStart = startOfQuarter(monthDate);
-                const taskQuarterStart = startOfQuarter(taskStartDate);
-                const quarterDiff = Math.floor(differenceInMonths(currentQuarterStart, taskQuarterStart) / 3);
-                return quarterDiff >= 0 && quarterDiff % task.frequency_interval === 0;
-
-            default: return false;
+            }
+            return false; // No active week found in the entire view.
         }
+        
+        if (task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE') {
+             if (!task.frequency_interval) return false;
+             // Check if ANY month represented in the view is an active month
+             const startMonthOfView = startOfMonth(calendarStart);
+             const endMonthOfView = startOfMonth(calendarEnd); // Use startOfMonth to handle views spanning two months
+             for (let m = startMonthOfView; m <= endMonthOfView; m = addMonths(m, 1)) {
+                const monthDiff = differenceInMonths(m, startOfMonth(taskStartDate));
+                 if (monthDiff >= 0 && monthDiff % task.frequency_interval === 0) {
+                     return true; // Found an active month, include the task.
+                 }
+             }
+             return false;
+        }
+
+        if (task.frequency === 'TRIMESTRAL_ACUMULATIVO_RECURRENTE') {
+             if (!task.frequency_interval) return false;
+             // Check if ANY quarter represented in the view is an active quarter
+             const startQuarterOfView = startOfQuarter(calendarStart);
+             const endQuarterOfView = startOfQuarter(calendarEnd);
+             for (let q = startQuarterOfView; q <= endQuarterOfView; q = addMonths(q, 3)) {
+                const quarterDiff = Math.floor(differenceInMonths(q, startOfQuarter(taskStartDate)) / 3);
+                if (quarterDiff >= 0 && quarterDiff % task.frequency_interval === 0) {
+                    return true;
+                }
+             }
+             return false;
+        }
+
+        // For non-recurring accumulative tasks, the overlap check at the beginning is sufficient.
+        return true;
     }).map(task => {
         let periodStartForLogs: Date, periodEndForLogs: Date;
         
