@@ -40,7 +40,7 @@ import { logError } from "@/lib/logger";
 import { redirect } from "next/navigation";
 
 
-async function getCurrentUserId() {
+async function getCurrentUserId(): Promise<string> {
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -50,6 +50,7 @@ async function getCurrentUserId() {
     }
     return user.id;
 }
+
 
 export async function login(formData: FormData) {
     const supabase = createClient();
@@ -1183,33 +1184,17 @@ export async function getAnalyticsDashboardData() {
         };
     }));
     
-    // Monthly View (last 30 days) - OPTIMIZED
+    // Monthly View (last 30 days) - FIXED
     const last30Days = eachDayOfInterval({ start: subDays(today, 29), end: today });
-    // Pre-filter logs for efficiency
-    const relevantLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: last30Days[0], end: today }));
-
-    // Create a map for quick log lookup by date
-    const logsByDate = new Map<string, ProgressLog[]>();
-    for (const log of relevantLogs) {
-        const dateKey = format(startOfDay(parseISO(log.completion_date)), 'yyyy-MM-dd');
-        if (!logsByDate.has(dateKey)) {
-            logsByDate.set(dateKey, []);
-        }
-        logsByDate.get(dateKey)!.push(log);
-    }
-    
     const monthlyData = await Promise.all(last30Days.map(async (day) => {
-        const dateKey = format(day, 'yyyy-MM-dd');
-        const logsForDay = logsByDate.get(dateKey) || [];
-        // Important: getHabitTasksForDate needs all logs to correctly determine completion,
-        // but we pass only the relevant ones for the day to `calculateProgressForDate`
-        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, logsForDay);
+        // Pass all logs to getHabitTasksForDate for correct completion status calculation
+        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
         
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
-        const overallDailyProgress = lifePrksWithProgress.length > 0
-            ? lifePrksWithProgress
-                .filter(lp => lp.progress !== null)
-                .reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithProgress.filter(lp => lp.progress !== null).length
+        
+        const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
+        const overallDailyProgress = relevantLifePrks.length > 0
+            ? relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / relevantLifePrks.length
             : 0;
 
         return {
