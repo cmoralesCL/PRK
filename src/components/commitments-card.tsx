@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ListTodo } from 'lucide-react';
 import type { HabitTask } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from './ui/separator';
 
 interface CommitmentsCardProps {
   title?: string;
@@ -57,7 +56,7 @@ export function CommitmentsCard({
   
   const renderCommitmentList = (tasks: HabitTask[]) => {
     if (tasks.length === 0) {
-        return <p className="text-sm text-muted-foreground text-center py-4">No hay compromisos para este período.</p>;
+        return null;
     }
     return (
          <div className="space-y-2">
@@ -95,23 +94,22 @@ export function CommitmentsCard({
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent>
-            <Tabs defaultValue="weekly" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="weekly">Semanal</TabsTrigger>
-                <TabsTrigger value="monthly">Mensual</TabsTrigger>
-                {/* <TabsTrigger value="quarterly">Trimestral</TabsTrigger> */}
-              </TabsList>
-              <TabsContent value="weekly" className="pt-4">
-                {renderCommitmentList(weeklyCommitments)}
-              </TabsContent>
-              <TabsContent value="monthly" className="pt-4">
-                 {renderCommitmentList(monthlyCommitments)}
-              </TabsContent>
-              {/* <TabsContent value="quarterly">
-                {renderCommitmentList([])}
-              </TabsContent> */}
-            </Tabs>
+          <CardContent className="space-y-6">
+            {weeklyCommitments.length > 0 && (
+                <div>
+                    <h3 className="text-md font-semibold mb-3">Compromisos Semanales</h3>
+                    {renderCommitmentList(weeklyCommitments)}
+                </div>
+            )}
+            
+            {monthlyCommitments.length > 0 && weeklyCommitments.length > 0 && <Separator />}
+
+            {monthlyCommitments.length > 0 && (
+                <div>
+                    <h3 className="text-md font-semibold mb-3">Compromisos Mensuales</h3>
+                    {renderCommitmentList(monthlyCommitments)}
+                </div>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Card>
