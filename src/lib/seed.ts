@@ -88,6 +88,8 @@ export async function seedDatabase(userId: string) {
         // Daily habits
         { area_prk_title: 'Optimizar la Calidad del Sueño', title: 'Meditar 10 minutos antes de dormir', type: 'habit', frequency: 'DIARIA', start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 2, is_critical: false, measurement_type: 'binary', archived: false },
         { area_prk_title: 'Hábito de Lectura Consistente', title: 'Leer 20 páginas', type: 'habit', frequency: 'DIARIA', start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 2, is_critical: false, measurement_type: 'quantitative', measurement_goal: { target_count: 20, unit: 'páginas' }, archived: false },
+        { area_prk_title: 'Liderar un Proyecto de Alto Impacto', title: 'Planificar el día siguiente', type: 'habit', frequency: 'DIARIA', start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 1, is_critical: false, measurement_type: 'binary', archived: false },
+        { area_prk_title: 'Establecer una Práctica de Meditación', title: 'Revisar objetivos del día', type: 'habit', frequency: 'DIARIA', start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 1, is_critical: false, measurement_type: 'binary', archived: false },
         
         // Weekly fixed habits
         { area_prk_title: 'Construir Fondo de Emergencia', title: 'Revisar presupuesto semanal', type: 'habit', frequency: 'SEMANAL_DIAS_FIJOS', frequency_days: ['D'], start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 1, is_critical: false, measurement_type: 'binary', archived: false },
@@ -97,6 +99,8 @@ export async function seedDatabase(userId: string) {
 
         // Monthly commitments (accumulative)
         { area_prk_title: 'Fortalecer Vínculos Familiares', title: 'Organizar actividad familiar', type: 'habit', frequency: 'MENSUAL_ACUMULATIVO', measurement_type: 'binary', measurement_goal: { target_count: 1 }, start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 4, is_critical: false, archived: false },
+        { area_prk_title: 'Hábito de Lectura Consistente', title: 'Leer 1 libro completo al mes', type: 'habit', frequency: 'MENSUAL_ACUMULATIVO', measurement_type: 'binary', measurement_goal: { target_count: 1 }, start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 3, is_critical: false, archived: false },
+
 
         // One-off tasks sprinkled throughout
         { area_prk_title: 'Dominar una Nueva Competencia Técnica', title: 'Inscribirme en el curso de IA', type: 'task', frequency: null, start_date: '2023-02-15', due_date: '2023-02-20', weight: 5, is_critical: true, measurement_type: 'binary', archived: false, completion_date: '2023-02-18' },
@@ -133,35 +137,45 @@ export async function seedDatabase(userId: string) {
     for (const date of dateInterval) {
         const monthsPassed = differenceInMonths(date, SIMULATION_START_DATE);
         
-        // Ascending compliance rate: starts at 50% and increases to a max of 90%
-        const baseCompliance = 0.50;
+        // Ascending compliance rate: starts at 40% and increases to a max of 90%
+        const baseCompliance = 0.40;
         const maxCompliance = 0.90;
         const complianceGrowth = (maxCompliance - baseCompliance) / (totalMonthsInSimulation || 1);
         const currentComplianceRate = Math.min(baseCompliance + (monthsPassed * complianceGrowth), maxCompliance);
-        let dayHasLogs = false;
 
-        // Handle daily fixed tasks
-        for (const task of insertedHabitTasks.filter(t => !t.frequency?.includes('ACUMULATIVO') && t.type === 'habit')) {
-            if (isTaskActiveOnDateForSeed(task, date)) {
-                // Ensure at least one daily task is logged to meet the "data every day" requirement
-                if (Math.random() < currentComplianceRate || (!dayHasLogs && task.frequency === 'DIARIA')) {
-                    let progressValue = 1;
-                    let completionPercentage = 1.0;
+        // Handle daily fixed tasks - try to log all of them based on compliance
+        const dailyTasks = insertedHabitTasks.filter(t => 
+            t.frequency === 'DIARIA' && 
+            t.type === 'habit' &&
+            isTaskActiveOnDateForSeed(t, date)
+        );
 
-                    if (task.measurement_type === 'quantitative') {
-                        // Simulate a random value with slight variation, e.g., 80% to 120% of goal
-                        const target = task.measurement_goal?.target_count ?? 20;
-                        progressValue = Math.floor(target * (0.8 + Math.random() * 0.4));
-                        completionPercentage = progressValue / target;
-                    }
+        let hasLoggedAtLeastOne = false;
+        for (const task of dailyTasks) {
+             if (Math.random() < currentComplianceRate) {
+                let progressValue = 1;
+                let completionPercentage = 1.0;
 
-                    progressLogsToInsert.push({
-                        habit_task_id: task.id, user_id: userId, completion_date: format(date, 'yyyy-MM-dd'),
-                        progress_value: progressValue, completion_percentage: completionPercentage
-                    });
-                    dayHasLogs = true;
+                if (task.measurement_type === 'quantitative') {
+                    const target = task.measurement_goal?.target_count ?? 20;
+                    progressValue = Math.floor(target * (0.8 + Math.random() * 0.4));
+                    completionPercentage = progressValue / target;
                 }
+
+                progressLogsToInsert.push({
+                    habit_task_id: task.id, user_id: userId, completion_date: format(date, 'yyyy-MM-dd'),
+                    progress_value: progressValue, completion_percentage: completionPercentage
+                });
+                hasLoggedAtLeastOne = true;
             }
+        }
+        
+        // GUARANTEE: If by chance no daily task was logged, log the first one to ensure data for the day.
+        if (!hasLoggedAtLeastOne && dailyTasks.length > 0) {
+             progressLogsToInsert.push({
+                habit_task_id: dailyTasks[0].id, user_id: userId, completion_date: format(date, 'yyyy-MM-dd'),
+                progress_value: 1, completion_percentage: 1.0
+            });
         }
         
         // Handle one-off completed tasks
@@ -234,3 +248,5 @@ export async function seedDatabase(userId: string) {
 
     console.log('Database seeding completed successfully!');
 }
+
+    
