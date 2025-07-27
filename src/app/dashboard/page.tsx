@@ -1,7 +1,7 @@
 
 import * as React from 'react';
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
-import { getAnalyticsDashboardData }s from '@/app/actions';
+import { getAnalyticsDashboardData } from '@/app/actions';
 import { Header } from '@/components/header';
 
 export const dynamic = 'force-dynamic';
