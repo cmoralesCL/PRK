@@ -1,7 +1,7 @@
 
 'use client';
 
-import { login, signup } from "@/app/actions";
+import { login, signup, loginAsGuest } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Compass } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -60,6 +61,13 @@ export default function LoginPage() {
                         </form>
                     </TabsContent>
                 </Tabs>
+                
+                <Separator className="my-6" />
+
+                <form>
+                  <Button formAction={loginAsGuest} variant="outline" className="w-full">Ingresar como Invitado</Button>
+                </form>
+
                 {message && (
                     <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded">
                         {message}
@@ -71,5 +79,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

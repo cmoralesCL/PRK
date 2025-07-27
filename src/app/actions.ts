@@ -69,6 +69,26 @@ export async function login(formData: FormData) {
     redirect("/panel");
 }
 
+export async function loginAsGuest() {
+  const supabase = createClient();
+
+  const data = {
+    email: "test@example.com",
+    password: "password",
+  };
+
+  const { error } = await supabase.auth.signInWithPassword(data);
+
+  if (error) {
+    console.error('Guest login error:', error.message);
+    redirect("/login?message=No se pudo iniciar sesión como invitado. Asegúrate de que el usuario 'test@example.com' exista.");
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/panel");
+}
+
+
 export async function signup(formData: FormData) {
     const origin = headers().get("origin");
     const supabase = createClient();
@@ -1222,5 +1242,3 @@ export async function getAnalyticsDashboardData() {
         },
     };
 }
-
-    
