@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/chart"
 import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts"
 import { Badge } from './ui/badge';
+import { cn } from '@/lib/utils';
 
 interface AnalyticsData {
   stats: {
