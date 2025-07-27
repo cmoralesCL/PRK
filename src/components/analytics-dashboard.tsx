@@ -41,22 +41,9 @@ interface AnalyticsDashboardProps {
   data: AnalyticsData;
 }
 
-const chartConfig = {
-  Progreso: {
-    label: "Progreso",
-    color: "hsl(var(--primary))",
-  },
-} satisfies import('@/components/ui/chart').ChartConfig;
-
-
 export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
   const { stats, areaPrks, progressOverTime } = data;
-  const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
-
-  const chartData = progressOverTime[chartView];
   
-  const yAxisFormatter = (value: number) => `${value}%`;
-
   return (
     <div className="space-y-8">
        <Card>
@@ -71,59 +58,6 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <StatCard title="Progreso Mensual" value={`${stats.monthlyProgress}%`} icon={CalendarDays} />
             <StatCard title="Progreso Trimestral" value={`${stats.quarterlyProgress}%`} icon={TrendingUp} />
             <StatCard title="Progreso General" value={`${stats.overallProgress}%`} icon={Gauge} />
-        </CardContent>
-      </Card>
-
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle>Evolución del Progreso</CardTitle>
-             <CardDescription>
-              Visualiza tu rendimiento a lo largo del tiempo.
-            </CardDescription>
-          </div>
-          <ToggleGroup 
-            type="single" 
-            defaultValue="monthly"
-            value={chartView}
-            onValueChange={(value: 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
-              if (value) setChartView(value);
-            }}
-            className="w-full sm:w-auto"
-          >
-            <ToggleGroupItem value="weekly" className="w-full sm:w-auto">Semana</ToggleGroupItem>
-            <ToggleGroupItem value="monthly" className="w-full sm:w-auto">Mes</ToggleGroupItem>
-            <ToggleGroupItem value="quarterly" className="w-full sm:w-auto">Trimestre</ToggleGroupItem>
-            <ToggleGroupItem value="yearly" className="w-full sm:w-auto">Año</ToggleGroupItem>
-          </ToggleGroup>
-        </CardHeader>
-        <CardContent className="pl-2">
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <RechartsBarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                    />
-                    <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={10}
-                        tickFormatter={yAxisFormatter}
-                    />
-                    <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent 
-                            indicator="line" 
-                            formatter={(value) => `${value}%`}
-                        />}
-                    />
-                    <Bar dataKey="Progreso" fill="var(--color-Progreso)" radius={4} />
-                </RechartsBarChart>
-            </ChartContainer>
         </CardContent>
       </Card>
 
