@@ -45,14 +45,6 @@ async function getCurrentUserId(): Promise<string> {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-        if (process.env.NODE_ENV === 'development') {
-            const { data: authUser, error: authError } = await supabase.auth.getUser();
-            if (authError || !authUser) {
-                console.error("Authentication error, redirecting to login.");
-                redirect('/login?message=Authentication required.');
-            }
-            return authUser.id;
-        }
         console.error('User not authenticated, redirecting to login.');
         redirect('/login');
     }
@@ -775,6 +767,66 @@ export async function getDashboardData(selectedDateString: string) {
 }
 
 
+async function calculateWeeklyProgress(
+    weekStart: Date,
+    allHabitTasks: HabitTask[],
+    allProgressLogs: ProgressLog[],
+    habitTasksByDay: Record<string, HabitTask[]>
+): Promise<number> {
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+    let totalWeightedProgress = 0;
+    let totalWeight = 0;
+
+    // 1. Daily tasks progress
+    weekDays.forEach(d => {
+        const dayString = format(d, 'yyyy-MM-dd');
+        const tasks = habitTasksByDay[dayString] ?? [];
+        if (tasks.length > 0) {
+            tasks.forEach(task => {
+                let progressPercentage = 0;
+                if (task.measurement_type === 'quantitative') {
+                    const target = task.measurement_goal?.target_count ?? 1;
+                    progressPercentage = target > 0 ? ((task.current_progress_value ?? 0) / target) : 0;
+                } else if (task.completedToday) {
+                    progressPercentage = 1;
+                }
+                totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
+                totalWeight += task.weight;
+            });
+        }
+    });
+
+    // 2. Weekly commitments progress
+    const weeklyCommitmentTasks = getActiveCommitments(allHabitTasks, allProgressLogs, weekStart)
+        .filter(c => c.frequency?.startsWith('SEMANAL_ACUMULATIVO'));
+
+    weeklyCommitmentTasks.forEach(task => {
+        let progressPercentage = 0;
+        const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
+        const target = task.measurement_goal?.target_count ?? 1;
+
+        if (task.measurement_type === 'quantitative') {
+            const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
+            progressPercentage = target > 0 ? (totalValue / target) : 0;
+        } else if (task.measurement_type === 'binary') {
+            const completions = logs.length;
+            progressPercentage = target > 0 ? (completions / target) : 0;
+        }
+
+        totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
+        totalWeight += task.weight;
+    });
+
+    const combinedAvgProgress = totalWeight > 0
+        ? (totalWeightedProgress / totalWeight) * 100
+        : 0;
+    
+    return combinedAvgProgress > 100 ? 100 : combinedAvgProgress;
+}
+
+
 export async function getCalendarData(monthDate: Date) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
@@ -817,7 +869,8 @@ export async function getCalendarData(monthDate: Date) {
 
     for (const day of daysInView) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
-        
+        habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
+
         if (habitTasksForDay.length > 0) {
             const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
             
@@ -833,8 +886,6 @@ export async function getCalendarData(monthDate: Date) {
                 user_id: userId,
             });
         }
-        
-        habitTasksByDay[format(day, 'yyyy-MM-dd')] = habitTasksForDay;
     }
     
     const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, monthDate)
@@ -882,59 +933,11 @@ export async function getCalendarData(monthDate: Date) {
     let weekIndex = 0;
     while(weekIndex < daysInView.length) {
         const weekStart = daysInView[weekIndex];
-        const weekEnd = addDays(weekStart, 6);
-        const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-        let totalWeightedProgress = 0;
-        let totalWeight = 0;
-
-        // 1. Daily tasks progress
-        weekDays.forEach(d => {
-            const dayString = format(d, 'yyyy-MM-dd');
-            const tasks = habitTasksByDay[dayString] ?? [];
-            if (tasks.length > 0) {
-                tasks.forEach(task => {
-                    let progressPercentage = 0;
-                    if (task.measurement_type === 'quantitative') {
-                        const target = task.measurement_goal?.target_count ?? 1;
-                        progressPercentage = target > 0 ? ((task.current_progress_value ?? 0) / target) : 0;
-                    } else if (task.completedToday) {
-                        progressPercentage = 1;
-                    }
-                    totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
-                    totalWeight += task.weight;
-                });
-            }
-        });
-        
-        // 2. Weekly commitments progress
-        const weeklyCommitmentTasks = getActiveCommitments(allHabitTasks, allProgressLogs, weekStart)
-            .filter(c => c.frequency?.startsWith('SEMANAL_ACUMULATIVO'));
-        
-        weeklyCommitmentTasks.forEach(task => {
-            let progressPercentage = 0;
-            const logs = allProgressLogs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: weekStart, end: weekEnd }));
-            const target = task.measurement_goal?.target_count ?? 1;
-
-            if (task.measurement_type === 'quantitative') {
-                const totalValue = logs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                progressPercentage = target > 0 ? (totalValue / target) : 0;
-            } else if (task.measurement_type === 'binary') {
-                const completions = logs.length;
-                progressPercentage = target > 0 ? (completions / target) : 0;
-            }
-            
-            totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
-            totalWeight += task.weight;
-        });
-        
-        const combinedAvgProgress = totalWeight > 0
-            ? (totalWeightedProgress / totalWeight) * 100
-            : 0;
+        const progress = await calculateWeeklyProgress(weekStart, allHabitTasks, allProgressLogs, habitTasksByDay);
 
         weeklyProgress.push({
             id: format(weekStart, 'yyyy-MM-dd'),
-            progress: combinedAvgProgress > 100 ? 100 : combinedAvgProgress,
+            progress: progress,
         });
 
         weekIndex += 7;
@@ -1181,7 +1184,14 @@ export async function getAnalyticsDashboardData() {
     if (progressLogsError) throw progressLogsError;
     
     // --- Calculate Progress for different periods ---
-    const weeklyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 }));
+    // Correct way to get weekly progress: reuse the robust calendar logic.
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekDays = eachDayOfInterval({ start: weekStart, end: endOfWeek(today, { weekStartsOn: 1 }) });
+    const habitTasksByWeekDay: Record<string, HabitTask[]> = {};
+    for (const day of weekDays) {
+        habitTasksByWeekDay[format(day, 'yyyy-MM-dd')] = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+    }
+    const weeklyProgress = await calculateWeeklyProgress(weekStart, allHabitTasks, allProgressLogs, habitTasksByWeekDay);
     const monthlyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfMonth(today), endOfMonth(today));
     const quarterlyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfQuarter(today), endOfQuarter(today));
     
@@ -1235,10 +1245,14 @@ export async function getAnalyticsDashboardData() {
     
     // Monthly View (last 30 days)
     const last30Days = eachDayOfInterval({ start: subDays(today, 29), end: today });
-    const tasksForLast30Days = await Promise.all(last30Days.map(day => getHabitTasksForDate(day, allHabitTasks, allProgressLogs)));
-
-    const monthlyData = last30Days.map((day, index) => {
-        const tasksForDay = tasksForLast30Days[index];
+    
+    const habitTasksByDayForMonth: Record<string, HabitTask[]> = {};
+    for (const day of last30Days) {
+        habitTasksByDayForMonth[format(day, 'yyyy-MM-dd')] = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+    }
+    
+    const monthlyData = last30Days.map((day) => {
+        const tasksForDay = habitTasksByDayForMonth[format(day, 'yyyy-MM-dd')] || [];
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
         
         const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
