@@ -11,10 +11,8 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = ['/panel', '/dashboard', '/calendar', '/agente'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
-  // In a real production app, you'd want to enforce this.
-  // For the workshop, we are relaxing this to avoid login loops in dev.
   if (!user && isProtectedRoute) {
-    // return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
   
   if (user && pathname.startsWith('/login')) {
@@ -43,3 +41,5 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
+
+    

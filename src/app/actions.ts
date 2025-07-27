@@ -40,14 +40,6 @@ import { redirect } from "next/navigation";
 
 
 async function getCurrentUserId() {
-    // For development, we return a static test user ID to avoid authentication issues.
-    // In a production environment, this should be replaced with real user session handling.
-    if (process.env.NODE_ENV === 'development') {
-        // This is the user ID for 'test@example.com' created by the seed script.
-        // If you use a different user for testing, replace this ID.
-        return '00000000-0000-0000-0000-000000000000'; 
-    }
-
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -1250,3 +1242,5 @@ export async function getAnalyticsDashboardData() {
         },
     };
 }
+
+    

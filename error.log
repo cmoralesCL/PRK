@@ -120,3 +120,37 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-07-27T20:56:04.976Z] - DETAILED ERROR LOG
+Error occurred at: addLifePrk
+Error Type: Database/API Error
+Message: insert or update on table "life_prks" violates foreign key constraint "life_prks_user_id_fkey"
+Code: 23503
+Details: Key (user_id)=(00000000-0000-0000-0000-000000000000) is not present in table "users".
+Hint: null
+
+CONTEXT DATA:
+{
+  "values": {
+    "title": "Test prueba",
+    "description": ""
+  }
+}
+--------------------------------------------------
+
+[2025-07-27T20:56:53.435Z] - DETAILED ERROR LOG
+Error occurred at: addLifePrk
+Error Type: Database/API Error
+Message: insert or update on table "life_prks" violates foreign key constraint "life_prks_user_id_fkey"
+Code: 23503
+Details: Key (user_id)=(00000000-0000-0000-0000-000000000000) is not present in table "users".
+Hint: null
+
+CONTEXT DATA:
+{
+  "values": {
+    "title": "ñññ",
+    "description": ""
+  }
+}
+--------------------------------------------------
+
