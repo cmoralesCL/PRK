@@ -22,3 +22,5 @@ export default async function PanelPage({ searchParams }: { searchParams: { date
     />
   );
 }
+
+    
