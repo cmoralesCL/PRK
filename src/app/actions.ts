@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -1182,21 +1183,29 @@ export async function getAnalyticsDashboardData() {
         };
     }));
 
-    // Monthly View (last 30 days)
+    // Monthly View (last 30 days) - OPTIMIZED
     const last30Days = eachDayOfInterval({ start: subDays(today, 29), end: today });
-    const monthlyData = await Promise.all(last30Days.map(async day => {
-        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+    
+    // Pre-calculate daily progress for the last 30 days efficiently
+    const dailyProgressMap = new Map<string, number>();
+    const relevantLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: last30Days[0], end: today }));
+
+    for (const day of last30Days) {
+        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, relevantLogs);
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
         const overallDailyProgress = lifePrksWithProgress.length > 0
             ? lifePrksWithProgress
                 .filter(lp => lp.progress !== null)
                 .reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithProgress.filter(lp => lp.progress !== null).length
             : 0;
-        return {
-            date: format(day, 'd MMM'),
-            Progreso: isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress),
-        };
+        dailyProgressMap.set(format(day, 'yyyy-MM-dd'), isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress));
+    }
+    
+    const monthlyData = last30Days.map(day => ({
+        date: format(day, 'd MMM'),
+        Progreso: dailyProgressMap.get(format(day, 'yyyy-MM-dd')) || 0,
     }));
+
 
     // Quarterly View (by week)
     const quarterStart = startOfQuarter(today);
