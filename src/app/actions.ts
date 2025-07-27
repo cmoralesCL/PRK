@@ -31,6 +31,8 @@ import {
     isBefore,
     endOfYear,
     subDays,
+    eachWeekOfInterval,
+    eachMonthOfInterval,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -1143,25 +1145,63 @@ export async function getAnalyticsDashboardData() {
         : 0;
 
     // --- Progress Over Time Chart Data ---
-    const thirtyDaysAgo = subDays(today, 29);
-    const dateRange = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
-    const progressOverTime = [];
 
-    for (const day of dateRange) {
+    // Weekly View (last 7 days)
+    const last7Days = eachDayOfInterval({ start: subDays(today, 6), end: today });
+    const weeklyData = await Promise.all(last7Days.map(async day => {
         const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
-        
         const overallDailyProgress = lifePrksWithProgress.length > 0
             ? lifePrksWithProgress
                 .filter(lp => lp.progress !== null)
                 .reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithProgress.filter(lp => lp.progress !== null).length
             : 0;
-            
-        progressOverTime.push({
+        return {
+            date: format(day, 'EEE', { locale: es }),
+            Progreso: isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress),
+        };
+    }));
+
+    // Monthly View (last 30 days)
+    const last30Days = eachDayOfInterval({ start: subDays(today, 29), end: today });
+    const monthlyData = await Promise.all(last30Days.map(async day => {
+        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
+        const overallDailyProgress = lifePrksWithProgress.length > 0
+            ? lifePrksWithProgress
+                .filter(lp => lp.progress !== null)
+                .reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithProgress.filter(lp => lp.progress !== null).length
+            : 0;
+        return {
             date: format(day, 'd MMM'),
             Progreso: isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress),
-        });
-    }
+        };
+    }));
+
+    // Quarterly View (by week)
+    const quarterStart = startOfQuarter(today);
+    const quarterEnd = endOfQuarter(today);
+    const weeksInQuarter = eachWeekOfInterval({ start: quarterStart, end: quarterEnd }, { weekStartsOn: 1 });
+    const quarterlyData = weeksInQuarter.map(weekStart => {
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const progress = calculatePeriodProgress(allHabitTasks, allProgressLogs, weekStart, weekEnd);
+        return {
+            date: `Sem ${format(weekStart, 'w')}`,
+            Progreso: Math.round(progress),
+        };
+    });
+
+    // Yearly View (by month)
+    const yearStart = startOfYear(today);
+    const monthsInYear = eachMonthOfInterval({ start: yearStart, end: today });
+    const yearlyData = monthsInYear.map(monthStart => {
+        const monthEnd = endOfMonth(monthStart);
+        const progress = calculatePeriodProgress(allHabitTasks, allProgressLogs, monthStart, monthEnd);
+        return {
+            date: format(monthStart, 'MMM', { locale: es }),
+            Progreso: Math.round(progress),
+        };
+    });
 
     return {
         stats: {
@@ -1174,6 +1214,11 @@ export async function getAnalyticsDashboardData() {
             tasksCompleted: totalTasksCompleted,
         },
         areaPrks: areaPrksWithProgress,
-        progressOverTime,
+        progressOverTime: {
+            weekly: weeklyData,
+            monthly: monthlyData,
+            quarterly: quarterlyData,
+            yearly: yearlyData,
+        },
     };
 }

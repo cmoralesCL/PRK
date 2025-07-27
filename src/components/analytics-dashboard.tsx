@@ -1,11 +1,11 @@
 
 'use client';
 
+import { useState } from 'react';
 import { BarChart, BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaPrk } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
 import {
   ChartContainer,
   ChartTooltip,
@@ -14,6 +14,9 @@ import {
 import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts"
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+
+type ChartData = { date: string; Progreso: number }[];
 
 interface AnalyticsData {
   stats: {
@@ -26,7 +29,12 @@ interface AnalyticsData {
     tasksCompleted: number;
   };
   areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
-  progressOverTime: { date: string; Progreso: number }[];
+  progressOverTime: {
+    weekly: ChartData;
+    monthly: ChartData;
+    quarterly: ChartData;
+    yearly: ChartData;
+  };
 }
 
 interface AnalyticsDashboardProps {
@@ -43,6 +51,13 @@ const chartConfig = {
 
 export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
   const { stats, areaPrks, progressOverTime } = data;
+  const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+
+  const chartData = progressOverTime[chartView];
+  const xAxisFormatter = (value: string) => {
+    if (chartView === 'monthly') return value.slice(0, 6);
+    return value;
+  }
 
   return (
     <div className="space-y-8">
@@ -63,19 +78,38 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
 
       <Card>
-        <CardHeader>
-          <CardTitle>Progreso en los Últimos 30 Días</CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle>Evolución del Progreso</CardTitle>
+             <CardDescription>
+              Visualiza tu rendimiento a lo largo del tiempo.
+            </CardDescription>
+          </div>
+          <ToggleGroup 
+            type="single" 
+            defaultValue="monthly"
+            value={chartView}
+            onValueChange={(value: 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
+              if (value) setChartView(value);
+            }}
+            className="w-full sm:w-auto"
+          >
+            <ToggleGroupItem value="weekly" className="w-full sm:w-auto">Semana</ToggleGroupItem>
+            <ToggleGroupItem value="monthly" className="w-full sm:w-auto">Mes</ToggleGroupItem>
+            <ToggleGroupItem value="quarterly" className="w-full sm:w-auto">Trimestre</ToggleGroupItem>
+            <ToggleGroupItem value="yearly" className="w-full sm:w-auto">Año</ToggleGroupItem>
+          </ToggleGroup>
         </CardHeader>
         <CardContent className="pl-2">
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <RechartsBarChart accessibilityLayer data={progressOverTime}>
+                <RechartsBarChart accessibilityLayer data={chartData}>
                     <CartesianGrid vertical={false} />
                     <XAxis
                         dataKey="date"
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        tickFormatter={(value) => value.slice(0, 6)}
+                        tickFormatter={xAxisFormatter}
                     />
                     <YAxis
                         tickLine={false}
