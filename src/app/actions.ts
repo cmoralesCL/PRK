@@ -1,23 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -53,6 +34,18 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
+import { redirect } from "next/navigation";
+
+
+async function getCurrentUserId() {
+    const supabase = createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+        redirect('/login');
+    }
+    return user.id;
+}
 
 
 export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): Promise<string[]> {
@@ -68,11 +61,13 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
 
 export async function addLifePrk(values: { title: string; description?: string }) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         const { data, error } = await supabase.from('life_prks').insert([{ 
             title: values.title, 
             description: values.description || '',
-        }]);
+            user_id: userId,
+        }]).select();
 
         if(error) throw error;
     } catch(error) {
@@ -80,11 +75,12 @@ export async function addLifePrk(values: { title: string; description?: string }
         console.error("Error adding Life PRK:", error);
         throw error;
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
 }
 
 export async function updateLifePrk(id: string, values: { title: string; description?: string }) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         const { error } = await supabase
             .from('life_prks')
@@ -92,7 +88,8 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
                 title: values.title, 
                 description: values.description || '',
             })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) throw error;
     } catch (error) {
@@ -100,11 +97,12 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
         console.error("Error updating Life PRK:", error);
         throw error;
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
 }
 
 export async function addAreaPrk(values: { title: string; description?: string, life_prk_id: string }) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         const { data, error } = await supabase.from('area_prks').insert([{ 
             title: values.title,
@@ -113,7 +111,8 @@ export async function addAreaPrk(values: { title: string; description?: string, 
             life_prk_id: values.life_prk_id,
             target_value: 100,
             current_value: 0,
-         }]);
+            user_id: userId,
+         }]).select();
 
         if(error) throw error;
     } catch(error) {
@@ -121,11 +120,12 @@ export async function addAreaPrk(values: { title: string; description?: string, 
         console.error('Supabase error adding Area PRK:', error);
         throw error;
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
 }
 
 export async function updateAreaPrk(id: string, values: { title: string; description?: string }) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         const { error } = await supabase
             .from('area_prks')
@@ -133,7 +133,8 @@ export async function updateAreaPrk(id: string, values: { title: string; descrip
                 title: values.title,
                 description: values.description || '',
             })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) throw error;
     } catch (error) {
@@ -141,13 +142,14 @@ export async function updateAreaPrk(id: string, values: { title: string; descrip
         console.error('Supabase error updating Area PRK:', error);
         throw error;
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
 }
 
 export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     
-    const dataToInsert: any = { ...values };
+    const dataToInsert: any = { ...values, user_id: userId };
 
     if (dataToInsert.frequency === 'UNICA') {
         dataToInsert.frequency = null;
@@ -164,12 +166,13 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         console.error("Error adding Habit/Task:", error);
         throw error;
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
     revalidatePath('/calendar');
 }
 
-export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at'>>): Promise<void> {
+export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at' | 'user_id'>>): Promise<void> {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     
     const updateData: any = { ...values };
 
@@ -181,7 +184,8 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         const { error } = await supabase
             .from('habit_tasks')
             .update(updateData)
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) {
             await logError(error, { at: 'updateHabitTask', id, values: updateData });
@@ -192,22 +196,24 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
         throw error;
     }
 
-    revalidatePath('/');
+    revalidatePath('/panel');
     revalidatePath('/calendar');
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         if (type === 'task' && !progressValue) {
             // Only mark one-off tasks as completed if no progress value is given
-            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).single();
+            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).eq('user_id', userId).single();
             if (taskError) throw taskError;
             if (!taskDetails.frequency) {
                  const { error: updateError } = await supabase
                     .from('habit_tasks')
                     .update({ completion_date: completionDate })
-                    .eq('id', habitTaskId);
+                    .eq('id', habitTaskId)
+                    .eq('user_id', userId);
                 if (updateError) throw updateError;
             }
         }
@@ -219,6 +225,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
                 .from('habit_tasks')
                 .select('measurement_goal, measurement_type, frequency')
                 .eq('id', habitTaskId)
+                .eq('user_id', userId)
                 .single();
 
             if (taskError || !task) {
@@ -245,6 +252,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             // For binary accumulative habits, the progress value is always 1 for each log entry
             progress_value: progressValue ?? 1,
             completion_percentage: completionPercentage,
+            user_id: userId,
         };
         
         const { error: logErrorObj } = await supabase.from('progress_logs').upsert(
@@ -254,7 +262,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
         if (logErrorObj) throw logErrorObj;
 
-        revalidatePath('/');
+        revalidatePath('/panel');
         revalidatePath('/calendar');
     } catch (error) {
         await logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
@@ -265,15 +273,17 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
 export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         if (type === 'task') {
-             const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).single();
+             const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).eq('user_id', userId).single();
             if (taskError) throw taskError;
             if (!taskDetails.frequency) {
                  const { error } = await supabase
                     .from('habit_tasks')
                     .update({ completion_date: null })
-                    .eq('id', habitTaskId);
+                    .eq('id', habitTaskId)
+                    .eq('user_id', userId);
                 if (error) throw error;
             }
         }
@@ -282,13 +292,14 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
             .from('progress_logs')
             .delete()
             .eq('habit_task_id', habitTaskId)
-            .eq('completion_date', completionDate);
+            .eq('completion_date', completionDate)
+            .eq('user_id', userId);
 
         if (error) {
             console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
         }
         
-        revalidatePath('/');
+        revalidatePath('/panel');
         revalidatePath('/calendar');
     } catch (error) {
         await logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
@@ -299,39 +310,43 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
 
 export async function archiveLifePrk(id: string) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
-        const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id);
+        const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id).eq('user_id', userId);
         if(error) throw error;
     } catch (error) {
         await logError(error, { at: 'archiveLifePrk', id });
         console.error("Error archiving life prk:", error);
         throw new Error("Failed to archive life prk.");
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
     revalidatePath('/calendar');
 }
 
 export async function archiveAreaPrk(id: string) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
-        const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id);
+        const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id).eq('user_id', userId);
         if(error) throw error;
     } catch(error) {
         await logError(error, { at: 'archiveAreaPrk', id });
         console.error("Error archiving area prk:", error);
         throw new Error("Failed to archive area prk.");
     }
-    revalidatePath('/');
+    revalidatePath('/panel');
     revalidatePath('/calendar');
 }
 
 export async function archiveHabitTask(id: string, archiveDate: string) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     try {
         const { error } = await supabase
             .from('habit_tasks')
             .update({ archived: true, archived_at: archiveDate })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) throw error;
     } catch (error) {
@@ -343,7 +358,7 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
         throw new Error("Failed to archive habit/task.");
     }
 
-    revalidatePath('/');
+    revalidatePath('/panel');
     revalidatePath('/calendar');
 }
 
@@ -647,27 +662,28 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
 
 export async function getDashboardData(selectedDateString: string) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     const selectedDate = parseISO(selectedDateString);
 
-    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) {
         await logError(lifePrksError, {at: 'getDashboardData - lifePrks'});
         throw lifePrksError;
     };
 
-    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) {
         await logError(areaPrksError, {at: 'getDashboardData - areaPrks'});
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
     if (habitTasksError) {
         await logError(habitTasksError, {at: 'getDashboardData - allHabitTasks'});
         throw habitTasksError;
     }
 
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*');
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) {
         await logError(progressLogsError, {at: 'getDashboardData - allProgressLogs'});
         throw progressLogsError;
@@ -690,6 +706,7 @@ export async function getDashboardData(selectedDateString: string) {
 
 export async function getCalendarData(monthDate: Date) {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
 
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
@@ -700,25 +717,25 @@ export async function getCalendarData(monthDate: Date) {
     const daysInView = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false);
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) {
         await logError(lifePrksError, {at: 'getCalendarData - lifePrks'});
         throw lifePrksError;
     }
 
-    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false);
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) {
         await logError(areaPrksError, {at: 'getCalendarData - areaPrks'});
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*');
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
     if (habitTasksError) {
         await logError(habitTasksError, {at: 'getCalendarData - allHabitTasks'});
         throw habitTasksError;
     }
 
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId).gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
     if (progressLogsError) {
         await logError(progressLogsError, {at: 'getCalendarData - allProgressLogs'});
         throw progressLogsError;
@@ -742,6 +759,7 @@ export async function getCalendarData(monthDate: Date) {
                 id: format(day, 'yyyy-MM-dd'),
                 snapshot_date: format(day, 'yyyy-MM-dd'),
                 progress: isNaN(overallProgress) ? 0 : overallProgress,
+                user_id: userId,
             });
         }
         
@@ -973,6 +991,7 @@ export async function endOfSemester(date: Date): Promise<Date> {
 
 export async function getAnalyticsDashboardData() {
     const supabase = createClient();
+    const userId = await getCurrentUserId();
     const today = new Date();
 
     const [
@@ -981,10 +1000,10 @@ export async function getAnalyticsDashboardData() {
         { data: allHabitTasks, error: habitTasksError },
         { data: allProgressLogs, error: progressLogsError },
     ] = await Promise.all([
-        supabase.from('life_prks').select('*').eq('archived', false),
-        supabase.from('area_prks').select('*').eq('archived', false),
-        supabase.from('habit_tasks').select('*'),
-        supabase.from('progress_logs').select('*')
+        supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId),
+        supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId),
+        supabase.from('habit_tasks').select('*').eq('user_id', userId),
+        supabase.from('progress_logs').select('*').eq('user_id', userId)
     ]);
 
     if (lifePrksError) throw lifePrksError;

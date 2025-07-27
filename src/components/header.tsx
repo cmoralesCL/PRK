@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, BookOpen, BarChart2 } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/popover';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
+import { createClient } from '@/lib/supabase/client';
 
 interface HeaderProps {
   onAddLifePrk?: () => void;
@@ -23,6 +23,7 @@ interface HeaderProps {
   hideDatePicker?: boolean;
   hideAddButton?: boolean;
   datePickerLabel?: string;
+  showAuth?: boolean;
 }
 
 export function Header({ 
@@ -31,7 +32,8 @@ export function Header({
   onDateChange, 
   hideDatePicker = false, 
   hideAddButton = false,
-  datePickerLabel = "Fecha" 
+  datePickerLabel = "Fecha",
+  showAuth = true,
 }: HeaderProps) {
   const pathname = usePathname();
 
@@ -40,6 +42,12 @@ export function Header({
     { href: "/panel", label: "Panel", icon: Compass },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
   ];
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-10 border-b">
@@ -52,16 +60,18 @@ export function Header({
                 Brújula de Resultados
                 </h1>
             </Link>
-            <nav className="flex items-center gap-1">
-                {navLinks.map(link => (
-                    <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild>
-                        <Link href={link.href}>
-                            <link.icon className="h-4 w-4 sm:mr-2"/>
-                            <span className="hidden sm:inline">{link.label}</span>
-                        </Link>
-                    </Button>
-                ))}
-            </nav>
+            {showAuth && (
+              <nav className="flex items-center gap-1">
+                  {navLinks.map(link => (
+                      <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild>
+                          <Link href={link.href}>
+                              <link.icon className="h-4 w-4 sm:mr-2"/>
+                              <span className="hidden sm:inline">{link.label}</span>
+                          </Link>
+                      </Button>
+                  ))}
+              </nav>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {!hideDatePicker && selectedDate && onDateChange && (
@@ -94,6 +104,12 @@ export function Header({
                     <Plus className="mr-2 h-4 w-4" />
                     <span className="hidden sm:inline">PRK de Vida</span>
                 </Button>
+            )}
+
+            {showAuth && (
+              <Button onClick={handleSignOut} variant="ghost" size="icon" title="Cerrar sesión">
+                <LogOut className="h-4 w-4" />
+              </Button>
             )}
           </div>
         </div>

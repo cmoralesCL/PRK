@@ -1,9 +1,7 @@
 
-
-
-
 export interface LifePrk {
   id: string;
+  user_id: string;
   title: string;
   description: string;
   created_at?: string;
@@ -13,6 +11,7 @@ export interface LifePrk {
 
 export interface AreaPrk {
   id: string;
+  user_id: string;
   life_prk_id: string; // Corresponds to life_prk_id in Supabase
   title: string;
   description?: string | null;
@@ -47,6 +46,7 @@ export type HabitFrequency =
 
 export interface HabitTask {
   id: string;
+  user_id: string;
   area_prk_id: string; // Corresponds to area_prk_id in Supabase
   title: string;
   description?: string | null;
@@ -84,6 +84,7 @@ export interface HabitTask {
 
 export interface ProgressLog {
   id: string;
+  user_id: string;
   habit_task_id: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
   progress_value?: number | null; // Corresponds to progress_value
@@ -92,6 +93,7 @@ export interface ProgressLog {
 
 export interface DailyProgressSnapshot {
   id: string;
+  user_id: string;
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
 }
