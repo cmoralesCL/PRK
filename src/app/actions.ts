@@ -1028,6 +1028,63 @@ export async function endOfSemester(date: Date): Promise<Date> {
     return endOfMonth(endMonth);
 }
 
+
+/**
+ * Calculates the weighted progress for a set of tasks within a given date range.
+ * @param tasks The tasks to calculate progress for.
+ * @param logs The progress logs.
+ * @param startDate The start date of the period.
+ * @param endDate The end date of the period.
+ * @returns The calculated progress percentage.
+ */
+function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startDate: Date, endDate: Date): number {
+    let totalWeightedProgress = 0;
+    let totalWeight = 0;
+
+    tasks.forEach(task => {
+        // Skip archived tasks that were archived before the period starts
+        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), startDate)) {
+            return;
+        }
+
+        const taskStartDate = parseISO(task.start_date!);
+        const taskEndDate = task.due_date ? parseISO(task.due_date) : null;
+        
+        // This logic determines how many times a task *should* have been active in the period
+        let opportunities = 0;
+        if (task.frequency?.includes('ACUMULATIVO')) {
+             opportunities = 1; // Accumulative tasks are a single opportunity for the period
+        } else {
+            const daysInPeriod = eachDayOfInterval({ start: startDate, end: endDate });
+            daysInPeriod.forEach(day => {
+                // Ensure the task is active on this specific day
+                if (isTaskActiveOnDate(task, day)) {
+                    opportunities++;
+                }
+            });
+        }
+        
+        if (opportunities === 0) return;
+
+        totalWeight += task.weight * opportunities;
+
+        const periodLogs = logs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
+        
+        let achievedProgress = 0;
+        if (task.measurement_type === 'quantitative') {
+            const totalValue = periodLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
+            const target = (task.measurement_goal?.target_count ?? 1) * opportunities;
+            achievedProgress = target > 0 ? (totalValue / target) : 0;
+        } else { // binary
+            achievedProgress = periodLogs.length / opportunities;
+        }
+        totalWeightedProgress += achievedProgress * task.weight * opportunities;
+    });
+
+    const progress = totalWeight > 0 ? (totalWeightedProgress / totalWeight) * 100 : 0;
+    return progress > 100 ? 100 : progress; // Cap at 100 for period averages
+}
+
 export async function getAnalyticsDashboardData() {
     const supabase = createClient();
     const userId = await getCurrentUserId();
@@ -1049,73 +1106,40 @@ export async function getAnalyticsDashboardData() {
     if (areaPrksError) throw areaPrksError;
     if (habitTasksError) throw habitTasksError;
     if (progressLogsError) throw progressLogsError;
-
-    // --- Calculate Overall Progress Stats ---
-    let totalTasksCompleted = 0;
-    let totalWeightCompleted = 0;
-    let totalWeightPossible = 0;
-
-    const habitTasksById = new Map(allHabitTasks.map(task => [task.id, task]));
-
-    for (const log of allProgressLogs) {
-        const task = habitTasksById.get(log.habit_task_id);
-        if (!task || !task.start_date || isAfter(parseISO(task.start_date), today)) continue;
-        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), today)) continue;
-
-        if (task.measurement_type === 'binary') {
-            totalTasksCompleted += 1; // Count each binary log as one completion
-            totalWeightCompleted += task.weight;
-        } else if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-            const progressRatio = Math.min((log.progress_value ?? 0) / task.measurement_goal.target_count, 1);
-            totalWeightCompleted += task.weight * progressRatio;
-            if (progressRatio >= 1) {
-                totalTasksCompleted += 1;
-            }
-        }
-    }
     
-    // Calculate total possible weight based on active tasks up to today
-    const activeTasksToday = (await getHabitTasksForDate(today, allHabitTasks, allProgressLogs)).concat(getActiveCommitments(allHabitTasks, allProgressLogs, today));
-    totalWeightPossible = activeTasksToday.reduce((sum, task) => sum + task.weight, 0);
+    // --- Calculate Progress for different periods ---
+    const weeklyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 }));
+    const monthlyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfMonth(today), endOfMonth(today));
+    const quarterlyProgress = calculatePeriodProgress(allHabitTasks, allProgressLogs, startOfQuarter(today), endOfQuarter(today));
+    
+    // --- Calculate Overall (Accumulated) Progress Stats ---
+    let totalTasksCompleted = 0;
+    allProgressLogs.forEach(log => {
+        if (log.completion_percentage >= 1) {
+            totalTasksCompleted++;
+        }
+    });
 
-
-    // --- Calculate Progress for PRKs ---
-    const areaPrksWithOverallProgress = areaPrks.map(areaPrk => {
+    const areaPrksWithProgress = areaPrks.map(areaPrk => {
         const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
-        const relevantLogs = allProgressLogs.filter(log => relevantTasks.some(rt => rt.id === log.habit_task_id));
         
-        let totalWeightedProgressSum = 0;
-        let totalTaskWeight = 0;
+        // Accumulated Progress
+        const accumulatedLogs = allProgressLogs.filter(log => relevantTasks.some(rt => rt.id === log.habit_task_id));
+        const accumulatedProgress = calculatePeriodProgress(relevantTasks, accumulatedLogs, new Date(2020, 0, 1), today);
 
-        relevantTasks.forEach(task => {
-            const taskLogs = relevantLogs.filter(log => log.habit_task_id === task.id);
-            totalTaskWeight += task.weight;
-            
-            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-                const totalValue = taskLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                const progressRatio = Math.min(totalValue / task.measurement_goal.target_count, 1);
-                totalWeightedProgressSum += progressRatio * task.weight;
-            } else if (task.measurement_type === 'binary') {
-                if(taskLogs.length > 0) totalWeightedProgressSum += task.weight; // Simplified: any completion = 100% for this view
-            }
-        });
-        
+        // Monthly Progress
+        const monthlyLogs = allProgressLogs.filter(log => relevantTasks.some(rt => rt.id === log.habit_task_id) && isWithinInterval(parseISO(log.completion_date), { start: startOfMonth(today), end: endOfMonth(today)}));
+        const monthProgress = calculatePeriodProgress(relevantTasks, monthlyLogs, startOfMonth(today), endOfMonth(today));
+
         return {
             ...areaPrk,
-            progress: totalTaskWeight > 0 ? (totalWeightedProgressSum / totalTaskWeight) * 100 : 0,
+            progress: accumulatedProgress,
+            monthlyProgress: monthProgress,
         };
     });
 
-    const lifePrksWithOverallProgress = lifePrks.map(lifePrk => {
-        const relevantAreaPrks = areaPrksWithOverallProgress.filter(ap => ap.life_prk_id === lifePrk.id);
-        if (relevantAreaPrks.length === 0) return { ...lifePrk, progress: 0 };
-
-        const avgProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0) / relevantAreaPrks.length;
-        return { ...lifePrk, progress: avgProgress };
-    });
-
-    const overallProgress = lifePrksWithOverallProgress.length > 0 
-        ? lifePrksWithOverallProgress.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithOverallProgress.length
+    const overallProgress = areaPrksWithProgress.length > 0 
+        ? areaPrksWithProgress.reduce((sum, ap) => sum + (ap.progress ?? 0), 0) / areaPrksWithProgress.length
         : 0;
 
     // --- Progress Over Time Chart Data ---
@@ -1142,15 +1166,14 @@ export async function getAnalyticsDashboardData() {
     return {
         stats: {
             overallProgress: Math.round(overallProgress),
+            weeklyProgress: Math.round(weeklyProgress),
+            monthlyProgress: Math.round(monthlyProgress),
+            quarterlyProgress: Math.round(quarterlyProgress),
             lifePrksCount: lifePrks.length,
             areaPrksCount: areaPrks.length,
             tasksCompleted: totalTasksCompleted,
         },
-        lifePrks: lifePrksWithOverallProgress,
-        areaPrks: areaPrksWithOverallProgress,
+        areaPrks: areaPrksWithProgress,
         progressOverTime,
     };
 }
-
-    
-    

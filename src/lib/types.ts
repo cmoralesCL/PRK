@@ -21,7 +21,8 @@ export interface AreaPrk {
   unit: string;
   created_at?: string;
   archived: boolean;
-  progress?: number | null; // El progreso ahora se calcula a nivel de LifePrk/Día.
+  progress: number; // El progreso ahora se calcula a nivel de LifePrk/Día.
+  monthlyProgress?: number;
 }
 
 export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
