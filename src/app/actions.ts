@@ -585,11 +585,9 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
         
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-                // Always count partial progress for quantitative tasks
+                // Allow overachievement by not capping the progress.
                 const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
-                // Cap progress at 100% for the calculation
-                const cappedProgress = Math.min(progressPercentage, 1);
-                return sum + (cappedProgress * task.weight);
+                return sum + (progressPercentage * task.weight);
             }
             if (task.completedToday) {
                  // For binary tasks, progress is 1 (100%)
@@ -1154,4 +1152,5 @@ export async function getAnalyticsDashboardData() {
     };
 }
 
+    
     
