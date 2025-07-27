@@ -17,7 +17,7 @@ import { usePathname } from 'next/navigation';
 
 
 interface HeaderProps {
-  onAddLifePrk: () => void;
+  onAddLifePrk?: () => void;
   selectedDate?: Date;
   onDateChange?: (date: Date) => void;
   hideDatePicker?: boolean;
@@ -89,7 +89,7 @@ export function Header({
                </Popover>
             )}
            
-            {!hideAddButton && (
+            {!hideAddButton && onAddLifePrk && (
                  <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
                     <Plus className="mr-2 h-4 w-4" />
                     <span className="hidden sm:inline">PRK de Vida</span>
