@@ -58,6 +58,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
     if (chartView === 'monthly') return value.slice(0, 6);
     return value;
   }
+  const yAxisFormatter = (value: number) => `${value}%`;
 
   return (
     <div className="space-y-8">
@@ -115,11 +116,14 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
-                        unit="%"
+                        tickFormatter={yAxisFormatter}
                     />
                     <ChartTooltip
                         cursor={false}
-                        content={<ChartTooltipContent indicator="line" />}
+                        content={<ChartTooltipContent 
+                            indicator="line" 
+                            formatter={(value) => `${value}%`}
+                        />}
                     />
                     <Bar dataKey="Progreso" fill="var(--color-Progreso)" radius={4} />
                 </RechartsBarChart>
