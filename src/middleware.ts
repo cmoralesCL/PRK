@@ -1,12 +1,10 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
-import { createClient } from './lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { response, supabase } = await updateSession(request);
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const { response, supabase, user } = await updateSession(request);
+  
   const { pathname } = request.nextUrl;
 
   // Define public and protected routes
