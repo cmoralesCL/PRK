@@ -44,15 +44,15 @@ async function getCurrentUserId() {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+        // For development, if no one is logged in, we'll try to get the test user.
         if (process.env.NODE_ENV === 'development') {
-            // In dev mode, if no user is logged in via UI, we might be in a server action context.
-            // Let's try to get the test user's ID directly if they are authenticated.
-            const { data: { user: testAuthUser }, error: authError } = await supabase.auth.getUser();
+             const { data: { user: testAuthUser }, error: authError } = await supabase.auth.getUser();
             if (authError || !testAuthUser) {
-                console.error("Authentication error in dev mode, cannot get test user.", authError);
-                redirect('/login?message=Could not get test user session.');
+                 // This is the final fallback for dev mode. If even the guest login fails,
+                 // we must prevent a redirect loop in server actions by providing a stable ID.
+                 // The seed script should be run for 'test@example.com' for data to appear.
+                return '00000000-0000-0000-0000-000000000000'; // Default test user ID
             }
-            // If we have an authenticated user, return their ID. This is more reliable.
             return testAuthUser.id;
         }
         
@@ -1254,3 +1254,5 @@ export async function getAnalyticsDashboardData() {
         },
     };
 }
+
+    
