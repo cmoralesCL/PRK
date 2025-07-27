@@ -282,9 +282,6 @@ export function Panel({
     <>
       <Header 
         onAddLifePrk={handleOpenAddLifePrkDialog}
-        selectedDate={selectedDate}
-        onDateChange={handleDateChange}
-        hideDatePicker={true}
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
 

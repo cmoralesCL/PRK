@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useTransition, useState } from 'react';
@@ -11,9 +10,10 @@ import { Header } from '@/components/header';
 import { ProgressCalendar } from '@/components/progress-calendar';
 import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
 import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
+import { addHabitTask, updateHabitTask, archiveHabitTask, addLifePrk } from '@/app/actions';
 import { DayDetailDialog } from './day-detail-dialog';
 import { CommitmentsCard } from './commitments-card';
+import { AddLifePrkDialog } from './add-life-prk-dialog';
 
 
 interface CalendarViewProps {
@@ -56,6 +56,8 @@ export function CalendarView({
     const [isDayDetailOpen, setDayDetailOpen] = useState(false);
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
 
+    const [isLifePrkDialogOpen, setLifePrkDialogOpen] = useState(false);
+
     const handleMonthChange = (newMonth: Date) => {
         startTransition(() => {
             router.push(`/calendar?month=${format(newMonth, 'yyyy-MM-dd')}`);
@@ -82,6 +84,17 @@ export function CalendarView({
     const handleCloseDayDetail = () => {
         setDayDetailOpen(false);
     }
+
+    const handleSaveLifePrk = (values: { title: string; description?: string }) => {
+        startTransition(async () => {
+            try {
+                await addLifePrk(values);
+                toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el PRK de Vida.' });
+            }
+        });
+    };
 
     const handleSaveHabitTask = (values: HabitTaskFormValues) => {
         startTransition(async () => {
@@ -130,9 +143,7 @@ export function CalendarView({
     return (
         <>
             <Header 
-                onAddLifePrk={() => {}} 
-                hideAddButton={true} 
-                hideDatePicker={true} 
+                onAddLifePrk={() => setLifePrkDialogOpen(true)}
             />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 <ProgressCalendar
@@ -155,6 +166,12 @@ export function CalendarView({
                     onArchive={onArchiveCommitment}
                 />
             </main>
+             <AddLifePrkDialog 
+                isOpen={isLifePrkDialogOpen} 
+                onOpenChange={setLifePrkDialogOpen} 
+                onSave={handleSaveLifePrk}
+                lifePrk={null} 
+            />
             <AddHabitTaskDialog 
                 isOpen={isHabitTaskDialogOpen}
                 onOpenChange={setHabitTaskDialogOpen}
