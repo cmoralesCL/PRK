@@ -1112,12 +1112,17 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
                 } else { // binary and one-off
                     periodAchievedProgress = periodLogs.length / opportunityCount;
                 }
+                 totalWeightedProgress += periodAchievedProgress * taskWeight;
+                 totalPossibleWeight += taskWeight;
             }
         } 
         // --- Handle Accumulative Tasks ---
         else {
+             let periodProgress = 0;
             if (task.frequency.startsWith('SEMANAL')) {
                 const weeksInPeriod = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
+                let totalWeeklyProgress = 0;
+                
                 for (const week of weeksInPeriod) {
                     if (getActiveCommitments([task], [], week).length > 0) {
                         opportunityCount++;
@@ -1130,9 +1135,13 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
                         } else {
                             weekProgress = target > 0 ? weekLogs.length / target : 0;
                         }
-                        periodAchievedProgress += Math.min(weekProgress, 1);
+                        totalWeeklyProgress += Math.min(weekProgress, 1);
                     }
                 }
+                if (opportunityCount > 0) {
+                    periodProgress = totalWeeklyProgress / opportunityCount;
+                }
+
             } else if (task.frequency.startsWith('MENSUAL')) {
                  const monthsInPeriod = eachMonthOfInterval({ start: startDate, end: endDate });
                  for (const month of monthsInPeriod) {
@@ -1147,16 +1156,17 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
                         } else {
                             monthProgress = target > 0 ? monthLogs.length / target : 0;
                         }
-                        periodAchievedProgress += Math.min(monthProgress, 1);
+                         periodProgress += Math.min(monthProgress, 1);
                     }
                  }
+                 if(opportunityCount > 0) periodProgress = periodProgress / opportunityCount;
+
             }
              // NOTE: Not handling TRIMESTRAL/ANUAL for simplicity in this iteration
-        }
-        
-        if (opportunityCount > 0) {
-            totalWeightedProgress += (periodAchievedProgress / opportunityCount) * taskWeight;
-            totalPossibleWeight += taskWeight;
+            if (opportunityCount > 0) {
+                totalWeightedProgress += periodProgress * taskWeight;
+                totalPossibleWeight += taskWeight;
+            }
         }
     });
 
