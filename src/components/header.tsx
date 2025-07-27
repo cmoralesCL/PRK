@@ -36,7 +36,7 @@ export function Header({
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/", label: "Dashboard", icon: Compass },
+    { href: "/panel", label: "Panel", icon: Compass },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
     // { href: "/journal", label: "Diario", icon: BookOpen },
   ];
@@ -54,7 +54,7 @@ export function Header({
             </Link>
             <nav className="flex items-center gap-1">
                 {navLinks.map(link => (
-                    <Button key={link.href} variant={pathname === link.href ? "secondary" : "ghost"} asChild>
+                    <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild>
                         <Link href={link.href}>
                             <link.icon className="h-4 w-4 sm:mr-2"/>
                             <span className="hidden sm:inline">{link.label}</span>
