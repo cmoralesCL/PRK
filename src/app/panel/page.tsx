@@ -13,15 +13,12 @@ export default async function PanelPage({ searchParams }: { searchParams: { date
   const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDate);
 
   return (
-    <>
-      <Header />
-      <Panel
-        lifePrks={lifePrks}
-        areaPrks={areaPrks}
-        habitTasks={habitTasks}
-        commitments={commitments}
-        initialSelectedDate={selectedDate}
-      />
-    </>
+    <Panel
+      lifePrks={lifePrks}
+      areaPrks={areaPrks}
+      habitTasks={habitTasks}
+      commitments={commitments}
+      initialSelectedDate={selectedDate}
+    />
   );
 }

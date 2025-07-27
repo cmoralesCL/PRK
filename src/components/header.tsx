@@ -7,13 +7,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useDialog } from '@/hooks/use-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
 
 interface HeaderProps {
   showAuth?: boolean;
+  selectedDate?: Date;
+  onDateChange?: (date: Date | undefined) => void;
+  hideDatePicker?: boolean;
 }
 
 export function Header({ 
   showAuth = true,
+  selectedDate,
+  onDateChange,
+  hideDatePicker = false,
 }: HeaderProps) {
   const pathname = usePathname();
   const { onOpen } = useDialog();
@@ -55,9 +67,31 @@ export function Header({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={onOpen} variant="default" className="shadow-md">
+            {!hideDatePicker && selectedDate && onDateChange && (
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn("w-[240px] justify-start text-left font-normal")}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={onDateChange}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            )}
+            <Button onClick={() => onOpen()} variant="default" className="shadow-md">
                 <Plus className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
+                <span className="sm:hidden">PRK</span>
             </Button>
 
             {showAuth && (

@@ -26,6 +26,7 @@ import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { CommitmentsCard } from './commitments-card';
 import { useDialog } from '@/hooks/use-dialog';
+import { Header } from './header';
 
 interface PanelProps {
   lifePrks: LifePrk[];
@@ -252,6 +253,10 @@ export function Panel({
 
   return (
     <>
+       <Header 
+        selectedDate={selectedDate}
+        onDateChange={handleDateChange}
+      />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
         {lifePrks.length === 0 && !isPending && (
