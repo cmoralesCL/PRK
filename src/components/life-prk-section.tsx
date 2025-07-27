@@ -20,6 +20,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useTransition } from 'react';
+import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
@@ -29,8 +33,6 @@ interface LifePrkSectionProps {
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
-  onUndoHabitTask: (id: string, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (lifePrk: LifePrk) => void;
@@ -47,8 +49,6 @@ export function LifePrkSection({
   onEditAreaPrk,
   onAddHabitTask,
   onEditHabitTask,
-  onToggleHabitTask,
-  onUndoHabitTask,
   onGetAiSuggestions,
   onArchive,
   onEdit,
@@ -58,6 +58,43 @@ export function LifePrkSection({
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
+    const task = habitTasks.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+
+    startTransition(async () => {
+      try {
+        if (completed) {
+          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+        } else {
+          await removeHabitTaskCompletion(id, task.type, completionDate);
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
+      }
+    });
+  };
+
+  const handleUndoHabitTask = (id: string, date: Date) => {
+    const task = habitTasks.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+    startTransition(async () => {
+        try {
+            await removeHabitTaskCompletion(id, task.type, completionDate);
+            toast({ title: "Registro deshecho" });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
+        }
+    });
+  };
+
 
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
@@ -121,8 +158,8 @@ export function LifePrkSection({
                   habitTasks={habitTasks.filter((ht) => ht.area_prk_id === kp.id)}
                   onAddHabitTask={onAddHabitTask}
                   onEditHabitTask={onEditHabitTask}
-                  onToggleHabitTask={onToggleHabitTask}
-                  onUndoHabitTask={onUndoHabitTask}
+                  onToggleHabitTask={handleToggleHabitTask}
+                  onUndoHabitTask={handleUndoHabitTask}
                   onGetAiSuggestions={onGetAiSuggestions}
                   onArchive={onArchiveAreaPrk}
                   onEdit={onEditAreaPrk}

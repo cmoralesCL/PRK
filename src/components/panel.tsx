@@ -5,9 +5,9 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LifePrkSection } from './life-prk-section';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
-import { AddHabitTaskDialog } from './add-habit-task-dialog';
+import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
-import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
+import type { LifePrk, AreaPrk, HabitTask, HabitFrequency } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
     addAreaPrk, 
@@ -24,9 +24,10 @@ import {
 import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
-import { CommitmentsCard } from './commitments-card';
 import { useDialog } from '@/hooks/use-dialog';
 import { Header } from './header';
+import { CommitmentsSidebar } from './commitments-sidebar';
+import { cn } from '@/lib/utils';
 
 interface PanelProps {
   lifePrks: LifePrk[];
@@ -69,6 +70,7 @@ export function Panel({
   const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
+  const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
 
   // State for editing items
   const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
@@ -77,6 +79,7 @@ export function Panel({
   // State for context when adding new items
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -125,15 +128,27 @@ export function Panel({
   // --- Habit/Task Handlers ---
   const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
     setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
+    setDefaultHabitTaskValues(undefined);
     setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
   };
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
+    setDefaultHabitTaskValues(undefined);
     setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
     setHabitTaskDialogOpen(true);
   };
+
+  const handleOpenAddCommitmentDialog = (frequency: HabitFrequency) => {
+    setEditingHabitTask(null);
+    setDefaultHabitTaskValues({
+        type: 'habit',
+        frequency: frequency,
+    });
+    setHabitTaskDialogOpen(true);
+  };
+
 
   const handleSaveHabitTask = (values: Partial<HabitTask>) => {
     startTransition(async () => {
@@ -152,42 +167,6 @@ export function Panel({
     });
   };
   
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const allTasks = [...habitTasks, ...commitments];
-    const task = allTasks.find(ht => ht.id === id);
-    if (!task) return;
-
-    const completionDate = date.toISOString().split('T')[0];
-
-    startTransition(async () => {
-      try {
-        if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
-        } else {
-          await removeHabitTaskCompletion(id, task.type, completionDate);
-        }
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
-      }
-    });
-  };
-
-  const handleUndoHabitTask = (id: string, date: Date) => {
-     const allTasks = [...habitTasks, ...commitments];
-    const task = allTasks.find(ht => ht.id === id);
-    if (!task) return;
-
-    const completionDate = date.toISOString().split('T')[0];
-    startTransition(async () => {
-        try {
-            await removeHabitTaskCompletion(id, task.type, completionDate);
-            toast({ title: "Registro deshecho" });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
-        }
-    });
-  };
-
   const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
      startTransition(async () => {
         try {
@@ -253,73 +232,78 @@ export function Panel({
 
   return (
     <>
-       <Header 
-        selectedDate={selectedDate}
-        onDateChange={handleDateChange}
-      />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-
-        {lifePrks.length === 0 && !isPending && (
-            <div className="text-center py-24">
-                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
-                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
-            </div>
-        )}
-        {isPending && (
-            <div className="text-center py-24">
-                 <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
-            </div>
-        )}
-        {!isPending && lifePrks.length > 0 && (
-          <>
-            <CommitmentsCard 
-                commitments={commitments}
-                selectedDate={selectedDate}
-                onToggle={handleToggleHabitTask}
-                onUndo={handleUndoHabitTask}
-                onEdit={handleOpenEditHabitTaskDialog}
-                onArchive={handleArchiveHabitTask}
-            />
-            <div className="flex justify-end gap-2 my-4">
-                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
-                    Expandir Todo
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
-                    Contraer Todo
-                </Button>
-            </div>
-            <Accordion 
-              type="multiple" 
-              className="w-full space-y-4" 
-              value={openLifePrkIds}
-              onValueChange={setOpenLifePrkIds}
-            >
-              {lifePrks.map((lp) => (
-                <LifePrkSection
-                  key={lp.id}
-                  lifePrk={lp}
-                  areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                  habitTasks={habitTasks}
-                  onAddAreaPrk={handleOpenAddAreaPrkDialog}
-                  onEditAreaPrk={handleOpenEditAreaPrkDialog}
-                  onAddHabitTask={handleOpenAddHabitTaskDialog}
-                  onEditHabitTask={handleOpenEditHabitTaskDialog}
-                  onToggleHabitTask={handleToggleHabitTask}
-                  onUndoHabitTask={handleUndoHabitTask}
-                  onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-                  onArchive={handleArchiveLifePrk}
-                  onEdit={handleOpenEditLifePrkDialog}
-                  onArchiveAreaPrk={handleArchiveAreaPrk}
-                  onArchiveHabitTask={handleArchiveHabitTask}
-                  selectedDate={selectedDate}
+      <div className="flex flex-col h-screen overflow-hidden">
+        <Header 
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+        />
+        <div className="flex flex-1 overflow-hidden">
+            <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-y-auto">
+              {lifePrks.length === 0 && !isPending && (
+                  <div className="text-center py-24">
+                      <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                      <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                      <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
+                  </div>
+              )}
+              {isPending && (
+                  <div className="text-center py-24">
+                       <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
+                  </div>
+              )}
+              {!isPending && lifePrks.length > 0 && (
+                <>
+                  <div className="flex justify-end gap-2 my-4">
+                      <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
+                          Expandir Todo
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
+                          Contraer Todo
+                      </Button>
+                  </div>
+                  <Accordion 
+                    type="multiple" 
+                    className="w-full space-y-4" 
+                    value={openLifePrkIds}
+                    onValueChange={setOpenLifePrkIds}
+                  >
+                    {lifePrks.map((lp) => (
+                      <LifePrkSection
+                        key={lp.id}
+                        lifePrk={lp}
+                        areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
+                        habitTasks={habitTasks.filter(ht => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === ht.area_prk_id))}
+                        onAddAreaPrk={handleOpenAddAreaPrkDialog}
+                        onEditAreaPrk={handleOpenEditAreaPrkDialog}
+                        onAddHabitTask={handleOpenAddHabitTaskDialog}
+                        onEditHabitTask={handleOpenEditHabitTaskDialog}
+                        onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                        onArchive={handleArchiveLifePrk}
+                        onEdit={handleOpenEditLifePrkDialog}
+                        onArchiveAreaPrk={handleArchiveAreaPrk}
+                        onArchiveHabitTask={handleArchiveHabitTask}
+                        selectedDate={selectedDate}
+                      />
+                    ))}
+                  </Accordion>
+                </>
+              )}
+            </main>
+             <aside className={cn(
+                "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
+                isSidebarOpen ? 'w-96 p-4' : 'w-16 p-2 items-center justify-center'
+            )}>
+                <CommitmentsSidebar
+                    commitments={commitments}
+                    selectedDate={selectedDate}
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setSidebarOpen}
+                    onAddCommitment={handleOpenAddCommitmentDialog}
+                    onEditCommitment={handleOpenEditHabitTaskDialog}
                 />
-              ))}
-            </Accordion>
-          </>
-        )}
-      </main>
-
+            </aside>
+        </div>
+      </div>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 
         onOpenChange={setAreaPrkDialogOpen} 
@@ -334,6 +318,7 @@ export function Panel({
         defaultAreaPrkId={activeAreaPrk?.id}
         defaultDate={selectedDate}
         areaPrks={areaPrks}
+        defaultValues={defaultHabitTaskValues}
        />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 
@@ -344,5 +329,3 @@ export function Panel({
     </>
   );
 }
-
-    
