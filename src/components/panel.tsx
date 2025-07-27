@@ -3,9 +3,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from './header';
 import { LifePrkSection } from './life-prk-section';
-import { AddLifePrkDialog } from './add-life-prk-dialog';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
 import { AddHabitTaskDialog } from './add-habit-task-dialog';
 import { AiSuggestionDialog } from './ai-suggestion-dialog';
@@ -16,7 +14,6 @@ import {
     updateAreaPrk,
     addHabitTask, 
     updateHabitTask,
-    addLifePrk, 
     updateLifePrk,
     logHabitTaskCompletion,
     removeHabitTaskCompletion,
@@ -28,6 +25,7 @@ import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { CommitmentsCard } from './commitments-card';
+import { useDialog } from '@/hooks/use-dialog';
 
 interface PanelProps {
   lifePrks: LifePrk[];
@@ -47,17 +45,17 @@ export function Panel({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { setLifePrkToEdit } = useDialog();
+
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [openLifePrkIds, setOpenLifePrkIds] = useState<string[]>(lifePrks.map(lp => lp.id));
   
   useEffect(() => {
-    // Inicializar la fecha en el cliente para evitar errores de hidratación
     setSelectedDate(parseISO(initialSelectedDate));
   }, [initialSelectedDate]);
 
   useEffect(() => {
-    // Cuando los lifePrks cambian (por ej. al agregar uno nuevo), lo expandimos por defecto.
     setOpenLifePrkIds(currentOpenIds => {
       const newLifePrkIds = lifePrks.map(lp => lp.id);
       const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
@@ -67,13 +65,11 @@ export function Panel({
 
 
   // State for dialogs
-  const [isLifePrkDialogOpen, setLifePrkDialogOpen] = useState(false);
   const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
 
   // State for editing items
-  const [editingLifePrk, setEditingLifePrk] = useState<LifePrk | null>(null);
   const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   
@@ -85,37 +81,14 @@ export function Panel({
     if (!date) return;
     const dateString = format(date, 'yyyy-MM-dd');
     setSelectedDate(date);
-    // startTransition para no bloquear la UI mientras navega
     startTransition(() => {
       router.push(`/panel?date=${dateString}`);
     });
   }
 
   // --- Life PRK Handlers ---
-  const handleOpenAddLifePrkDialog = () => {
-    setEditingLifePrk(null);
-    setLifePrkDialogOpen(true);
-  };
-
   const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
-    setEditingLifePrk(lifePrk);
-    setLifePrkDialogOpen(true);
-  };
-  
-  const handleSaveLifePrk = (values: { title: string; description?: string }) => {
-    startTransition(async () => {
-        try {
-          if (editingLifePrk) {
-            await updateLifePrk(editingLifePrk.id, values);
-            toast({ title: '¡PRK de Vida Actualizado!', description: `Se ha actualizado "${values.title}".` });
-          } else {
-            await addLifePrk(values);
-            toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
-          }
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el PRK de Vida.' });
-        }
-    });
+    setLifePrkToEdit(lifePrk);
   };
 
   // --- Area PRK Handlers ---
@@ -270,7 +243,6 @@ export function Panel({
   };
 
   if (!selectedDate) {
-    // Muestra un estado de carga o skeleton mientras la fecha se inicializa en el cliente
     return (
         <div className="flex items-center justify-center h-screen">
             <div className="text-2xl font-headline">Cargando...</div>
@@ -280,16 +252,13 @@ export function Panel({
 
   return (
     <>
-      <Header 
-        onAddLifePrk={handleOpenAddLifePrkDialog}
-      />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
                 <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
                 <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                <Button className="mt-6" onClick={handleOpenAddLifePrkDialog}>Crear un PRK de Vida</Button>
+                <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
             </div>
         )}
         {isPending && (
@@ -346,12 +315,6 @@ export function Panel({
         )}
       </main>
 
-      <AddLifePrkDialog 
-        isOpen={isLifePrkDialogOpen} 
-        onOpenChange={setLifePrkDialogOpen} 
-        onSave={handleSaveLifePrk}
-        lifePrk={editingLifePrk} 
-      />
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 
         onOpenChange={setAreaPrkDialogOpen} 

@@ -6,17 +6,17 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useDialog } from '@/hooks/use-dialog';
 
 interface HeaderProps {
-  onAddLifePrk: () => void;
   showAuth?: boolean;
 }
 
 export function Header({ 
-  onAddLifePrk, 
   showAuth = true,
 }: HeaderProps) {
   const pathname = usePathname();
+  const { onOpen } = useDialog();
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
@@ -55,7 +55,7 @@ export function Header({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={onAddLifePrk} variant="default" className="shadow-md">
+            <Button onClick={onOpen} variant="default" className="shadow-md">
                 <Plus className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
             </Button>
