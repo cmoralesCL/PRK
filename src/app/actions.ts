@@ -44,6 +44,15 @@ async function getCurrentUserId() {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+        if (process.env.NODE_ENV === 'development') {
+            const { data: testUser, error: testUserError } = await supabase.from('users').select('id').eq('email', 'test@example.com').single();
+            if (testUserError || !testUser) {
+                console.error("Default test user 'test@example.com' not found. Please create it first.");
+                redirect('/login?message=Default test user not found.');
+            }
+            return testUser.id;
+        }
+        
         console.error('User not authenticated, redirecting to login.');
         redirect('/login');
     }
