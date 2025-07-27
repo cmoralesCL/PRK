@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
   }
   
   if (user && pathname.startsWith('/login')) {
-    // Redirect authenticated users from login page to the panel
-    return NextResponse.redirect(new URL('/panel', request.url));
+    // Redirect authenticated users from login page to the dashboard
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
   if (!user && pathname === '/') {
@@ -41,5 +41,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
-
-    

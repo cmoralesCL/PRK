@@ -66,7 +66,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath("/", "layout");
-    redirect("/panel");
+    redirect("/dashboard");
 }
 
 export async function loginAsGuest() {
@@ -85,7 +85,7 @@ export async function loginAsGuest() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/panel");
+  redirect("/dashboard");
 }
 
 
