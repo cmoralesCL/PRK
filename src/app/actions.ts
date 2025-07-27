@@ -45,18 +45,13 @@ async function getCurrentUserId(): Promise<string> {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-        // For development, if no user is logged in, use a default test user ID.
         if (process.env.NODE_ENV === 'development') {
-            const { data: testUser, error: testUserError } = await supabase.from('users').select('id').eq('email', 'test@example.com').single();
-            if (testUserError || !testUser) {
-                // Fallback to auth user if the public user table fails, which is more reliable.
-                const { data: { user: authUser } } = await supabase.auth.getUser();
-                if(authUser) return authUser.id;
-
-                console.error("Default test user 'test@example.com' not found. Please create it first.");
-                redirect('/login?message=Default test user not found.');
+            const { data: authUser, error: authError } = await supabase.auth.getUser();
+            if (authError || !authUser) {
+                console.error("Authentication error, redirecting to login.");
+                redirect('/login?message=Authentication required.');
             }
-            return testUser.id;
+            return authUser.id;
         }
         console.error('User not authenticated, redirecting to login.');
         redirect('/login');
@@ -1078,57 +1073,82 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
     let totalWeight = 0;
 
     const activeTasks = tasks.filter(task => {
-        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), startDate)) {
-            return false;
-        }
         if (!task.start_date) return false;
         
         const taskStartDate = parseISO(task.start_date);
-        const taskEndDate = task.due_date ? parseISO(task.due_date) : new Date(8640000000000000);
         
+        // Exclude tasks that start after the period ends
+        if (isAfter(taskStartDate, endDate)) {
+            return false;
+        }
+
+        // Exclude tasks that were archived before the period started
+        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), startDate)) {
+            return false;
+        }
+        
+        // Exclude tasks that have a due date before the period starts
+        if (task.due_date && isBefore(parseISO(task.due_date), startDate)) {
+            return false;
+        }
+
+        // For non-accumulative tasks, check if it's active at least once in the period
+        if (!task.frequency?.includes('ACUMULATIVO')) {
+            const daysInPeriod = eachDayOfInterval({ start: startDate, end: endDate });
+            return daysInPeriod.some(day => isTaskActiveOnDate(task, day));
+        }
+
+        // For accumulative tasks, check if their active period overlaps with the calculation period
+        const taskEndDate = task.due_date ? parseISO(task.due_date) : new Date(8640000000000000); // Far future date if no end
         return areIntervalsOverlapping({ start: taskStartDate, end: taskEndDate }, { start: startDate, end: endDate }, { inclusive: true });
     });
 
     activeTasks.forEach(task => {
-        let opportunities = 0;
-        let achievedProgress = 0;
         const taskWeight = task.weight || 1;
+        let periodAchievedProgress = 0;
+        let periodTotalOpportunities = 1; // Default to 1 for accumulative tasks
 
+        // --- Handle Accumulative Tasks ---
         if (task.frequency?.includes('ACUMULATIVO')) {
-            const periodLogs = logs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
+             const periodLogs = logs.filter(log => 
+                log.habit_task_id === task.id && 
+                isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate })
+            );
             const target = task.measurement_goal?.target_count ?? 1;
             
             if (task.measurement_type === 'quantitative') {
                 const totalValue = periodLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                achievedProgress = target > 0 ? (totalValue / target) : (totalValue > 0 ? 1 : 0);
+                periodAchievedProgress = target > 0 ? (totalValue / target) : (totalValue > 0 ? 1 : 0);
             } else { // binary
                 const completions = periodLogs.length;
-                achievedProgress = target > 0 ? (completions / target) : (completions > 0 ? 1 : 0);
+                periodAchievedProgress = target > 0 ? (completions / target) : (completions > 0 ? 1 : 0);
             }
-            totalWeightedProgress += Math.min(achievedProgress, 1) * taskWeight;
-            totalWeight += taskWeight;
-        } else {
+        } 
+        // --- Handle Daily/Scheduled Tasks ---
+        else {
             const daysInPeriod = eachDayOfInterval({ start: startDate, end: endDate });
-            daysInPeriod.forEach(day => {
-                if (isTaskActiveOnDate(task, day)) {
-                    opportunities++;
-                }
-            });
+            const activeDays = daysInPeriod.filter(day => isTaskActiveOnDate(task, day));
+            periodTotalOpportunities = activeDays.length;
 
-            if (opportunities > 0) {
-                const periodLogs = logs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
+            if (periodTotalOpportunities > 0) {
+                const periodLogs = logs.filter(log => 
+                    log.habit_task_id === task.id && 
+                    isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate })
+                );
                 
                 if (task.measurement_type === 'quantitative') {
                     const totalValue = periodLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
-                    const target = (task.measurement_goal?.target_count ?? 1) * opportunities;
-                    achievedProgress = target > 0 ? (totalValue / target) : 0;
-                } else { // binary
-                    achievedProgress = periodLogs.length / opportunities;
+                    const totalTarget = (task.measurement_goal?.target_count ?? 1) * periodTotalOpportunities;
+                    periodAchievedProgress = totalTarget > 0 ? (totalValue / totalTarget) : 0;
+                } else { // binary and one-off tasks
+                    periodAchievedProgress = periodLogs.length / periodTotalOpportunities;
                 }
-                
-                totalWeightedProgress += achievedProgress * taskWeight;
-                totalWeight += taskWeight;
             }
+        }
+        
+        if (periodTotalOpportunities > 0) {
+            totalWeightedProgress += Math.min(periodAchievedProgress, 1) * taskWeight;
+            totalWeight += taskWeight;
         }
     });
 
@@ -1213,11 +1233,12 @@ export async function getAnalyticsDashboardData() {
         };
     }));
     
-    // Monthly View (last 30 days) - FIXED
+    // Monthly View (last 30 days)
     const last30Days = eachDayOfInterval({ start: subDays(today, 29), end: today });
-    const monthlyData = await Promise.all(last30Days.map(async (day) => {
-        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
-        
+    const tasksForLast30Days = await Promise.all(last30Days.map(day => getHabitTasksForDate(day, allHabitTasks, allProgressLogs)));
+
+    const monthlyData = last30Days.map((day, index) => {
+        const tasksForDay = tasksForLast30Days[index];
         const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
         
         const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
@@ -1229,7 +1250,7 @@ export async function getAnalyticsDashboardData() {
             date: format(day, 'd MMM'),
             Progreso: isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress),
         };
-    }));
+    });
 
 
     // Quarterly View (by week)
