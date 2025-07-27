@@ -2,10 +2,12 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import type { HabitTask, ProgressLog } from '@/lib/types';
-import { eachDayOfInterval, format, subDays, startOfDay, getDay, differenceInMonths, endOfWeek, isSameWeek, startOfWeek, endOfMonth, isSameMonth, startOfMonth } from 'date-fns';
+import { eachDayOfInterval, format, subDays, startOfDay, getDay, differenceInMonths, endOfWeek, isSameWeek, startOfWeek, endOfMonth, isSameMonth, startOfMonth, addDays } from 'date-fns';
 
+// Updated date range to include future data for testing.
 const SIMULATION_START_DATE = new Date(2023, 0, 1); // January 1, 2023
-const SIMULATION_END_DATE = new Date();
+const SIMULATION_END_DATE = new Date(2025, 11, 31); // December 31, 2025
+
 
 function isTaskActiveOnDateForSeed(task: HabitTask, date: Date): boolean {
     const targetDate = startOfDay(date);
@@ -122,7 +124,7 @@ export async function seedDatabase(userId: string) {
     
 
     // 4. Generate progress logs with realistic, ascending compliance
-    console.log('Generating realistic progress logs from 2023-01-01 to today...');
+    console.log('Generating realistic progress logs from 2023-01-01 to 2025-12-31...');
     const dateInterval = eachDayOfInterval({ start: SIMULATION_START_DATE, end: SIMULATION_END_DATE });
     const progressLogsToInsert: Omit<ProgressLog, 'id'|'created_at'>[] = [];
     
@@ -136,11 +138,13 @@ export async function seedDatabase(userId: string) {
         const maxCompliance = 0.90;
         const complianceGrowth = (maxCompliance - baseCompliance) / (totalMonthsInSimulation || 1);
         const currentComplianceRate = Math.min(baseCompliance + (monthsPassed * complianceGrowth), maxCompliance);
+        let dayHasLogs = false;
 
         // Handle daily fixed tasks
         for (const task of insertedHabitTasks.filter(t => !t.frequency?.includes('ACUMULATIVO') && t.type === 'habit')) {
             if (isTaskActiveOnDateForSeed(task, date)) {
-                if (Math.random() < currentComplianceRate) { // Use the ascending rate
+                // Ensure at least one daily task is logged to meet the "data every day" requirement
+                if (Math.random() < currentComplianceRate || (!dayHasLogs && task.frequency === 'DIARIA')) {
                     let progressValue = 1;
                     let completionPercentage = 1.0;
 
@@ -155,6 +159,7 @@ export async function seedDatabase(userId: string) {
                         habit_task_id: task.id, user_id: userId, completion_date: format(date, 'yyyy-MM-dd'),
                         progress_value: progressValue, completion_percentage: completionPercentage
                     });
+                    dayHasLogs = true;
                 }
             }
         }
@@ -169,10 +174,10 @@ export async function seedDatabase(userId: string) {
              }
         }
 
-        // Handle weekly accumulative commitments
+        // Handle weekly accumulative commitments - process at the end of each week
         if (getDay(date) === 0) { // Sunday, end of the week for date-fns `isSameWeek` default
             const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-            const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+            const weekEnd = date; // Process for the week ending on the current day
             const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
             for (const task of insertedHabitTasks.filter(t => t.frequency === 'SEMANAL_ACUMULATIVO')) {
@@ -191,7 +196,7 @@ export async function seedDatabase(userId: string) {
             }
         }
 
-        // Handle monthly accumulative commitments
+        // Handle monthly accumulative commitments - process at the end of each month
         if (endOfMonth(date).getDate() === date.getDate()) { // Last day of the month
              const monthStart = startOfMonth(date);
              const daysInMonth = eachDayOfInterval({ start: monthStart, end: date });
