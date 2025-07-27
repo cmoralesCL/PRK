@@ -45,12 +45,15 @@ async function getCurrentUserId() {
 
     if (error || !user) {
         if (process.env.NODE_ENV === 'development') {
-            const { data: testUser, error: testUserError } = await supabase.from('users').select('id').eq('email', 'test@example.com').single();
-            if (testUserError || !testUser) {
-                console.error("Default test user 'test@example.com' not found. Please create it first.");
-                redirect('/login?message=Default test user not found.');
+            // In dev mode, if no user is logged in via UI, we might be in a server action context.
+            // Let's try to get the test user's ID directly if they are authenticated.
+            const { data: { user: testAuthUser }, error: authError } = await supabase.auth.getUser();
+            if (authError || !testAuthUser) {
+                console.error("Authentication error in dev mode, cannot get test user.", authError);
+                redirect('/login?message=Could not get test user session.');
             }
-            return testUser.id;
+            // If we have an authenticated user, return their ID. This is more reliable.
+            return testAuthUser.id;
         }
         
         console.error('User not authenticated, redirecting to login.');
