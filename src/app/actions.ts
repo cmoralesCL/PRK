@@ -3,8 +3,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { suggestRelatedHabitsTasks } from "@/ai/flows/suggest-related-habits-tasks";
-import type { SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
+import { headers } from "next/headers";
+import { suggestRelatedHabitsTasks, type SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot } from "@/lib/types";
 import { 
     format, 
@@ -42,9 +42,50 @@ async function getCurrentUserId() {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+        console.error('User not authenticated, redirecting to login.');
         redirect('/login');
     }
     return user.id;
+}
+
+export async function login(formData: FormData) {
+    const supabase = createClient();
+
+    const data = {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+
+    const { error } = await supabase.auth.signInWithPassword(data);
+
+    if (error) {
+      console.error('Login error:', error.message);  
+      redirect("/login?message=Could not authenticate user");
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/panel");
+}
+
+export async function signup(formData: FormData) {
+    const origin = headers().get("origin");
+    const supabase = createClient();
+    
+    const data = {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+
+    const { error } = await supabase.auth.signUp(data, {
+      emailRedirectTo: `${origin}/auth/callback`,
+    });
+
+    if (error) {
+      console.error('Signup error:', error.message);
+      redirect("/login?message=Could not authenticate user");
+    }
+
+    redirect("/login?message=Check email to continue sign in process");
 }
 
 
@@ -1112,3 +1153,5 @@ export async function getAnalyticsDashboardData() {
         progressOverTime,
     };
 }
+
+    
