@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { response, supabase, user } = await updateSession(request);
-  
+  const { response, user } = await updateSession(request);
+
   const { pathname } = request.nextUrl;
 
   // Define public and protected routes
@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   
-  if (user && pathname === '/login') {
+  if (user && pathname.startsWith('/login')) {
     // Redirect authenticated users from login page to the panel
     return NextResponse.redirect(new URL('/panel', request.url));
   }
@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-
+  // Return the response object, which may have been modified by updateSession
   return response;
 }
 
