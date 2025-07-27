@@ -1,9 +1,35 @@
 
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { createClient } from './lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  const { response, supabase } = await updateSession(request);
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  // Define public and protected routes
+  const protectedRoutes = ['/panel', '/dashboard', '/calendar'];
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+
+  if (!user && isProtectedRoute) {
+    // Redirect unauthenticated users from protected routes to login
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+  
+  if (user && pathname === '/login') {
+    // Redirect authenticated users from login page to the panel
+    return NextResponse.redirect(new URL('/panel', request.url));
+  }
+  
+  if (!user && pathname === '/') {
+    // Redirect unauthenticated users from root to login
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+
+  return response;
 }
 
 export const config = {
@@ -18,5 +44,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
-
-    
