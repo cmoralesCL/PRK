@@ -1,23 +1,20 @@
 
 import * as React from 'react';
-import { Dashboard } from '@/components/dashboard';
-import { getDashboardData } from '@/app/actions';
-import { parseISO, format } from 'date-fns';
+import { AnalyticsDashboard } from '@/components/analytics-dashboard';
+import { getAnalyticsDashboardData }s from '@/app/actions';
+import { Header } from '@/components/header';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage({ searchParams }: { searchParams: { date?: string } }) {
-  const selectedDate = searchParams.date || format(new Date(), 'yyyy-MM-dd');
-
-  const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDate);
+export default async function DashboardPage() {
+  const analyticsData = await getAnalyticsDashboardData();
 
   return (
-    <Dashboard
-      lifePrks={lifePrks}
-      areaPrks={areaPrks}
-      habitTasks={habitTasks}
-      commitments={commitments}
-      initialSelectedDate={selectedDate}
-    />
+    <>
+        <Header onAddLifePrk={() => {}} hideAddButton hideDatePicker />
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <AnalyticsDashboard data={analyticsData} />
+        </main>
+    </>
   );
 }

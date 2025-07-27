@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, Bot } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, Bot, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,6 +10,7 @@ export function HeaderAgente() {
   const pathname = usePathname();
 
   const navLinks = [
+    { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
     { href: "/panel", label: "Panel", icon: Compass },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
     { href: "/agente", label: "Agente", icon: Bot },

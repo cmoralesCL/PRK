@@ -16,6 +16,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -47,6 +48,7 @@ import {
     isAfter,
     isBefore,
     endOfYear,
+    subDays,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -966,4 +968,127 @@ export async function endOfSemester(date: Date): Promise<Date> {
     // Add 5 months to get to June or December, then get the end of that month.
     const endMonth = addMonths(start, 5);
     return endOfMonth(endMonth);
+}
+
+export async function getAnalyticsDashboardData() {
+    const supabase = createClient();
+    const today = new Date();
+
+    const [
+        { data: lifePrks, error: lifePrksError },
+        { data: areaPrks, error: areaPrksError },
+        { data: allHabitTasks, error: habitTasksError },
+        { data: allProgressLogs, error: progressLogsError },
+    ] = await Promise.all([
+        supabase.from('life_prks').select('*').eq('archived', false),
+        supabase.from('area_prks').select('*').eq('archived', false),
+        supabase.from('habit_tasks').select('*'),
+        supabase.from('progress_logs').select('*')
+    ]);
+
+    if (lifePrksError) throw lifePrksError;
+    if (areaPrksError) throw areaPrksError;
+    if (habitTasksError) throw habitTasksError;
+    if (progressLogsError) throw progressLogsError;
+
+    // --- Calculate Overall Progress Stats ---
+    let totalTasksCompleted = 0;
+    let totalWeightCompleted = 0;
+    let totalWeightPossible = 0;
+
+    const habitTasksById = new Map(allHabitTasks.map(task => [task.id, task]));
+
+    for (const log of allProgressLogs) {
+        const task = habitTasksById.get(log.habit_task_id);
+        if (!task || !task.start_date || isAfter(parseISO(task.start_date), today)) continue;
+        if (task.archived && task.archived_at && isBefore(parseISO(task.archived_at), today)) continue;
+
+        if (task.measurement_type === 'binary') {
+            totalTasksCompleted += 1; // Count each binary log as one completion
+            totalWeightCompleted += task.weight;
+        } else if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
+            const progressRatio = Math.min((log.progress_value ?? 0) / task.measurement_goal.target_count, 1);
+            totalWeightCompleted += task.weight * progressRatio;
+            if (progressRatio >= 1) {
+                totalTasksCompleted += 1;
+            }
+        }
+    }
+    
+    // Calculate total possible weight based on active tasks up to today
+    const activeTasksToday = (await getHabitTasksForDate(today, allHabitTasks, allProgressLogs)).concat(getActiveCommitments(allHabitTasks, allProgressLogs, today));
+    totalWeightPossible = activeTasksToday.reduce((sum, task) => sum + task.weight, 0);
+
+
+    // --- Calculate Progress for PRKs ---
+    const areaPrksWithOverallProgress = areaPrks.map(areaPrk => {
+        const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
+        const relevantLogs = allProgressLogs.filter(log => relevantTasks.some(rt => rt.id === log.habit_task_id));
+        
+        let totalWeightedProgressSum = 0;
+        let totalTaskWeight = 0;
+
+        relevantTasks.forEach(task => {
+            const taskLogs = relevantLogs.filter(log => log.habit_task_id === task.id);
+            totalTaskWeight += task.weight;
+            
+            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
+                const totalValue = taskLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
+                const progressRatio = Math.min(totalValue / task.measurement_goal.target_count, 1);
+                totalWeightedProgressSum += progressRatio * task.weight;
+            } else if (task.measurement_type === 'binary') {
+                if(taskLogs.length > 0) totalWeightedProgressSum += task.weight; // Simplified: any completion = 100% for this view
+            }
+        });
+        
+        return {
+            ...areaPrk,
+            progress: totalTaskWeight > 0 ? (totalWeightedProgressSum / totalTaskWeight) * 100 : 0,
+        };
+    });
+
+    const lifePrksWithOverallProgress = lifePrks.map(lifePrk => {
+        const relevantAreaPrks = areaPrksWithOverallProgress.filter(ap => ap.life_prk_id === lifePrk.id);
+        if (relevantAreaPrks.length === 0) return { ...lifePrk, progress: 0 };
+
+        const avgProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0) / relevantAreaPrks.length;
+        return { ...lifePrk, progress: avgProgress };
+    });
+
+    const overallProgress = lifePrksWithOverallProgress.length > 0 
+        ? lifePrksWithOverallProgress.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithOverallProgress.length
+        : 0;
+
+    // --- Progress Over Time Chart Data ---
+    const thirtyDaysAgo = subDays(today, 29);
+    const dateRange = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
+    const progressOverTime = [];
+
+    for (const day of dateRange) {
+        const tasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+        const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, tasksForDay);
+        
+        const overallDailyProgress = lifePrksWithProgress.length > 0
+            ? lifePrksWithProgress
+                .filter(lp => lp.progress !== null)
+                .reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / lifePrksWithProgress.filter(lp => lp.progress !== null).length
+            : 0;
+            
+        progressOverTime.push({
+            date: format(day, 'd MMM'),
+            Progreso: isNaN(overallDailyProgress) ? 0 : Math.round(overallDailyProgress),
+        });
+    }
+
+    return {
+        stats: {
+            overallProgress: Math.round(overallProgress),
+            lifePrksCount: lifePrks.length,
+            areaPrksCount: areaPrks.length,
+            tasksCompleted: totalTasksCompleted,
+        },
+        lifePrks: lifePrksWithOverallProgress,
+        areaPrks: areaPrksWithOverallProgress,
+        progressOverTime,
+    };
 }
