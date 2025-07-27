@@ -40,22 +40,18 @@ import { redirect } from "next/navigation";
 
 
 async function getCurrentUserId() {
+    // For development, we return a static test user ID to avoid authentication issues.
+    // In a production environment, this should be replaced with real user session handling.
+    if (process.env.NODE_ENV === 'development') {
+        // This is the user ID for 'test@example.com' created by the seed script.
+        // If you use a different user for testing, replace this ID.
+        return '00000000-0000-0000-0000-000000000000'; 
+    }
+
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-        // For development, if no one is logged in, we'll try to get the test user.
-        if (process.env.NODE_ENV === 'development') {
-             const { data: { user: testAuthUser }, error: authError } = await supabase.auth.getUser();
-            if (authError || !testAuthUser) {
-                 // This is the final fallback for dev mode. If even the guest login fails,
-                 // we must prevent a redirect loop in server actions by providing a stable ID.
-                 // The seed script should be run for 'test@example.com' for data to appear.
-                return '00000000-0000-0000-0000-000000000000'; // Default test user ID
-            }
-            return testAuthUser.id;
-        }
-        
         console.error('User not authenticated, redirecting to login.');
         redirect('/login');
     }
@@ -1254,5 +1250,3 @@ export async function getAnalyticsDashboardData() {
         },
     };
 }
-
-    
