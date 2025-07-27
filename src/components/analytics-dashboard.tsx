@@ -54,10 +54,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
   const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
 
   const chartData = progressOverTime[chartView];
-  const xAxisFormatter = (value: string) => {
-    if (chartView === 'monthly') return value.slice(0, 6);
-    return value;
-  }
+  
   const yAxisFormatter = (value: number) => `${value}%`;
 
   return (
@@ -103,14 +100,13 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
         </CardHeader>
         <CardContent className="pl-2">
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <RechartsBarChart accessibilityLayer data={chartData}>
+                <RechartsBarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid vertical={false} />
                     <XAxis
                         dataKey="date"
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        tickFormatter={xAxisFormatter}
                     />
                     <YAxis
                         tickLine={false}
