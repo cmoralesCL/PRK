@@ -842,15 +842,11 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     // to ensure consistency with how users perceive progress.
     const semesterStart = await startOfSemester(today);
     const semesterEnd = await endOfSemester(today);
+    
+    const semesterProgress = calculateAndRound(semesterStart, semesterEnd);
+    
     const annualStartOfYear = startOfYear(today);
     const annualEndOfYear = endOfYear(today);
-    
-    let semesterTotalProgress = 0;
-    const monthsInSemester = eachMonthOfInterval({ start: semesterStart, end: semesterEnd });
-    for(const month of monthsInSemester) {
-        semesterTotalProgress += calculateAndRound(startOfMonth(month), endOfMonth(month));
-    }
-    const semesterProgress = Math.round(semesterTotalProgress / monthsInSemester.length);
     
     let annualTotalProgress = 0;
     const monthsInYear = eachMonthOfInterval({ start: annualStartOfYear, end: annualEndOfYear });
@@ -911,5 +907,91 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
         annualProgress,
         dailyProgressChartData,
         monthlyProgressChartData,
+    };
+}
+
+
+type AnalyticsData = {
+  stats: {
+    overallProgress: number;
+    weeklyProgress: number;
+    monthlyProgress: number;
+    quarterlyProgress: number;
+    lifePrksCount: number;
+    areaPrksCount: number;
+    tasksCompleted: number;
+  };
+  areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
+  progressOverTime: {
+    weekly: { date: string; Progreso: number }[];
+    monthly: { date: string; Progreso: number }[];
+    quarterly: { date: string; Progreso: number }[];
+    yearly: { date: string; Progreso: number }[];
+  };
+}
+
+
+export async function getAnalyticsData(): Promise<AnalyticsData> {
+    const supabase = createClient();
+    const userId = await getCurrentUserId();
+    const today = new Date();
+
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
+    if (habitTasksError) throw habitTasksError;
+
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
+    if (progressLogsError) throw progressLogsError;
+    
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (lifePrksError) throw lifePrksError;
+
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (areaPrksError) throw areaPrksError;
+
+    const calculateAndRound = (startDate: Date, endDate: Date) => {
+        const periodLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
+        const progress = calculatePeriodProgress(allHabitTasks, periodLogs, startDate, endDate);
+        return Math.round(progress > 100 ? 100 : progress);
+    };
+
+    // Stats
+    const weeklyProgress = calculateAndRound(startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 }));
+    const monthlyProgress = calculateAndRound(startOfMonth(today), endOfMonth(today));
+    const quarterlyProgress = calculateAndRound(startOfQuarter(today), endOfQuarter(today));
+    const overallProgress = calculateAndRound(startOfYear(new Date(2020,0,1)), endOfYear(today)); // A wide range for "all time"
+
+    // Area PRK breakdown
+    const areaPrksWithProgress = areaPrks.map(ap => {
+        const areaTasks = allHabitTasks.filter(t => t.area_prk_id === ap.id);
+        const areaLogs = allProgressLogs.filter(l => areaTasks.some(t => t.id === l.habit_task_id));
+
+        const overall = calculatePeriodProgress(areaTasks, areaLogs, startOfYear(new Date(2020,0,1)), endOfYear(today));
+        const monthly = calculatePeriodProgress(areaTasks, areaLogs, startOfMonth(today), endOfMonth(today));
+        
+        return {
+            ...ap,
+            progress: Math.round(overall > 100 ? 100 : overall),
+            monthlyProgress: Math.round(monthly > 100 ? 100 : monthly),
+        };
+    });
+
+    return {
+        stats: {
+            overallProgress,
+            weeklyProgress,
+            monthlyProgress,
+            quarterlyProgress,
+            lifePrksCount: lifePrks.length,
+            areaPrksCount: areaPrks.length,
+            tasksCompleted: allProgressLogs.length,
+        },
+        areaPrks: areaPrksWithProgress,
+        // The detailed charts will be added in the next step
+        progressOverTime: { 
+            weekly: [],
+            monthly: [],
+            quarterly: [],
+            yearly: []
+        },
     };
 }
