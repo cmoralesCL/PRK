@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { suggestRelatedHabitsTasks, type SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot } from "@/lib/types";
+import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot, KpiData } from "@/lib/types";
 import { 
     format, 
     startOfDay, 
@@ -1177,10 +1177,10 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
 }
 
 
-export async function getDashboardKpiData() {
+export async function getDashboardKpiData(dateString: string): Promise<KpiData> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
-    const today = new Date();
+    const today = parseISO(dateString);
 
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
     if (habitTasksError) throw habitTasksError;

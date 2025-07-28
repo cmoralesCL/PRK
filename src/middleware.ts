@@ -1,6 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { format } from 'date-fns';
 
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
@@ -16,8 +17,22 @@ export async function middleware(request: NextRequest) {
   }
   
   if (user && pathname.startsWith('/login')) {
-    // Redirect authenticated users from login page to the dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Redirect authenticated users from login page to the dashboard with the current date
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
+  }
+
+  if (user && pathname === '/dashboard') {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    // If accessing /dashboard directly, ensure it has the date query param
+    if (!request.nextUrl.searchParams.has('date')) {
+        return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
+    }
+  }
+  
+  if (user && pathname === '/') {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
   }
   
   if (!user && pathname === '/') {

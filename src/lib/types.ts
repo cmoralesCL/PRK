@@ -1,4 +1,5 @@
 
+
 export interface LifePrk {
   id: string;
   user_id: string;
@@ -102,4 +103,14 @@ export interface DailyProgressSnapshot {
 export interface WeeklyProgressSnapshot {
   id: string; // Will be the start date of the week 'yyyy-MM-dd'
   progress: number;
+}
+
+
+export interface KpiData {
+  todayProgress: number;
+  weeklyProgress: number;
+  monthlyProgress: number;
+  prevMonthProgress: number;
+  semesterProgress: number;
+  annualProgress: number;
 }
