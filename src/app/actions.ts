@@ -1202,42 +1202,21 @@ export async function getDashboardKpiData() {
     const prevMonth = subMonths(today, 1);
     const prevMonthProgress = calculateAndRound(startOfMonth(prevMonth), endOfMonth(prevMonth));
     
-    // For larger periods, calculate as an average of sub-periods
+    // For larger periods, we can now use the corrected `calculatePeriodProgress` directly.
     const semesterStart = await startOfSemester(today);
     const semesterEnd = await endOfSemester(today);
+    const semesterProgress = calculateAndRound(semesterStart, semesterEnd);
+
     const annualStart = startOfYear(today);
     const annualEnd = endOfYear(today);
-
-    // Calculate Semester Progress as average of monthly progresses
-    const semesterMonths = eachMonthOfInterval({ start: semesterStart, end: semesterEnd });
-    const semesterMonthlyProgresses = semesterMonths.map(monthStart => {
-        const monthEnd = endOfMonth(monthStart);
-        const periodLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
-        return calculatePeriodProgress(allHabitTasks, periodLogs, monthStart, monthEnd);
-    });
-    const validSemesterProgresses = semesterMonthlyProgresses.filter(p => p > 0);
-    const semesterProgress = validSemesterProgresses.length > 0 
-        ? Math.round(validSemesterProgresses.reduce((a, b) => a + b, 0) / validSemesterProgresses.length)
-        : 0;
-
-    // Calculate Annual Progress as average of monthly progresses
-    const annualMonths = eachMonthOfInterval({ start: annualStart, end: annualEnd });
-    const annualMonthlyProgresses = annualMonths.map(monthStart => {
-        const monthEnd = endOfMonth(monthStart);
-        const periodLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: monthStart, end: monthEnd }));
-        return calculatePeriodProgress(allHabitTasks, periodLogs, monthStart, monthEnd);
-    });
-    const validAnnualProgresses = annualMonthlyProgresses.filter(p => p > 0);
-    const annualProgress = validAnnualProgresses.length > 0
-        ? Math.round(validAnnualProgresses.reduce((a, b) => a + b, 0) / validAnnualProgresses.length)
-        : 0;
+    const annualProgress = calculateAndRound(annualStart, annualEnd);
     
     return {
         todayProgress,
         weeklyProgress,
         monthlyProgress,
         prevMonthProgress,
-        semesterProgress: semesterProgress > 100 ? 100 : semesterProgress,
-        annualProgress: annualProgress > 100 ? 100 : annualProgress,
+        semesterProgress,
+        annualProgress,
     };
 }
