@@ -919,7 +919,7 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
 }
 
 
-export async function getAnalyticsData(): Promise<AnalyticsData> {
+export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId?: string; habitTaskId?: string; }): Promise<AnalyticsData> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     const today = new Date();
@@ -1007,5 +1007,9 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
             quarterly: quarterlyChartData,
             yearly: yearlyChartData,
         },
+        // Data for filters
+        lifePrks,
+        allAreaPrks: areaPrks,
+        allHabitTasks,
     };
 }

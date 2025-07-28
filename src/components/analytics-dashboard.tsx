@@ -2,9 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp } from 'lucide-react';
+import { BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaPrk } from '@/lib/types';
+import { AreaPrk, HabitTask, LifePrk } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   ChartContainer,
@@ -15,10 +15,18 @@ import { Line, CartesianGrid, XAxis, YAxis, LineChart as RechartsLineChart } fro
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from './ui/button';
 
 type ChartData = { date: string; Progreso: number }[];
 
-interface AnalyticsData {
+interface AnalyticsDataForDashboard {
   stats: {
     overallProgress: number;
     weeklyProgress: number;
@@ -35,15 +43,24 @@ interface AnalyticsData {
     quarterly: ChartData;
     yearly: ChartData;
   };
+  lifePrks: LifePrk[];
+  allAreaPrks: AreaPrk[];
+  allHabitTasks: HabitTask[];
 }
 
 interface AnalyticsDashboardProps {
-  data: AnalyticsData;
+  data: AnalyticsDataForDashboard;
+  onFilterChange: (filters: { lifePrkId?: string | null; areaPrkId?: string | null; habitTaskId?: string | null; }) => void;
+  filters: { lifePrkId?: string | null; areaPrkId?: string | null; habitTaskId?: string | null; };
 }
 
-export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
-  const { stats, areaPrks, progressOverTime } = data;
+export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
+  const { stats, areaPrks, progressOverTime, lifePrks, allAreaPrks, allHabitTasks } = data;
   const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+
+  const [selectedLifePrk, setSelectedLifePrk] = useState<string | null>(filters.lifePrkId || null);
+  const [selectedAreaPrk, setSelectedAreaPrk] = useState<string | null>(filters.areaPrkId || null);
+  const [selectedHabitTask, setSelectedHabitTask] = useState<string | null>(filters.habitTaskId || null);
 
   const chartConfig = {
       Progreso: {
@@ -53,6 +70,30 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
   };
 
   const currentChartData = progressOverTime[chartView];
+
+  const handleLifePrkChange = (value: string) => {
+    const newLifePrkId = value === 'all' ? null : value;
+    setSelectedLifePrk(newLifePrkId);
+    setSelectedAreaPrk(null);
+    setSelectedHabitTask(null);
+    onFilterChange({ lifePrkId: newLifePrkId });
+  }
+
+  const handleAreaPrkChange = (value: string) => {
+    const newAreaPrkId = value === 'all' ? null : value;
+    setSelectedAreaPrk(newAreaPrkId);
+    setSelectedHabitTask(null);
+    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: newAreaPrkId });
+  }
+
+  const handleResetFilters = () => {
+    setSelectedLifePrk(null);
+    setSelectedAreaPrk(null);
+    setSelectedHabitTask(null);
+    onFilterChange({});
+  };
+  
+  const filteredAreaPrks = selectedLifePrk ? allAreaPrks.filter(ap => ap.life_prk_id === selectedLifePrk) : [];
   
   return (
     <div className="space-y-8">
@@ -96,6 +137,33 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 border rounded-lg bg-muted/50 items-end">
+              <div className="grid gap-2 flex-1 w-full">
+                <Label htmlFor="life-prk-filter">PRK de Vida</Label>
+                <Select value={selectedLifePrk ?? 'all'} onValueChange={handleLifePrkChange}>
+                  <SelectTrigger id="life-prk-filter"><SelectValue placeholder="Seleccionar PRK de Vida" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos (General)</SelectItem>
+                    {lifePrks.map(lp => <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2 flex-1 w-full">
+                 <Label htmlFor="area-prk-filter">PRK de Área</Label>
+                 <Select value={selectedAreaPrk ?? 'all'} onValueChange={handleAreaPrkChange} disabled={!selectedLifePrk}>
+                   <SelectTrigger id="area-prk-filter"><SelectValue placeholder="Seleccionar PRK de Área" /></SelectTrigger>
+                   <SelectContent>
+                      <SelectItem value="all">Todos en este PRK de Vida</SelectItem>
+                      {filteredAreaPrks.map(ap => <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+              </div>
+               <Button variant="ghost" onClick={handleResetFilters} className="w-full md:w-auto">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Limpiar Filtros
+              </Button>
+          </div>
+
           <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-80">
             <RechartsLineChart 
                 accessibilityLayer
@@ -213,4 +281,15 @@ function ProgressBadge({ progress }: { progress: number }) {
             {value}%
         </Badge>
     );
+}
+
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
+
+function Label({ className, ...props }: LabelProps) {
+    return (
+        <label
+            className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)}
+            {...props}
+        />
+    )
 }

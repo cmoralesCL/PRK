@@ -134,4 +134,8 @@ export type AnalyticsData = {
     quarterly: { date: string; Progreso: number }[];
     yearly: { date: string; Progreso: number }[];
   };
+  // Data for filters
+  lifePrks: LifePrk[];
+  allAreaPrks: AreaPrk[];
+  allHabitTasks: HabitTask[];
 }
