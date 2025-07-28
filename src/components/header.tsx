@@ -12,6 +12,7 @@ import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 
 interface HeaderProps {
@@ -29,6 +30,17 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const { onOpen } = useDialog();
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Update time every second on the client
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    // Set initial time on mount
+    setCurrentTime(new Date());
+    return () => clearInterval(timer);
+  }, []);
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
@@ -67,6 +79,11 @@ export function Header({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {currentTime && (
+                <div className="text-sm text-muted-foreground font-mono bg-muted px-3 py-1.5 rounded-md hidden lg:block">
+                    {format(currentTime, 'Pp', { locale: es })}
+                </div>
+            )}
             {!hideDatePicker && selectedDate && onDateChange && (
                  <Popover>
                     <PopoverTrigger asChild>
