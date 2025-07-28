@@ -1,5 +1,6 @@
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -1182,11 +1183,29 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     const userId = await getCurrentUserId();
     const today = parseISO(dateString);
 
+    // Fetch all tasks for the user once
     const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
     if (habitTasksError) throw habitTasksError;
 
-    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
+    // Determine the widest date range needed for all calculations
+    const annualStart = startOfYear(today);
+    const thirtyDaysAgo = subDays(today, 29);
+    const overallStartDate = thirtyDaysAgo < annualStart ? thirtyDaysAgo : annualStart;
+
+    // Fetch all progress logs within that wide range
+    const { data: allProgressLogs, error: progressLogsError } = await supabase
+        .from('progress_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('completion_date', format(overallStartDate, 'yyyy-MM-dd'))
+        .lte('completion_date', format(endOfYear(today), 'yyyy-MM-dd'));
     if (progressLogsError) throw progressLogsError;
+    
+    // Fetch life and area prks
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (lifePrksError) throw lifePrksError;
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (areaPrksError) throw areaPrksError;
 
     // Helper to calculate progress and round it
     const calculateAndRound = (startDate: Date, endDate: Date) => {
@@ -1199,17 +1218,44 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     const todayProgress = calculateAndRound(startOfDay(today), endOfDay(today));
     const weeklyProgress = calculateAndRound(startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 }));
     const monthlyProgress = calculateAndRound(startOfMonth(today), endOfMonth(today));
+    
     const prevMonth = subMonths(today, 1);
     const prevMonthProgress = calculateAndRound(startOfMonth(prevMonth), endOfMonth(prevMonth));
     
-    // For larger periods, we can now use the corrected `calculatePeriodProgress` directly.
     const semesterStart = await startOfSemester(today);
     const semesterEnd = await endOfSemester(today);
     const semesterProgress = calculateAndRound(semesterStart, semesterEnd);
 
-    const annualStart = startOfYear(today);
-    const annualEnd = endOfYear(today);
-    const annualProgress = calculateAndRound(annualStart, annualEnd);
+    const annualStartOfYear = startOfYear(today);
+    const annualEndOfYear = endOfYear(today);
+    const annualProgress = calculateAndRound(annualStartOfYear, annualEndOfYear);
+
+    // --- Calculate 30-day chart data ---
+    const chartDateRange = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
+    const dailyProgressChartData: { date: string; Progreso: number }[] = [];
+
+    for (const day of chartDateRange) {
+        const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
+        
+        if (habitTasksForDay.length > 0) {
+            const { lifePrksWithProgress } = calculateProgressForDate(day, lifePrks, areaPrks, habitTasksForDay);
+            
+            const relevantLifePrks = lifePrksWithProgress.filter(lp => lp.progress !== null);
+            const overallProgress = relevantLifePrks.length > 0
+                ? relevantLifePrks.reduce((sum, lp) => sum + (lp.progress ?? 0), 0) / relevantLifePrks.length
+                : 0;
+            
+            dailyProgressChartData.push({
+                date: format(day, 'd'), // Just the day number
+                Progreso: Math.round(overallProgress > 100 ? 100 : overallProgress),
+            });
+        } else {
+             dailyProgressChartData.push({
+                date: format(day, 'd'),
+                Progreso: 0,
+            });
+        }
+    }
     
     return {
         todayProgress,
@@ -1218,5 +1264,6 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
         prevMonthProgress,
         semesterProgress,
         annualProgress,
+        dailyProgressChartData,
     };
 }

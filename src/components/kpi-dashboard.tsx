@@ -9,18 +9,12 @@ import {
   ChevronLeftIcon,
   ClockIcon,
   BarChartIcon,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from './ui/progress';
-
-interface KpiData {
-  todayProgress: number;
-  weeklyProgress: number;
-  monthlyProgress: number;
-  prevMonthProgress: number;
-  semesterProgress: number;
-  annualProgress: number;
-}
+import type { KpiData } from '@/lib/types';
+import { ProgressChart } from './progress-chart';
 
 interface KpiDashboardProps {
   data: KpiData;
@@ -61,15 +55,28 @@ export function KpiDashboard({ data }: KpiDashboardProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {kpis.map((kpi) => (
-        <KpiCard
-          key={kpi.title}
-          title={kpi.title}
-          value={kpi.value}
-          icon={kpi.icon}
-        />
-      ))}
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {kpis.map((kpi) => (
+          <KpiCard
+            key={kpi.title}
+            title={kpi.title}
+            value={kpi.value}
+            icon={kpi.icon}
+          />
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Evolución Diaria (Últimos 30 Días)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+           <ProgressChart data={data.dailyProgressChartData} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
