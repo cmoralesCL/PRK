@@ -43,6 +43,16 @@ interface AnalyticsDashboardProps {
 
 export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
   const { stats, areaPrks, progressOverTime } = data;
+  const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+
+  const chartConfig = {
+      Progreso: {
+        label: "Progreso",
+        color: "hsl(var(--primary))",
+      },
+  };
+
+  const currentChartData = progressOverTime[chartView];
   
   return (
     <div className="space-y-8">
@@ -58,6 +68,68 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <StatCard title="Progreso Mensual" value={`${stats.monthlyProgress}%`} icon={CalendarDays} />
             <StatCard title="Progreso Trimestral" value={`${stats.quarterlyProgress}%`} icon={TrendingUp} />
             <StatCard title="Progreso General" value={`${stats.overallProgress}%`} icon={Gauge} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle className="font-headline">Evolución del Progreso General</CardTitle>
+              <CardDescription>
+                Rendimiento histórico agrupado por período de tiempo.
+              </CardDescription>
+            </div>
+            <ToggleGroup
+              type="single"
+              value={chartView}
+              onValueChange={(value: 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
+                if (value) setChartView(value);
+              }}
+              size="sm"
+            >
+              <ToggleGroupItem value="weekly">Semanal</ToggleGroupItem>
+              <ToggleGroupItem value="monthly">Mensual</ToggleGroupItem>
+              <ToggleGroupItem value="quarterly">Trimestral</ToggleGroupItem>
+              <ToggleGroupItem value="yearly">Anual</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+            <RechartsBarChart 
+                accessibilityLayer
+                data={currentChartData}
+                margin={{
+                    top: 20,
+                    right: 20,
+                    bottom: 20,
+                    left: 0,
+                }}
+            >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value}
+                />
+                <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                />
+                <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
+                />
+                <Bar 
+                    dataKey="Progreso"
+                    fill="var(--color-Progreso)"
+                    radius={4}
+                />
+            </RechartsBarChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 

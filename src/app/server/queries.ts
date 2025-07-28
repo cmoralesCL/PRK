@@ -33,6 +33,9 @@ import {
     eachMonthOfInterval,
     isFirstDayOfMonth,
     endOfDay,
+    subYears,
+    eachQuarterOfInterval,
+    getYear,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logError } from "@/lib/logger";
@@ -267,6 +270,8 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
     const periodEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
     const monthStart = startOfMonth(referenceDate);
     const monthEnd = endOfMonth(referenceDate);
+    const quarterStart = startOfQuarter(referenceDate);
+    const quarterEnd = endOfQuarter(referenceDate);
 
     return allHabitTasks.filter(task => {
         // Basic filtering
@@ -280,13 +285,13 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
             return false;
         }
         
-        if (isAfter(taskStartDate, monthEnd)) return false; // Use monthEnd as the widest possible range for this check
+        if (isAfter(taskStartDate, quarterEnd)) return false; // Use quarterEnd as the widest possible range for this check
         if (task.due_date && isBefore(parseISO(task.due_date), periodStart)) return false;
 
         const taskInterval = { start: taskStartDate, end: task.due_date ? parseISO(task.due_date) : new Date(8640000000000000) };
-        const weekInterval = { start: periodStart, end: periodEnd };
         
         if (task.frequency.startsWith('SEMANAL')) {
+            const weekInterval = { start: periodStart, end: periodEnd };
             if (!areIntervalsOverlapping(weekInterval, taskInterval, { inclusive: true })) return false;
 
             if (task.frequency === 'SEMANAL_ACUMULATIVO_RECURRENTE') {
@@ -294,11 +299,12 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
                 const weekDiff = Math.floor(differenceInDays(startOfWeek(periodStart, { weekStartsOn: 1 }), startOfWeek(taskStartDate, { weekStartsOn: 1 })) / 7);
                 return weekDiff >= 0 && weekDiff % task.frequency_interval === 0;
             }
-            return true; // Is a standard weekly commitment active in this period
+            return true;
         }
         
         if (task.frequency.startsWith('MENSUAL')) {
-            if (!areIntervalsOverlapping({start: monthStart, end: monthEnd}, taskInterval, { inclusive: true })) return false;
+            const monthInterval = {start: monthStart, end: monthEnd};
+            if (!areIntervalsOverlapping(monthInterval, taskInterval, { inclusive: true })) return false;
 
             if (task.frequency === 'MENSUAL_ACUMULATIVO_RECURRENTE') {
                 if (!task.frequency_interval) return false;
@@ -308,7 +314,14 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
             return true;
         }
 
-        return false; // For now, only weekly and monthly on dashboard
+        if (task.frequency.startsWith('TRIMESTRAL')) {
+            const quarterInterval = {start: quarterStart, end: quarterEnd};
+            if (!areIntervalsOverlapping(quarterInterval, taskInterval, { inclusive: true })) return false;
+            // Add recurrent logic if needed in the future
+            return true;
+        }
+
+        return false;
     }).map(task => {
         let logs: ProgressLog[] = [];
         let periodStartForLogs: Date, periodEndForLogs: Date;
@@ -318,9 +331,12 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
         if(freq?.startsWith('SEMANAL')) {
             periodStartForLogs = startOfWeek(referenceDate, { weekStartsOn: 1 });
             periodEndForLogs = endOfWeek(referenceDate, { weekStartsOn: 1 });
-        } else { // MENSUAL
+        } else if (freq?.startsWith('MENSUAL')) {
             periodStartForLogs = monthStart;
             periodEndForLogs = monthEnd;
+        } else { // TRIMESTRAL
+            periodStartForLogs = quarterStart;
+            periodEndForLogs = quarterEnd;
         }
         
         logs = allProgressLogs.filter(log => 
@@ -339,8 +355,8 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
         return {
             ...task,
             current_progress_value: totalProgressValue,
-            completedToday: isCompleted,
-            logs: logs, // Pass the logs to the component for detailed checks
+            completedToday: isCompleted, // "completedToday" means completed for the reference period
+            logs: logs,
         };
     });
 }
@@ -947,6 +963,33 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
         };
     });
 
+    // Chart Data
+    const historyStartDate = subYears(today, 2);
+    const weeklyChartData = eachWeekOfInterval({ start: historyStartDate, end: today }, { weekStartsOn: 1 })
+        .map(weekStart => ({
+            date: format(weekStart, 'dd/MM/yy'),
+            Progreso: calculateAndRound(weekStart, endOfWeek(weekStart, { weekStartsOn: 1 }))
+        }));
+    
+    const monthlyChartData = eachMonthOfInterval({ start: historyStartDate, end: today })
+        .map(monthStart => ({
+            date: format(monthStart, 'MMM yy', { locale: es }),
+            Progreso: calculateAndRound(monthStart, endOfMonth(monthStart))
+        }));
+
+    const quarterlyChartData = eachQuarterOfInterval({ start: historyStartDate, end: today })
+        .map(qStart => ({
+            date: `Q${format(qStart, 'q yyyy')}`,
+            Progreso: calculateAndRound(qStart, endOfQuarter(qStart))
+        }));
+
+    const yearlyChartData = [
+        { date: getYear(subYears(today, 2)).toString(), Progreso: calculateAndRound(startOfYear(subYears(today, 2)), endOfYear(subYears(today, 2))) },
+        { date: getYear(subYears(today, 1)).toString(), Progreso: calculateAndRound(startOfYear(subYears(today, 1)), endOfYear(subYears(today, 1))) },
+        { date: getYear(today).toString(), Progreso: calculateAndRound(startOfYear(today), endOfYear(today)) },
+    ];
+
+
     return {
         stats: {
             overallProgress,
@@ -958,12 +1001,11 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
             tasksCompleted: allProgressLogs.length,
         },
         areaPrks: areaPrksWithProgress,
-        // The detailed charts will be added in the next step
         progressOverTime: { 
-            weekly: [],
-            monthly: [],
-            quarterly: [],
-            yearly: []
+            weekly: weeklyChartData,
+            monthly: monthlyChartData,
+            quarterly: quarterlyChartData,
+            yearly: yearlyChartData,
         },
     };
 }
