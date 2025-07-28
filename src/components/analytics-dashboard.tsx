@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart, BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp } from 'lucide-react';
+import { BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaPrk } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +11,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts"
+import { Line, CartesianGrid, XAxis, YAxis, LineChart as RechartsLineChart } from "recharts"
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
@@ -97,7 +97,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-60">
-            <RechartsBarChart 
+            <RechartsLineChart 
                 accessibilityLayer
                 data={currentChartData}
                 margin={{
@@ -120,15 +120,22 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
                     tickFormatter={(value) => `${value}%`}
                 />
                 <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
+                    cursor={true}
+                    content={<ChartTooltipContent indicator="line" />}
                 />
-                <Bar 
+                <Line 
                     dataKey="Progreso"
-                    fill="var(--color-Progreso)"
-                    radius={4}
+                    type="monotone"
+                    stroke="var(--color-Progreso)"
+                    strokeWidth={2}
+                    dot={{
+                      r: 4,
+                      fill: "var(--color-Progreso)",
+                      strokeWidth: 2,
+                      stroke: 'hsl(var(--background))'
+                    }}
                 />
-            </RechartsBarChart>
+            </RechartsLineChart>
           </ChartContainer>
         </CardContent>
       </Card>
