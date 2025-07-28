@@ -38,3 +38,5 @@ export async function GET() {
     return NextResponse.json({ error: 'Seeding failed', details: errorMessage }, { status: 500 });
   }
 }
+
+    

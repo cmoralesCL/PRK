@@ -57,33 +57,60 @@ export async function seedDatabase(userId: string) {
     const supabase = createClient();
     console.log(`Starting realistic database seed for user: ${userId}`);
 
-    // 1. Clean up old seed data for this user to make the script idempotent
-    console.log('Deleting existing progress logs for user...');
+    // Clean up all data for the user
+    console.log('Deleting all data for user to ensure a clean seed...');
     await supabase.from('progress_logs').delete().eq('user_id', userId);
-    console.log('Deleting existing habit_tasks for user...');
     await supabase.from('habit_tasks').delete().eq('user_id', userId);
+    await supabase.from('area_prks').delete().eq('user_id', userId);
+    await supabase.from('life_prks').delete().eq('user_id', userId);
+    console.log('Previous data deleted.');
 
-    // 2. Fetch Area PRKs to associate tasks with
-    console.log('Fetching Area PRKs...');
-    const { data: areaPrks, error: areaPrksError } = await supabase
-        .from('area_prks')
-        .select('id, title')
-        .eq('user_id', userId)
-        .eq('archived', false);
+    // 1. Define and insert Life PRKs
+    console.log('Inserting Life PRKs...');
+    const lifePrksToCreate = [
+        { user_id: userId, title: 'Desarrollo Profesional y Carrera', description: 'Crecer continuamente en mi campo, asumiendo nuevos desafíos y responsabilidades.', archived: false },
+        { user_id: userId, title: 'Salud y Bienestar Físico', description: 'Mantener un estilo de vida activo y saludable para tener energía y vitalidad.', archived: false },
+        { user_id: userId, title: 'Finanzas Personales Sólidas', description: 'Lograr seguridad y libertad financiera a través de una gestión inteligente del dinero.', archived: false },
+        { user_id: userId, title: 'Crecimiento Personal y Mental', description: 'Cultivar la mente y las emociones a través del aprendizaje constante y la introspección.', archived: false },
+    ];
+    const { data: insertedLifePrks, error: lifePrkError } = await supabase.from('life_prks').insert(lifePrksToCreate).select();
+    if (lifePrkError) throw new Error(`Failed to insert Life PRKs: ${lifePrkError.message}`);
+    console.log(`Inserted ${insertedLifePrks.length} Life PRKs.`);
 
-    if (areaPrksError) throw new Error(`Failed to fetch area PRKs: ${areaPrksError.message}`);
-    if (!areaPrks || areaPrks.length === 0) {
-        console.warn('No Area PRKs found for user. Aborting seed.');
-        return;
-    }
-    console.log(`Found ${areaPrks.length} Area PRKs.`);
+    const lifePrkMap = Object.fromEntries(insertedLifePrks.map(p => [p.title, p.id]));
+
+    // 2. Define and insert Area PRKs
+    console.log('Inserting Area PRKs...');
+    const areaPrksToCreate = [
+        // Desarrollo Profesional
+        { life_prk_title: 'Desarrollo Profesional y Carrera', title: 'Dominar una Nueva Competencia Técnica', description: 'Convertirme en un experto en IA aplicada a finanzas.' },
+        { life_prk_title: 'Desarrollo Profesional y Carrera', title: 'Liderar un Proyecto de Alto Impacto', description: 'Gestionar exitosamente el lanzamiento del nuevo dashboard de cliente.' },
+        // Salud y Bienestar
+        { life_prk_title: 'Salud y Bienestar Físico', title: 'Mejorar Resistencia Cardiovascular', description: 'Ser capaz de correr 10km cómodamente.' },
+        { life_prk_title: 'Salud y Bienestar Físico', title: 'Optimizar la Calidad del Sueño', description: 'Lograr un promedio de 7-8 horas de sueño de calidad por noche.' },
+        // Finanzas
+        { life_prk_title: 'Finanzas Personales Sólidas', title: 'Construir Fondo de Emergencia', description: 'Ahorrar el equivalente a 6 meses de gastos.' },
+        // Crecimiento Personal
+        { life_prk_title: 'Crecimiento Personal y Mental', title: 'Hábito de Lectura Consistente', description: 'Leer al menos 12 libros al año.' },
+        { life_prk_title: 'Crecimiento Personal y Mental', title: 'Establecer una Práctica de Meditación', description: 'Meditar de forma regular para mejorar el enfoque y reducir el estrés.' },
+        { life_prk_title: 'Crecimiento Personal y Mental', title: 'Planificar y Realizar un Viaje Cultural', description: 'Explorar una nueva cultura a través de un viaje inmersivo.' },
+        { life_prk_title: 'Crecimiento Personal y Mental', title: 'Fortalecer Vínculos Familiares', description: 'Mejorar la calidad del tiempo que paso con mi familia.' },
+    ];
+
+    const areaPrkInsertData = areaPrksToCreate.map(a => ({
+        user_id: userId,
+        life_prk_id: lifePrkMap[a.life_prk_title],
+        title: a.title,
+        description: a.description,
+        unit: '%', target_value: 100, current_value: 0, archived: false
+    }));
+    const { data: insertedAreaPrks, error: areaPrkError } = await supabase.from('area_prks').insert(areaPrkInsertData).select();
+    if (areaPrkError) throw new Error(`Failed to insert Area PRKs: ${areaPrkError.message}`);
+    console.log(`Inserted ${insertedAreaPrks.length} Area PRKs.`);
     
-    const areaPrkMap: { [key: string]: string } = {};
-    areaPrks.forEach(p => {
-        areaPrkMap[p.title] = p.id;
-    });
-
-    // 3. Define a more diverse set of habits and tasks, including commitments
+    const areaPrkMap: { [key: string]: string } = Object.fromEntries(insertedAreaPrks.map(p => [p.title, p.id]));
+    
+    // 3. Define a diverse set of habits and tasks
     const habitsToCreate: (Omit<HabitTask, 'id' | 'created_at' | 'user_id' | 'area_prk_id' | 'archived_at'> & { area_prk_title: string })[] = [
         // Daily habits
         { area_prk_title: 'Optimizar la Calidad del Sueño', title: 'Meditar 10 minutos antes de dormir', type: 'habit', frequency: 'DIARIA', start_date: format(SIMULATION_START_DATE, 'yyyy-MM-dd'), weight: 2, is_critical: false, measurement_type: 'binary', archived: false },
