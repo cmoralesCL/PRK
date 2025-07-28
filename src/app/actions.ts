@@ -2,6 +2,7 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -1189,9 +1190,8 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     if (habitTasksError) throw habitTasksError;
 
     // Determine the widest date range needed for all calculations
-    const annualStart = startOfYear(today);
-    const thirtyDaysAgo = subDays(today, 29);
-    const overallStartDate = thirtyDaysAgo < annualStart ? thirtyDaysAgo : annualStart;
+    const twelveMonthsAgo = subMonths(today, 11);
+    const overallStartDate = startOfMonth(twelveMonthsAgo);
 
     // Fetch all progress logs within that wide range
     const { data: allProgressLogs, error: progressLogsError } = await supabase
@@ -1232,10 +1232,11 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     const annualProgress = calculateAndRound(annualStartOfYear, annualEndOfYear);
 
     // --- Calculate 30-day chart data ---
-    const chartDateRange = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
+    const thirtyDaysAgo = subDays(today, 29);
+    const dailyChartDateRange = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
     const dailyProgressChartData: { date: string; Progreso: number }[] = [];
 
-    for (const day of chartDateRange) {
+    for (const day of dailyChartDateRange) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
         
         if (habitTasksForDay.length > 0) {
@@ -1257,6 +1258,20 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
             });
         }
     }
+
+    // --- Calculate 12-month chart data ---
+    const monthlyProgressChartData: { month: string; Progreso: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+        const monthDate = subMonths(today, i);
+        const monthStart = startOfMonth(monthDate);
+        const monthEnd = endOfMonth(monthDate);
+        const progress = calculateAndRound(monthStart, monthEnd);
+
+        monthlyProgressChartData.push({
+            month: format(monthStart, 'LLL', { locale: es }), // e.g., 'Ene'
+            Progreso: progress,
+        });
+    }
     
     return {
         todayProgress,
@@ -1266,5 +1281,6 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
         semesterProgress,
         annualProgress,
         dailyProgressChartData,
+        monthlyProgressChartData,
     };
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Line, LineChart } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
@@ -10,11 +10,17 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart"
 
-interface ProgressChartProps {
-  data: { date: string; Progreso: number }[];
+interface ChartDataItem {
+    [key: string]: string | number;
+    Progreso: number;
 }
 
-export function ProgressChart({ data }: ProgressChartProps) {
+interface ProgressChartProps {
+  data: ChartDataItem[];
+  dataKey: string;
+}
+
+export function ProgressChart({ data, dataKey }: ProgressChartProps) {
     const chartConfig = {
       Progreso: {
         label: "Progreso",
@@ -36,11 +42,11 @@ export function ProgressChart({ data }: ProgressChartProps) {
       >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
-          dataKey="date"
+          dataKey={dataKey}
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tickFormatter={(value) => value.toString()}
         />
         <YAxis
             tickLine={false}

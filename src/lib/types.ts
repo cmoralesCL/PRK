@@ -2,6 +2,7 @@
 
 
 
+
 export interface LifePrk {
   id: string;
   user_id: string;
@@ -116,4 +117,5 @@ export interface KpiData {
   semesterProgress: number;
   annualProgress: number;
   dailyProgressChartData: { date: string; Progreso: number }[];
+  monthlyProgressChartData: { month: string; Progreso: number }[];
 }

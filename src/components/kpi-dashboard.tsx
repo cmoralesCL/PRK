@@ -15,12 +15,16 @@ import { cn } from '@/lib/utils';
 import { Progress } from './ui/progress';
 import type { KpiData } from '@/lib/types';
 import { ProgressChart } from './progress-chart';
+import { useState } from 'react';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 interface KpiDashboardProps {
   data: KpiData;
 }
 
 export function KpiDashboard({ data }: KpiDashboardProps) {
+  const [chartView, setChartView] = useState<'daily' | 'monthly'>('daily');
+
   const kpis = [
     {
       title: 'Progreso del Día',
@@ -68,13 +72,31 @@ export function KpiDashboard({ data }: KpiDashboardProps) {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Evolución Diaria (Últimos 30 Días)
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <CardTitle className="font-headline flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+               Evolución de Progreso
+            </CardTitle>
+            <ToggleGroup 
+              type="single" 
+              defaultValue="daily"
+              onValueChange={(value: 'daily' | 'monthly') => value && setChartView(value)}
+              size="sm"
+            >
+              <ToggleGroupItem value="daily" aria-label="Vista diaria">
+                Últimos 30 días
+              </ToggleGroupItem>
+              <ToggleGroupItem value="monthly" aria-label="Vista mensual">
+                Últimos 12 meses
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </CardHeader>
         <CardContent>
-           <ProgressChart data={data.dailyProgressChartData} />
+           <ProgressChart 
+              data={chartView === 'daily' ? data.dailyProgressChartData : data.monthlyProgressChartData} 
+              dataKey={chartView === 'daily' ? 'date' : 'month'}
+            />
         </CardContent>
       </Card>
     </div>
