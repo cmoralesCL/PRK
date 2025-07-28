@@ -96,15 +96,15 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-60">
+          <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-80">
             <RechartsLineChart 
                 accessibilityLayer
                 data={currentChartData}
                 margin={{
                     top: 10,
-                    right: 10,
-                    bottom: 0,
-                    left: -10,
+                    right: 30,
+                    bottom: 20,
+                    left: 0,
                 }}
             >
                 <CartesianGrid vertical={false} />
@@ -114,6 +114,9 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
                     tickMargin={10}
                     axisLine={false}
                     tickFormatter={(value) => value}
+                    angle={-45}
+                    textAnchor="end"
+                    minTickGap={-10}
                 />
                 <YAxis
                     domain={[0, 100]}
