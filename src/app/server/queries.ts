@@ -2,7 +2,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot, KpiData } from "@/lib/types";
+import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot, KpiData, AnalyticsData } from "@/lib/types";
 import { 
     format, 
     startOfDay, 
@@ -842,19 +842,11 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
     // to ensure consistency with how users perceive progress.
     const semesterStart = await startOfSemester(today);
     const semesterEnd = await endOfSemester(today);
-    
     const semesterProgress = calculateAndRound(semesterStart, semesterEnd);
     
     const annualStartOfYear = startOfYear(today);
     const annualEndOfYear = endOfYear(today);
-    
-    let annualTotalProgress = 0;
-    const monthsInYear = eachMonthOfInterval({ start: annualStartOfYear, end: annualEndOfYear });
-    for(const month of monthsInYear) {
-        annualTotalProgress += calculateAndRound(startOfMonth(month), endOfMonth(month));
-    }
-    const annualProgress = Math.round(annualTotalProgress / monthsInYear.length);
-
+    const annualProgress = calculateAndRound(annualStartOfYear, annualEndOfYear);
 
     // --- Calculate 30-day chart data ---
     const thirtyDaysAgo = subDays(today, 29);
@@ -908,26 +900,6 @@ export async function getDashboardKpiData(dateString: string): Promise<KpiData> 
         dailyProgressChartData,
         monthlyProgressChartData,
     };
-}
-
-
-type AnalyticsData = {
-  stats: {
-    overallProgress: number;
-    weeklyProgress: number;
-    monthlyProgress: number;
-    quarterlyProgress: number;
-    lifePrksCount: number;
-    areaPrksCount: number;
-    tasksCompleted: number;
-  };
-  areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
-  progressOverTime: {
-    weekly: { date: string; Progreso: number }[];
-    monthly: { date: string; Progreso: number }[];
-    quarterly: { date: string; Progreso: number }[];
-    yearly: { date: string; Progreso: number }[];
-  };
 }
 
 

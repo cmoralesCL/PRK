@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface LifePrk {
   id: string;
   user_id: string;
@@ -26,7 +22,7 @@ export interface AreaPrk {
   created_at?: string;
   archived: boolean;
   progress: number; // El progreso ahora se calcula a nivel de LifePrk/Día.
-  monthlyProgress?: number;
+  monthlyProgress: number;
 }
 
 export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
@@ -118,4 +114,24 @@ export interface KpiData {
   annualProgress: number;
   dailyProgressChartData: { date: string; Progreso: number }[];
   monthlyProgressChartData: { month: string; Progreso: number }[];
+}
+
+
+export type AnalyticsData = {
+  stats: {
+    overallProgress: number;
+    weeklyProgress: number;
+    monthlyProgress: number;
+    quarterlyProgress: number;
+    lifePrksCount: number;
+    areaPrksCount: number;
+    tasksCompleted: number;
+  };
+  areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
+  progressOverTime: {
+    weekly: { date: string; Progreso: number }[];
+    monthly: { date: string; Progreso: number }[];
+    quarterly: { date: string; Progreso: number }[];
+    yearly: { date: string; Progreso: number }[];
+  };
 }

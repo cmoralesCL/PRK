@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 
 
 interface HeaderProps {
+  onAddLifePrk?: () => void;
   showAuth?: boolean;
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;
@@ -23,6 +24,7 @@ interface HeaderProps {
 }
 
 export function Header({ 
+  onAddLifePrk,
   showAuth = true,
   selectedDate,
   onDateChange,
@@ -54,6 +56,14 @@ export function Header({
     await supabase.auth.signOut();
     window.location.href = '/login';
   };
+
+  const handleAddClick = () => {
+    if (onAddLifePrk) {
+        onAddLifePrk();
+    } else {
+        onOpen();
+    }
+  }
 
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-10 border-b">
@@ -106,7 +116,7 @@ export function Header({
                     </PopoverContent>
                 </Popover>
             )}
-            <Button onClick={() => onOpen()} variant="default" className="shadow-md">
+            <Button onClick={handleAddClick} variant="default" className="shadow-md">
                 <Plus className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
                 <span className="sm:hidden">PRK</span>
