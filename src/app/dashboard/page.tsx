@@ -6,7 +6,7 @@ import { useTransition, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { Header } from '@/components/header';
-import { getDashboardKpiData } from '@/app/actions';
+import { getDashboardKpiData } from '@/app/server/queries';
 import { KpiDashboard } from '@/components/kpi-dashboard';
 import { KpiData } from '@/lib/types';
 

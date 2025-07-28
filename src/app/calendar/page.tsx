@@ -1,6 +1,6 @@
 
 import { format, parseISO } from 'date-fns';
-import { getCalendarData } from '@/app/actions';
+import { getCalendarData } from '@/app/server/queries';
 import { CalendarPageClient } from '@/components/calendar-page-client';
 import { Header } from '@/components/header';
 
