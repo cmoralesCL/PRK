@@ -76,24 +76,31 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
     setSelectedLifePrk(newLifePrkId);
     setSelectedAreaPrk(null);
     setSelectedHabitTask(null);
-    onFilterChange({ lifePrkId: newLifePrkId });
+    onFilterChange({ lifePrkId: newLifePrkId, areaPrkId: null, habitTaskId: null });
   }
 
   const handleAreaPrkChange = (value: string) => {
     const newAreaPrkId = value === 'all' ? null : value;
     setSelectedAreaPrk(newAreaPrkId);
     setSelectedHabitTask(null);
-    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: newAreaPrkId });
+    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: newAreaPrkId, habitTaskId: null });
+  }
+
+  const handleHabitTaskChange = (value: string) => {
+    const newHabitTaskId = value === 'all' ? null : value;
+    setSelectedHabitTask(newHabitTaskId);
+    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: selectedAreaPrk, habitTaskId: newHabitTaskId });
   }
 
   const handleResetFilters = () => {
     setSelectedLifePrk(null);
     setSelectedAreaPrk(null);
     setSelectedHabitTask(null);
-    onFilterChange({});
+    onFilterChange({ lifePrkId: null, areaPrkId: null, habitTaskId: null });
   };
   
   const filteredAreaPrks = selectedLifePrk ? allAreaPrks.filter(ap => ap.life_prk_id === selectedLifePrk) : [];
+  const filteredHabitTasks = selectedAreaPrk ? allHabitTasks.filter(ht => ht.area_prk_id === selectedAreaPrk) : [];
   
   return (
     <div className="space-y-8">
@@ -155,6 +162,16 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                    <SelectContent>
                       <SelectItem value="all">Todos en este PRK de Vida</SelectItem>
                       {filteredAreaPrks.map(ap => <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+              </div>
+              <div className="grid gap-2 flex-1 w-full">
+                 <Label htmlFor="habit-task-filter">Hábito/Tarea</Label>
+                 <Select value={selectedHabitTask ?? 'all'} onValueChange={handleHabitTaskChange} disabled={!selectedAreaPrk}>
+                   <SelectTrigger id="habit-task-filter"><SelectValue placeholder="Seleccionar Hábito/Tarea" /></SelectTrigger>
+                   <SelectContent>
+                      <SelectItem value="all">Todas en este PRK de Área</SelectItem>
+                      {filteredHabitTasks.map(ht => <SelectItem key={ht.id} value={ht.id}>{ht.title}</SelectItem>)}
                    </SelectContent>
                  </Select>
               </div>
