@@ -481,4 +481,3 @@ export async function deleteSimpleTask(id: string): Promise<void> {
   }
   revalidatePath('/tasks');
 }
-
