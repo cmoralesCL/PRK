@@ -433,6 +433,8 @@ export async function getSimpleTasks(): Promise<SimpleTask[]> {
     start_date: item.start_date,
     due_date: item.due_date,
     owner_email: item.owner_email,
+    assigned_to_user_id: item.assigned_to_user_id,
+    assigned_to_email: item.assigned_to_email,
     shared_with: item.shared_with,
   }));
 }
@@ -467,7 +469,8 @@ export async function updateSimpleTask(id: string, title: string, dueDate?: stri
         .from('simple_tasks')
         .update({ title, due_date: dueDate })
         .eq('id', id)
-        .eq('user_id', userId);
+        // RLS policy will determine who can update (owner or assignee)
+        // .eq('user_id', userId); 
 
     if (error) {
         await logError(error, { at: 'updateSimpleTask', id, title, dueDate });
@@ -480,15 +483,12 @@ export async function updateSimpleTask(id: string, title: string, dueDate?: stri
 
 export async function updateSimpleTaskCompletion(id: string, is_completed: boolean): Promise<void> {
   const supabase = createClient();
-  const userId = await getCurrentUserId();
-
+  
+  // RLS policy will enforce who can update it (owner, assignee, or shared user)
   const { error } = await supabase
     .from('simple_tasks')
     .update({ is_completed })
     .eq('id', id)
-    // Important: Allow anyone with access (owner or shared user) to complete the task
-    // RLS policy will enforce who can access it.
-    // .eq('user_id', userId);
 
   if (error) {
     await logError(error, { at: 'updateSimpleTaskCompletion', id, is_completed });
@@ -517,7 +517,7 @@ export async function deleteSimpleTask(id: string): Promise<void> {
 }
 
 
-// --- Task Sharing Actions ---
+// --- Task Sharing & Assigning Actions ---
 export async function getRegisteredUsers(): Promise<{ id: string, email: string }[]> {
     const supabase = createClient();
     const currentUserId = await getCurrentUserId();
@@ -573,6 +573,24 @@ export async function unshareTaskWithUser(taskId: string, sharedWithUserId: stri
         await logError(error, { at: 'unshareTaskWithUser', taskId, sharedWithUserId });
         console.error('Error unsharing task:', error);
         throw new Error('Failed to unshare task.');
+    }
+    revalidatePath('/tasks');
+}
+
+export async function assignSimpleTask(taskId: string, assignedToUserId: string | null): Promise<void> {
+    const supabase = createClient();
+    const userId = await getCurrentUserId();
+
+    const { error } = await supabase
+        .from('simple_tasks')
+        .update({ assigned_to_user_id: assignedToUserId })
+        .eq('id', taskId)
+        .eq('user_id', userId); // Only the owner can assign the task
+
+    if (error) {
+        await logError(error, { at: 'assignSimpleTask', taskId, assignedToUserId });
+        console.error("Error assigning task:", error);
+        throw new Error('Failed to assign task.');
     }
     revalidatePath('/tasks');
 }
