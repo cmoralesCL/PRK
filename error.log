@@ -227,3 +227,67 @@ AuthApiError: User not allowed
     at async Server.requestListener (/home/user/studio/node_modules/next/dist/server/lib/start-server.js:158:13)
 --------------------------------------------------
 
+[2025-07-29T21:17:46.831Z] - DETAILED ERROR LOG
+Error occurred at: getRegisteredUsers
+Error Type: Database/API Error
+Message: User not allowed
+Code: not_admin
+Stack Trace:
+AuthApiError: User not allowed
+    at handleError (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:757:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async _handleRequest (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:807:9)
+    at async _request (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:787:18)
+    at async GoTrueAdminApi.listUsers (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:1069:30)
+    at async getRegisteredUsers (/home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__1a22ad77._.js:955:40)
+    at async /home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:417:2449
+    at async handleAction (/home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:416:21371)
+    at async renderToHTMLOrFlightImpl (/home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:422:27153)
+    at async doRender (/home/user/studio/node_modules/next/dist/server/base-server.js:1655:34)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:1920:28)
+    at async DevServer.renderPageComponent (/home/user/studio/node_modules/next/dist/server/base-server.js:2408:24)
+    at async DevServer.renderToResponseImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:2445:32)
+    at async DevServer.pipeImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:1008:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/user/studio/node_modules/next/dist/server/next-server.js:305:17)
+    at async DevServer.handleRequestImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:900:17)
+    at async /home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:371:20
+    at async Span.traceAsyncFn (/home/user/studio/node_modules/next/dist/trace/trace.js:157:20)
+    at async DevServer.handleRequest (/home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:368:24)
+    at async invokeRender (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:237:21)
+    at async handleRequest (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:428:24)
+    at async requestHandlerImpl (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:452:13)
+    at async Server.requestListener (/home/user/studio/node_modules/next/dist/server/lib/start-server.js:158:13)
+--------------------------------------------------
+
+[2025-07-29T21:25:58.172Z] - DETAILED ERROR LOG
+Error occurred at: getRegisteredUsers
+Error Type: Database/API Error
+Message: User not allowed
+Code: not_admin
+Stack Trace:
+AuthApiError: User not allowed
+    at handleError (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:757:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async _handleRequest (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:807:9)
+    at async _request (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:787:18)
+    at async GoTrueAdminApi.listUsers (/home/user/studio/.next/server/chunks/ssr/node_modules_@supabase_auth-js_dist_module_2a35e6ef._.js:1069:30)
+    at async getRegisteredUsers (/home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__1a22ad77._.js:955:40)
+    at async /home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:417:2449
+    at async handleAction (/home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:416:21371)
+    at async renderToHTMLOrFlightImpl (/home/user/studio/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:422:27153)
+    at async doRender (/home/user/studio/node_modules/next/dist/server/base-server.js:1655:34)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:1920:28)
+    at async DevServer.renderPageComponent (/home/user/studio/node_modules/next/dist/server/base-server.js:2408:24)
+    at async DevServer.renderToResponseImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:2445:32)
+    at async DevServer.pipeImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:1008:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/user/studio/node_modules/next/dist/server/next-server.js:305:17)
+    at async DevServer.handleRequestImpl (/home/user/studio/node_modules/next/dist/server/base-server.js:900:17)
+    at async /home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:371:20
+    at async Span.traceAsyncFn (/home/user/studio/node_modules/next/dist/trace/trace.js:157:20)
+    at async DevServer.handleRequest (/home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:368:24)
+    at async invokeRender (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:237:21)
+    at async handleRequest (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:428:24)
+    at async requestHandlerImpl (/home/user/studio/node_modules/next/dist/server/lib/router-server.js:452:13)
+    at async Server.requestListener (/home/user/studio/node_modules/next/dist/server/lib/start-server.js:158:13)
+--------------------------------------------------
+

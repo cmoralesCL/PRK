@@ -9,6 +9,8 @@ import { HabitTask, ProgressLog } from "@/lib/types";
 import { SimpleTask } from "@/lib/simple-tasks-types";
 import { logError } from "@/lib/logger";
 import { redirect } from "next/navigation";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 
 async function getCurrentUserId(): Promise<string> {
@@ -516,14 +518,36 @@ export async function deleteSimpleTask(id: string): Promise<void> {
 
 
 // --- Task Sharing & Assigning Actions ---
-export async function getRegisteredUsers(): Promise<{ id: string, email: string }[]> {
-    const supabase = createClient();
-    const currentUserId = await getCurrentUserId();
+function createAdminClient() {
+    const cookieStore = cookies();
     
-    // IMPORTANT: This must be the admin client to fetch all users.
-    // The regular client is restricted by RLS.
-    // Ensure you have configured the SERVICE_ROLE_KEY in your environment.
-    const { data: { users }, error } = await supabase.auth.admin.listUsers();
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set in environment variables.");
+    }
+
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value
+                },
+            },
+            auth: {
+                // Esto previene que el cliente de servicio intente usar el JWT del usuario
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    );
+}
+
+export async function getRegisteredUsers(): Promise<{ id: string, email: string }[]> {
+    const supabaseAdmin = createAdminClient();
+    const currentUserId = await getCurrentUserId();
+
+    const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
     if (error) {
         await logError(error, { at: 'getRegisteredUsers' });
@@ -593,5 +617,3 @@ export async function assignSimpleTask(taskId: string, assignedToUserId: string 
     }
     revalidatePath('/tasks');
 }
-
-    
