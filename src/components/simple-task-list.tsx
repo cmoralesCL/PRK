@@ -43,6 +43,10 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
   const [registeredUsers, setRegisteredUsers] = useState<{ id: string, email: string }[]>([]);
 
   useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  useEffect(() => {
     if (isManageDialogOpen && registeredUsers.length === 0) {
         startTransition(async () => {
             const users = await getRegisteredUsers();
@@ -248,7 +252,7 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
         </div>
 
         <div className="space-y-3">
-          {initialTasks.map((task) => {
+          {tasks.map((task) => {
             const isOwner = !task.owner_email; // If owner_email is null, current user is the owner
             return (
             <div
@@ -339,7 +343,7 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
               </div>
             </div>
           )})}
-           {initialTasks.length === 0 && !isPending && (
+           {tasks.length === 0 && !isPending && (
             <p className="text-center text-muted-foreground py-8">
               ¡Todo listo! No tienes tareas pendientes.
             </p>

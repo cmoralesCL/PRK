@@ -412,7 +412,6 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 
 export async function getSimpleTasks(): Promise<SimpleTask[]> {
   const supabase = createClient();
-  const userId = await getCurrentUserId();
   
   // This RPC call fetches tasks and their share info in one go.
   const { data, error } = await supabase.rpc('get_user_simple_tasks');
@@ -463,14 +462,12 @@ export async function updateSimpleTask(id: string, title: string, dueDate?: stri
         throw new Error('Title is required');
     }
     const supabase = createClient();
-    const userId = await getCurrentUserId();
 
+    // RLS policy will determine who can update (owner or assignee)
     const { error } = await supabase
         .from('simple_tasks')
         .update({ title, due_date: dueDate })
-        .eq('id', id)
-        // RLS policy will determine who can update (owner or assignee)
-        // .eq('user_id', userId); 
+        .eq('id', id);
 
     if (error) {
         await logError(error, { at: 'updateSimpleTask', id, title, dueDate });
@@ -502,6 +499,7 @@ export async function deleteSimpleTask(id: string): Promise<void> {
   const supabase = createClient();
   const userId = await getCurrentUserId();
 
+  // RLS policy ensures only the owner can delete.
   const { error } = await supabase
     .from('simple_tasks')
     .delete()
