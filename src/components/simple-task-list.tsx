@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { SimpleTask } from '@/lib/simple-tasks-types';
-import { addSimpleTask, deleteSimpleTask, updateSimpleTaskCompletion } from '@/app/actions';
+import { addSimpleTask, deleteSimpleTask, updateSimpleTaskCompletion, updateSimpleTask } from '@/app/actions';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
-import { Trash2, Plus, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Trash2, Plus, Loader2, Calendar as CalendarIcon, Pencil, Save, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { DatePicker } from './ui/date-picker';
@@ -26,6 +26,10 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedDueDate, setEditedDueDate] = useState<Date | undefined>();
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) {
@@ -82,6 +86,42 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
     });
   };
 
+  const handleEditClick = (task: SimpleTask) => {
+    setEditingTaskId(task.id);
+    setEditedTitle(task.title);
+    setEditedDueDate(task.due_date ? parseISO(task.due_date) : undefined);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTaskId(null);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (!editedTitle.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "El título de la tarea no puede estar vacío.",
+        });
+        return;
+    }
+    startTransition(async () => {
+      try {
+        const dueDateString = editedDueDate ? format(editedDueDate, 'yyyy-MM-dd') : null;
+        await updateSimpleTask(id, editedTitle, dueDateString);
+        setEditingTaskId(null);
+        toast({ title: '¡Tarea actualizada!' });
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo actualizar la tarea.',
+        });
+      }
+    });
+  };
+
+
   const DueDateInfo = ({ dueDate }: { dueDate: string | null }) => {
     if (!dueDate) return null;
 
@@ -90,12 +130,11 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
     const daysLeft = differenceInDays(dueDateObj, today);
 
     let text = '';
-    let badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
     let textColor = '';
 
     if (daysLeft < 0) {
         text = `Venció hace ${Math.abs(daysLeft)} días`;
-        badgeVariant = 'destructive';
+        textColor = 'text-destructive';
     } else if (daysLeft === 0) {
         text = 'Vence hoy';
         textColor = 'text-orange-600';
@@ -151,7 +190,8 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
               key={task.id}
               className={cn(
                 "flex items-start gap-4 p-3 rounded-lg border transition-colors",
-                task.is_completed ? "bg-muted/50" : "bg-card"
+                task.is_completed ? "bg-muted/50" : "bg-card",
+                editingTaskId === task.id && "bg-secondary/50"
               )}
             >
               <Checkbox
@@ -159,30 +199,61 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
                 checked={task.is_completed}
                 onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
                 className="h-5 w-5 mt-1"
-                disabled={isPending}
+                disabled={isPending || editingTaskId === task.id}
               />
               <div className="flex-grow">
-                 <Label
-                    htmlFor={`task-${task.id}`}
-                    className={cn(
-                    "text-sm font-medium",
-                    task.is_completed && "line-through text-muted-foreground"
-                    )}
-                >
-                    {task.title}
-                </Label>
-                <DueDateInfo dueDate={task.due_date} />
+                 {editingTaskId === task.id ? (
+                    <div className="space-y-2">
+                        <Input 
+                            value={editedTitle}
+                            onChange={(e) => setEditedTitle(e.target.value)}
+                            className="h-9"
+                            disabled={isPending}
+                        />
+                        <DatePicker date={editedDueDate} setDate={setEditedDueDate} />
+                    </div>
+                 ) : (
+                    <>
+                        <Label
+                            htmlFor={`task-${task.id}`}
+                            className={cn(
+                            "text-sm font-medium",
+                            task.is_completed && "line-through text-muted-foreground"
+                            )}
+                        >
+                            {task.title}
+                        </Label>
+                        <DueDateInfo dueDate={task.due_date} />
+                    </>
+                 )}
               </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteTask(task.id)}
-                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
-                disabled={isPending}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-1">
+                {editingTaskId === task.id ? (
+                    <>
+                        <Button variant="ghost" size="icon" onClick={() => handleSaveEdit(task.id)} className="h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700" disabled={isPending}>
+                            <Save className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8 text-muted-foreground hover:bg-gray-200" disabled={isPending}>
+                            <XCircle className="h-4 w-4" />
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                         <Button variant="ghost" size="icon" onClick={() => handleEditClick(task)} className="h-8 w-8 text-muted-foreground hover:bg-blue-100 hover:text-blue-600" disabled={isPending}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
+                            disabled={isPending}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </>
+                )}
+              </div>
             </div>
           ))}
            {initialTasks.length === 0 && !isPending && (

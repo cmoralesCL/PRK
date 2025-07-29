@@ -446,6 +446,28 @@ export async function addSimpleTask(title: string, dueDate?: string | null): Pro
   revalidatePath('/tasks');
 }
 
+export async function updateSimpleTask(id: string, title: string, dueDate?: string | null): Promise<void> {
+    if (!title) {
+        throw new Error('Title is required');
+    }
+    const supabase = createClient();
+    const userId = await getCurrentUserId();
+
+    const { error } = await supabase
+        .from('simple_tasks')
+        .update({ title, due_date: dueDate })
+        .eq('id', id)
+        .eq('user_id', userId);
+
+    if (error) {
+        await logError(error, { at: 'updateSimpleTask', id, title, dueDate });
+        console.error("Error updating simple task:", error);
+        throw new Error('Failed to update task.');
+    }
+    revalidatePath('/tasks');
+}
+
+
 export async function updateSimpleTaskCompletion(id: string, is_completed: boolean): Promise<void> {
   const supabase = createClient();
   const userId = await getCurrentUserId();
