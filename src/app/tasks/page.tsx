@@ -1,4 +1,3 @@
-'use server';
 
 import { getSimpleTasks } from "@/app/actions";
 import { Header } from "@/components/header";
