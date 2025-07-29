@@ -520,8 +520,9 @@ export async function getRegisteredUsers(): Promise<{ id: string, email: string 
     const supabase = createClient();
     const currentUserId = await getCurrentUserId();
     
-    // In a real app with many users, you'd want pagination or search.
-    // For this app, we fetch all users except the current one.
+    // IMPORTANT: This must be the admin client to fetch all users.
+    // The regular client is restricted by RLS.
+    // Ensure you have configured the SERVICE_ROLE_KEY in your environment.
     const { data: { users }, error } = await supabase.auth.admin.listUsers();
 
     if (error) {
@@ -592,3 +593,5 @@ export async function assignSimpleTask(taskId: string, assignedToUserId: string 
     }
     revalidatePath('/tasks');
 }
+
+    
