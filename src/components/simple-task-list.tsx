@@ -1,20 +1,25 @@
+
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { SimpleTask } from '@/lib/simple-tasks-types';
-import { addSimpleTask, deleteSimpleTask, updateSimpleTaskCompletion, updateSimpleTask } from '@/app/actions';
+import { addSimpleTask, deleteSimpleTask, updateSimpleTaskCompletion, updateSimpleTask, getRegisteredUsers, shareTaskWithUser, unshareTaskWithUser } from '@/app/actions';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
-import { Trash2, Plus, Loader2, Calendar as CalendarIcon, Pencil, Save, XCircle } from 'lucide-react';
+import { Trash2, Plus, Loader2, Calendar as CalendarIcon, Pencil, Save, XCircle, Share2, User, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { DatePicker } from './ui/date-picker';
 import { format, differenceInDays, startOfToday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { ScrollArea } from './ui/scroll-area';
+import { Avatar, AvatarFallback } from './ui/avatar';
+
 
 interface SimpleTaskListProps {
   initialTasks: SimpleTask[];
@@ -30,6 +35,20 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDueDate, setEditedDueDate] = useState<Date | undefined>();
+
+  // State for sharing dialog
+  const [isShareDialogOpen, setShareDialogOpen] = useState(false);
+  const [sharingTask, setSharingTask] = useState<SimpleTask | null>(null);
+  const [registeredUsers, setRegisteredUsers] = useState<{ id: string, email: string }[]>([]);
+
+  useEffect(() => {
+    if (isShareDialogOpen && registeredUsers.length === 0) {
+        startTransition(async () => {
+            const users = await getRegisteredUsers();
+            setRegisteredUsers(users);
+        });
+    }
+  }, [isShareDialogOpen, registeredUsers.length]);
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) {
@@ -121,6 +140,36 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
     });
   };
 
+  const openShareDialog = (task: SimpleTask) => {
+    setSharingTask(task);
+    setShareDialogOpen(true);
+  };
+
+  const handleShare = (userIdToShareWith: string) => {
+    if (!sharingTask) return;
+    startTransition(async () => {
+        try {
+            await shareTaskWithUser(sharingTask.id, userIdToShareWith);
+            toast({ title: "Tarea compartida!"});
+            // No need to close dialog, user might share with more people
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo compartir la tarea.' });
+        }
+    });
+  };
+  
+  const handleUnshare = (userIdToUnshare: string) => {
+    if (!sharingTask) return;
+     startTransition(async () => {
+        try {
+            await unshareTaskWithUser(sharingTask.id, userIdToUnshare);
+            toast({ title: "Acceso revocado"});
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo revocar el acceso.' });
+        }
+    });
+  };
+
 
   const DueDateInfo = ({ dueDate }: { dueDate: string | null }) => {
     if (!dueDate) return null;
@@ -158,6 +207,7 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
 
 
   return (
+    <>
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Mis Tareas</CardTitle>
@@ -185,7 +235,9 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
         </div>
 
         <div className="space-y-3">
-          {initialTasks.map((task) => (
+          {initialTasks.map((task) => {
+            const isOwner = !task.owner_email; // If owner_email is null, current user is the owner
+            return (
             <div
               key={task.id}
               className={cn(
@@ -224,6 +276,9 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
                             {task.title}
                         </Label>
                         <DueDateInfo dueDate={task.due_date} />
+                        {!isOwner && (
+                            <Badge variant="outline" className="mt-2">Compartida por {task.owner_email}</Badge>
+                        )}
                     </>
                  )}
               </div>
@@ -239,23 +294,30 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
                     </>
                 ) : (
                     <>
-                         <Button variant="ghost" size="icon" onClick={() => handleEditClick(task)} className="h-8 w-8 text-muted-foreground hover:bg-blue-100 hover:text-blue-600" disabled={isPending}>
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
-                            disabled={isPending}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isOwner && (
+                            <>
+                            <Button variant="ghost" size="icon" onClick={() => openShareDialog(task)} className="h-8 w-8 text-muted-foreground hover:bg-blue-100 hover:text-blue-600" disabled={isPending}>
+                                <Share2 className="h-4 w-4" />
+                            </Button>
+                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(task)} className="h-8 w-8 text-muted-foreground hover:bg-blue-100 hover:text-blue-600" disabled={isPending}>
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteTask(task.id)}
+                                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
+                                disabled={isPending}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            </>
+                        )}
                     </>
                 )}
               </div>
             </div>
-          ))}
+          )})}
            {initialTasks.length === 0 && !isPending && (
             <p className="text-center text-muted-foreground py-8">
               ¡Todo listo! No tienes tareas pendientes.
@@ -264,5 +326,49 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
         </div>
       </CardContent>
     </Card>
+
+    <Dialog open={isShareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Compartir Tarea</DialogTitle>
+                <DialogDescription>
+                    Comparte "{sharingTask?.title}" con otros usuarios.
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-72">
+                <div className="space-y-2 pr-4">
+                    {isPending && registeredUsers.length === 0 && <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin" />}
+                    {registeredUsers.map(user => {
+                        const isSharedWith = sharingTask?.shared_with?.some(su => su.user_id === user.id);
+                        return (
+                            <div key={user.id} className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback>{user.email.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm font-medium">{user.email}</span>
+                                </div>
+                                {isSharedWith ? (
+                                    <Button variant="outline" size="sm" onClick={() => handleUnshare(user.id)} disabled={isPending}>
+                                        <UserX className="mr-2 h-4 w-4" />
+                                        Dejar de compartir
+                                    </Button>
+                                ) : (
+                                    <Button size="sm" onClick={() => handleShare(user.id)} disabled={isPending}>
+                                        <User className="mr-2 h-4 w-4" />
+                                        Compartir
+                                    </Button>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </ScrollArea>
+             <DialogFooter>
+                <Button variant="secondary" onClick={() => setShareDialogOpen(false)}>Cerrar</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

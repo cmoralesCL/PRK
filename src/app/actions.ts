@@ -413,18 +413,28 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 export async function getSimpleTasks(): Promise<SimpleTask[]> {
   const supabase = createClient();
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from('simple_tasks')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  
+  // This RPC call fetches tasks and their share info in one go.
+  const { data, error } = await supabase.rpc('get_user_simple_tasks');
 
   if (error) {
     await logError(error, { at: 'getSimpleTasks' });
     console.error("Error fetching simple tasks:", error);
     return [];
   }
-  return data;
+  
+  // The RPC returns a structure that needs to be mapped to our SimpleTask type.
+  return data.map((item: any) => ({
+    id: item.id,
+    user_id: item.user_id,
+    created_at: item.created_at,
+    title: item.title,
+    is_completed: item.is_completed,
+    start_date: item.start_date,
+    due_date: item.due_date,
+    owner_email: item.owner_email,
+    shared_with: item.shared_with,
+  }));
 }
 
 export async function addSimpleTask(title: string, dueDate?: string | null): Promise<void> {
@@ -476,7 +486,9 @@ export async function updateSimpleTaskCompletion(id: string, is_completed: boole
     .from('simple_tasks')
     .update({ is_completed })
     .eq('id', id)
-    .eq('user_id', userId);
+    // Important: Allow anyone with access (owner or shared user) to complete the task
+    // RLS policy will enforce who can access it.
+    // .eq('user_id', userId);
 
   if (error) {
     await logError(error, { at: 'updateSimpleTaskCompletion', id, is_completed });
@@ -502,4 +514,65 @@ export async function deleteSimpleTask(id: string): Promise<void> {
     throw new Error('Failed to delete task.');
   }
   revalidatePath('/tasks');
+}
+
+
+// --- Task Sharing Actions ---
+export async function getRegisteredUsers(): Promise<{ id: string, email: string }[]> {
+    const supabase = createClient();
+    const currentUserId = await getCurrentUserId();
+    
+    // In a real app with many users, you'd want pagination or search.
+    // For this app, we fetch all users except the current one.
+    const { data: { users }, error } = await supabase.auth.admin.listUsers();
+
+    if (error) {
+        await logError(error, { at: 'getRegisteredUsers' });
+        console.error('Error fetching users:', error);
+        return [];
+    }
+
+    return users
+        .filter(user => user.id !== currentUserId && user.email)
+        .map(user => ({ id: user.id, email: user.email! }));
+}
+
+
+export async function shareTaskWithUser(taskId: string, sharedWithUserId: string): Promise<void> {
+    const supabase = createClient();
+    const sharedByUserId = await getCurrentUserId();
+
+    const { error } = await supabase
+        .from('task_shares')
+        .insert({
+            task_id: taskId,
+            shared_with_user_id: sharedWithUserId,
+            shared_by_user_id: sharedByUserId,
+        });
+
+    if (error) {
+        await logError(error, { at: 'shareTaskWithUser', taskId, sharedWithUserId });
+        console.error('Error sharing task:', error);
+        throw new Error('Failed to share task.');
+    }
+    revalidatePath('/tasks');
+}
+
+export async function unshareTaskWithUser(taskId: string, sharedWithUserId: string): Promise<void> {
+    const supabase = createClient();
+    const sharedByUserId = await getCurrentUserId();
+
+    const { error } = await supabase
+        .from('task_shares')
+        .delete()
+        .eq('task_id', taskId)
+        .eq('shared_with_user_id', sharedWithUserId)
+        .eq('shared_by_user_id', sharedByUserId);
+
+    if (error) {
+        await logError(error, { at: 'unshareTaskWithUser', taskId, sharedWithUserId });
+        console.error('Error unsharing task:', error);
+        throw new Error('Failed to unshare task.');
+    }
+    revalidatePath('/tasks');
 }
