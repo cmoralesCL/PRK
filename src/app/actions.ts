@@ -427,7 +427,7 @@ export async function getSimpleTasks(): Promise<SimpleTask[]> {
   return data;
 }
 
-export async function addSimpleTask(title: string): Promise<void> {
+export async function addSimpleTask(title: string, dueDate?: string | null): Promise<void> {
   if (!title) {
     throw new Error('Title is required');
   }
@@ -436,7 +436,7 @@ export async function addSimpleTask(title: string): Promise<void> {
 
   const { error } = await supabase
     .from('simple_tasks')
-    .insert({ title, user_id: userId, is_completed: false });
+    .insert({ title, user_id: userId, is_completed: false, due_date: dueDate });
 
   if (error) {
     await logError(error, { at: 'addSimpleTask', title });

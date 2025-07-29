@@ -8,9 +8,13 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
-import { Trash2, Plus, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { DatePicker } from './ui/date-picker';
+import { format, differenceInDays, startOfToday, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Badge } from './ui/badge';
 
 interface SimpleTaskListProps {
   initialTasks: SimpleTask[];
@@ -19,6 +23,7 @@ interface SimpleTaskListProps {
 export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [dueDate, setDueDate] = useState<Date | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -33,9 +38,10 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
     }
     startTransition(async () => {
       try {
-        await addSimpleTask(newTaskTitle);
-        // We don't need to manually update state, revalidation will fetch the new list.
+        const dueDateString = dueDate ? format(dueDate, 'yyyy-MM-dd') : null;
+        await addSimpleTask(newTaskTitle, dueDateString);
         setNewTaskTitle('');
+        setDueDate(undefined);
         toast({ title: '¡Tarea agregada!' });
       } catch (error) {
         toast({
@@ -76,27 +82,67 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
     });
   };
 
+  const DueDateInfo = ({ dueDate }: { dueDate: string | null }) => {
+    if (!dueDate) return null;
+
+    const today = startOfToday();
+    const dueDateObj = parseISO(dueDate);
+    const daysLeft = differenceInDays(dueDateObj, today);
+
+    let text = '';
+    let badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
+    let textColor = '';
+
+    if (daysLeft < 0) {
+        text = `Venció hace ${Math.abs(daysLeft)} días`;
+        badgeVariant = 'destructive';
+    } else if (daysLeft === 0) {
+        text = 'Vence hoy';
+        textColor = 'text-orange-600';
+    } else if (daysLeft === 1) {
+        text = 'Vence mañana';
+        textColor = 'text-yellow-600';
+    } else if (daysLeft <= 7) {
+        text = `Vence en ${daysLeft} días`;
+         textColor = 'text-yellow-700';
+    } else {
+        text = `Vence el ${format(dueDateObj, 'd MMM', { locale: es })}`;
+    }
+    
+    return (
+        <div className="flex items-center gap-2 mt-1 pl-1">
+            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+             <span className={cn("text-xs font-medium", textColor || 'text-muted-foreground')}>{text}</span>
+        </div>
+    );
+  };
+
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Mis Tareas</CardTitle>
         <CardDescription>
-          Una lista simple para tus pendientes.
+          Una lista simple para tus pendientes, con fechas de finalización opcionales.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 mb-6">
           <Input
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="¿Qué necesitas hacer?"
             onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
             disabled={isPending}
+            className="flex-grow"
           />
-          <Button onClick={handleAddTask} disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            <span className="hidden sm:inline ml-2">Agregar</span>
-          </Button>
+          <div className="flex gap-2">
+            <DatePicker date={dueDate} setDate={setDueDate} />
+            <Button onClick={handleAddTask} disabled={isPending} className="w-full sm:w-auto">
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                <span className="hidden sm:inline ml-2">Agregar</span>
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -104,7 +150,7 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
             <div
               key={task.id}
               className={cn(
-                "flex items-center gap-4 p-3 rounded-lg border transition-colors",
+                "flex items-start gap-4 p-3 rounded-lg border transition-colors",
                 task.is_completed ? "bg-muted/50" : "bg-card"
               )}
             >
@@ -112,23 +158,27 @@ export function SimpleTaskList({ initialTasks }: SimpleTaskListProps) {
                 id={`task-${task.id}`}
                 checked={task.is_completed}
                 onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
-                className="h-5 w-5"
+                className="h-5 w-5 mt-1"
                 disabled={isPending}
               />
-              <Label
-                htmlFor={`task-${task.id}`}
-                className={cn(
-                  "flex-grow text-sm font-medium",
-                  task.is_completed && "line-through text-muted-foreground"
-                )}
-              >
-                {task.title}
-              </Label>
+              <div className="flex-grow">
+                 <Label
+                    htmlFor={`task-${task.id}`}
+                    className={cn(
+                    "text-sm font-medium",
+                    task.is_completed && "line-through text-muted-foreground"
+                    )}
+                >
+                    {task.title}
+                </Label>
+                <DueDateInfo dueDate={task.due_date} />
+              </div>
+
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleDeleteTask(task.id)}
-                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
                 disabled={isPending}
               >
                 <Trash2 className="h-4 w-4" />
