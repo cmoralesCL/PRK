@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { suggestRelatedHabitsTasks, type SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
 import { HabitTask, ProgressLog } from "@/lib/types";
+import { SimpleTask } from "@/lib/simple-tasks-types";
 import { logError } from "@/lib/logger";
 import { redirect } from "next/navigation";
 
@@ -405,3 +406,79 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
     revalidatePath('/calendar');
     revalidatePath('/dashboard');
 }
+
+
+// --- Simple Tasks Actions ---
+
+export async function getSimpleTasks(): Promise<SimpleTask[]> {
+  const supabase = createClient();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from('simple_tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    await logError(error, { at: 'getSimpleTasks' });
+    console.error("Error fetching simple tasks:", error);
+    return [];
+  }
+  return data;
+}
+
+export async function addSimpleTask(title: string): Promise<void> {
+  if (!title) {
+    throw new Error('Title is required');
+  }
+  const supabase = createClient();
+  const userId = await getCurrentUserId();
+
+  const { error } = await supabase
+    .from('simple_tasks')
+    .insert({ title, user_id: userId, is_completed: false });
+
+  if (error) {
+    await logError(error, { at: 'addSimpleTask', title });
+    console.error("Error adding simple task:", error);
+    throw new Error('Failed to add task.');
+  }
+  revalidatePath('/tasks');
+}
+
+export async function updateSimpleTaskCompletion(id: string, is_completed: boolean): Promise<void> {
+  const supabase = createClient();
+  const userId = await getCurrentUserId();
+
+  const { error } = await supabase
+    .from('simple_tasks')
+    .update({ is_completed })
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    await logError(error, { at: 'updateSimpleTaskCompletion', id, is_completed });
+    console.error("Error updating simple task:", error);
+    throw new Error('Failed to update task.');
+  }
+  revalidatePath('/tasks');
+}
+
+export async function deleteSimpleTask(id: string): Promise<void> {
+  const supabase = createClient();
+  const userId = await getCurrentUserId();
+
+  const { error } = await supabase
+    .from('simple_tasks')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    await logError(error, { at: 'deleteSimpleTask', id });
+    console.error("Error deleting simple task:", error);
+    throw new Error('Failed to delete task.');
+  }
+  revalidatePath('/tasks');
+}
+

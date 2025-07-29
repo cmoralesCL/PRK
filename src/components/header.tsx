@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2, LineChart } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2, LineChart, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -49,6 +49,7 @@ export function Header({
     { href: "/panel", label: "Panel", icon: Compass },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
     { href: "/analytics", label: "Analíticas", icon: LineChart },
+    { href: "/tasks", label: "Tareas", icon: CheckSquare },
   ];
 
   const handleSignOut = async () => {
@@ -133,3 +134,4 @@ export function Header({
     </header>
   );
 }
+

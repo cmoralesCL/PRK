@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define public and protected routes
-  const protectedRoutes = ['/panel', '/dashboard', '/calendar', '/analytics'];
+  const protectedRoutes = ['/panel', '/dashboard', '/calendar', '/analytics', '/tasks'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (!user && isProtectedRoute) {
