@@ -154,6 +154,7 @@ export function AddHabitTaskDialog({
       frequency_interval: '',
       frequency_day_of_month: '',
       frequency_days: [],
+      measurement_goal: { target_count: '', unit: '' },
       ...defaultValues
     },
   });
@@ -181,7 +182,8 @@ export function AddHabitTaskDialog({
           frequency_day_of_month: habitTask.frequency_day_of_month ?? '',
           measurement_goal: {
             ...habitTask.measurement_goal,
-            target_count: habitTask.measurement_goal?.target_count ?? ''
+            target_count: habitTask.measurement_goal?.target_count ?? '',
+            unit: habitTask.measurement_goal?.unit ?? '',
           },
           frequency_days: habitTask.frequency_days ?? [],
         });
@@ -194,7 +196,7 @@ export function AddHabitTaskDialog({
           frequency_interval: '',
           frequency_day_of_month: '',
           measurement_type: 'binary',
-          measurement_goal: { target_count: '' },
+          measurement_goal: { target_count: '', unit: '' },
           ...defaultValues,
         });
       }
