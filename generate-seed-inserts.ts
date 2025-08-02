@@ -1,7 +1,7 @@
 // ts-node generate-seed-inserts.ts
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
-import { eachDayOfInterval, format, differenceInMonths, getDay, startOfWeek } from 'date-fns';
+import { eachDayOfInterval, format, differenceInMonths, getDay, startOfWeek, parseISO, isAfter } from 'date-fns';
 import fs from 'fs';
 import path from 'path';
 import type { HabitTask } from './src/lib/types';
@@ -72,8 +72,8 @@ async function generateSeedFile() {
     const currentComplianceRate = INITIAL_COMPLIANCE_RATE + (FINAL_COMPLIANCE_RATE - INITIAL_COMPLIANCE_RATE) * (daysPassed / totalDays);
 
     for (const task of habitTasks as HabitTask[]) {
-      const startDate = new Date(task.start_date!);
-      const dueDate = task.due_date ? new Date(task.due_date) : null;
+      const startDate = parseISO(task.start_date!);
+      const dueDate = task.due_date ? parseISO(task.due_date) : null;
 
       if (currentDate < startDate || (dueDate && currentDate > dueDate)) {
         continue;
@@ -110,10 +110,13 @@ async function generateSeedFile() {
       if (task.type === 'task' && !task.frequency) {
          if (Math.random() < 0.05) { // Small chance each day to complete it
             let completionDate = currentDate;
-            if (dueDate && completionDate > dueDate) {
-                completionDate = dueDate;
+            // CORRECTION: Ensure completion date is not before start date.
+            if (isAfter(completionDate, startDate)) {
+                if (dueDate && completionDate > dueDate) {
+                    completionDate = dueDate;
+                }
+                oneOffTasksToComplete.push({ id: task.id, completion_date: format(completionDate, 'yyyy-MM-dd') });
             }
-            oneOffTasksToComplete.push({ id: task.id, completion_date: format(completionDate, 'yyyy-MM-dd') });
          }
       }
     }
