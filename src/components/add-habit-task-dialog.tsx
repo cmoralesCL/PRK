@@ -181,7 +181,6 @@ export function AddHabitTaskDialog({
           frequency_interval: habitTask.frequency_interval ?? '',
           frequency_day_of_month: habitTask.frequency_day_of_month ?? '',
           measurement_goal: {
-            ...habitTask.measurement_goal,
             target_count: habitTask.measurement_goal?.target_count ?? '',
             unit: habitTask.measurement_goal?.unit ?? '',
           },
