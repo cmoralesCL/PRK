@@ -3,9 +3,10 @@
 
 import { Sidebar, SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Compass, Calendar as CalendarIcon, BarChart2, LineChart, CheckSquare, Sun } from "lucide-react";
+import { Compass, Calendar as CalendarIcon, BarChart2, LineChart, CheckSquare, Sun, PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function AppLayout({
     children,
@@ -40,7 +41,7 @@ export default function AppLayout({
                         ))}
                     </SidebarMenu>
                 </Sidebar>
-                <div className="flex-1">
+                <div className="flex-1 flex flex-col">
                     {children}
                 </div>
             </SidebarProvider>

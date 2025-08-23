@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Compass, Plus, Calendar as CalendarIcon, LogOut, PanelLeft } from 'lucide-react';

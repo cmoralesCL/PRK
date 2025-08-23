@@ -1,23 +1,30 @@
+
 "use client"
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { Compass, PanelLeft, Plus, Calendar as CalendarIcon, LogOut } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import Link from "next/link"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Calendar } from "./calendar"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { createClient } from "@/lib/supabase/client"
+import { useDialog } from "@/hooks/use-dialog"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -34,6 +41,8 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  selectedDate: Date
+  handleDateChange: (date: Date | undefined) => void;
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -69,6 +78,28 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    const [selectedDate, setSelectedDate] = React.useState<Date>(() => {
+        const dateParam = searchParams.get('date');
+        return dateParam ? new Date(dateParam) : new Date();
+    });
+
+    React.useEffect(() => {
+        const dateParam = searchParams.get('date');
+        const newDate = dateParam ? new Date(dateParam) : new Date();
+        setSelectedDate(newDate);
+    }, [searchParams]);
+
+    const handleDateChange = (date: Date | undefined) => {
+        if (!date) return;
+        const dateString = format(date, 'yyyy-MM-dd');
+        setSelectedDate(date);
+        const currentPath = window.location.pathname;
+        router.push(`${currentPath}?date=${dateString}`);
+    }
+
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
@@ -125,8 +156,10 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        selectedDate,
+        handleDateChange,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, selectedDate, handleDateChange]
     )
 
     return (
@@ -168,14 +201,89 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible = "icon",
       className,
       children,
       ...props
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, selectedDate, handleDateChange } = useSidebar();
+    const { onOpen } = useDialog();
+    const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
+
+     useEffect(() => {
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+      setCurrentTime(new Date());
+      return () => clearInterval(timer);
+    }, []);
+
+    const handleSignOut = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+    };
+
+
+    const sidebarContent = (
+         <>
+            <SidebarHeader>
+                 <Link href="/" className="flex items-center space-x-2">
+                    <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
+                    <Compass className="h-5 w-5" />
+                    </div>
+                    <h1 className="text-lg font-bold font-headline text-foreground">
+                    Brújula
+                    </h1>
+                </Link>
+            </SidebarHeader>
+
+            <SidebarContent>
+                {children}
+            </SidebarContent>
+
+            <SidebarFooter>
+                 {currentTime && (
+                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center">
+                        {format(currentTime, 'Pp', { locale: es })}
+                    </div>
+                )}
+                {selectedDate && handleDateChange && (
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant={"outline"}
+                            size="sm"
+                            className={cn("w-full justify-start text-left font-normal h-9")}
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            <span>{selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}</span>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleDateChange}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                )}
+                <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground">
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>PRK de Vida</span>
+                </Button>
+                 <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                </Button>
+            </SidebarFooter>
+        </>
+    )
+
 
     if (collapsible === "none") {
       return (
@@ -187,7 +295,7 @@ const Sidebar = React.forwardRef<
           ref={ref}
           {...props}
         >
-          {children}
+          {sidebarContent}
         </div>
       )
     }
@@ -207,10 +315,10 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetHeader className="sr-only">
+            <SheetHeader className="p-2 border-b">
               <SheetTitle>Navegación</SheetTitle>
             </SheetHeader>
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <div className="flex h-full w-full flex-col">{sidebarContent}</div>
           </SheetContent>
         </Sheet>
       )
@@ -254,7 +362,7 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
-            {children}
+            {sidebarContent}
           </div>
         </div>
       </div>
@@ -377,7 +485,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2 mt-auto", className)}
       {...props}
     />
   )
@@ -496,7 +604,7 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+    className={cn("flex w-full min-w-0 flex-col gap-1 p-2", className)}
     {...props}
   />
 ))

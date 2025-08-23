@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useTransition, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
-import { Header } from '@/components/header';
 import { getDashboardKpiData } from '@/app/server/queries';
 import { KpiDashboard } from '@/components/kpi-dashboard';
 import { KpiData } from '@/lib/types';
@@ -44,9 +43,7 @@ export default function DashboardPage() {
   }, [searchParams, router]);
 
   return (
-    <>
-      <Header hideDatePicker={true} />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoading ? (
           <div className="text-center py-24">
             <h2 className="text-2xl font-headline font-semibold">Cargando KPIs...</h2>
@@ -59,7 +56,6 @@ export default function DashboardPage() {
             <p className="mt-2 text-muted-foreground">Por favor, intenta refrescar la página.</p>
           </div>
         )}
-      </main>
-    </>
+    </main>
   );
 }

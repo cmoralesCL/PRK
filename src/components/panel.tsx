@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -26,7 +25,6 @@ import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { useDialog } from '@/hooks/use-dialog';
-import { Header } from './header';
 import { CommitmentsSidebar } from './commitments-sidebar';
 import { cn } from '@/lib/utils';
 
@@ -233,77 +231,71 @@ export function Panel({
 
   return (
     <>
-      <div className="flex flex-col h-screen overflow-hidden">
-        <Header 
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-        />
-        <div className="flex flex-1 overflow-hidden">
-            <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
-              {lifePrks.length === 0 && !isPending && (
-                  <div className="text-center py-24">
-                      <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
-                      <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                      <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
-                  </div>
-              )}
-              {isPending && (
-                  <div className="text-center py-24">
-                       <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
-                  </div>
-              )}
-              {!isPending && lifePrks.length > 0 && (
-                <>
-                  <div className="flex justify-end gap-2 my-2">
-                      <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
-                          Expandir Todo
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
-                          Contraer Todo
-                      </Button>
-                  </div>
-                  <Accordion 
-                    type="multiple" 
-                    className="w-full space-y-3" 
-                    value={openLifePrkIds}
-                    onValueChange={setOpenLifePrkIds}
-                  >
-                    {lifePrks.map((lp) => (
-                      <LifePrkSection
-                        key={lp.id}
-                        lifePrk={lp}
-                        areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                        habitTasks={habitTasks.filter(ht => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === ht.area_prk_id))}
-                        onAddAreaPrk={handleOpenAddAreaPrkDialog}
-                        onEditAreaPrk={handleOpenEditAreaPrkDialog}
-                        onAddHabitTask={handleOpenAddHabitTaskDialog}
-                        onEditHabitTask={handleOpenEditHabitTaskDialog}
-                        onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-                        onArchive={handleArchiveLifePrk}
-                        onEdit={handleOpenEditLifePrkDialog}
-                        onArchiveAreaPrk={handleArchiveAreaPrk}
-                        onArchiveHabitTask={handleArchiveHabitTask}
-                        selectedDate={selectedDate}
-                      />
-                    ))}
-                  </Accordion>
-                </>
-              )}
-            </main>
-             <aside className={cn(
-                "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
-                isSidebarOpen ? 'w-80 p-2' : 'w-14 p-1 items-center justify-center'
-            )}>
-                <CommitmentsSidebar
-                    commitments={commitments}
-                    selectedDate={selectedDate}
-                    isOpen={isSidebarOpen}
-                    setIsOpen={setSidebarOpen}
-                    onAddCommitment={handleOpenAddCommitmentDialog}
-                    onEditCommitment={handleOpenEditHabitTaskDialog}
-                />
-            </aside>
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
+            {lifePrks.length === 0 && !isPending && (
+                <div className="text-center py-24">
+                    <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                    <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                    <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
+                </div>
+            )}
+            {isPending && (
+                <div className="text-center py-24">
+                      <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
+                </div>
+            )}
+            {!isPending && lifePrks.length > 0 && (
+              <>
+                <div className="flex justify-end gap-2 my-2">
+                    <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
+                        Expandir Todo
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
+                        Contraer Todo
+                    </Button>
+                </div>
+                <Accordion 
+                  type="multiple" 
+                  className="w-full space-y-3" 
+                  value={openLifePrkIds}
+                  onValueChange={setOpenLifePrkIds}
+                >
+                  {lifePrks.map((lp) => (
+                    <LifePrkSection
+                      key={lp.id}
+                      lifePrk={lp}
+                      areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
+                      habitTasks={habitTasks.filter(ht => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === ht.area_prk_id))}
+                      onAddAreaPrk={handleOpenAddAreaPrkDialog}
+                      onEditAreaPrk={handleOpenEditAreaPrkDialog}
+                      onAddHabitTask={handleOpenAddHabitTaskDialog}
+                      onEditHabitTask={handleOpenEditHabitTaskDialog}
+                      onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                      onArchive={handleArchiveLifePrk}
+                      onEdit={handleOpenEditLifePrkDialog}
+                      onArchiveAreaPrk={handleArchiveAreaPrk}
+                      onArchiveHabitTask={handleArchiveHabitTask}
+                      selectedDate={selectedDate}
+                    />
+                  ))}
+                </Accordion>
+              </>
+            )}
+          </main>
+            <aside className={cn(
+              "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
+              isSidebarOpen ? 'w-80 p-2' : 'w-14 p-1 items-center justify-center'
+          )}>
+              <CommitmentsSidebar
+                  commitments={commitments}
+                  selectedDate={selectedDate}
+                  isOpen={isSidebarOpen}
+                  setIsOpen={setSidebarOpen}
+                  onAddCommitment={handleOpenAddCommitmentDialog}
+                  onEditCommitment={handleOpenEditHabitTaskDialog}
+              />
+          </aside>
       </div>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 
@@ -320,7 +312,7 @@ export function Panel({
         defaultDate={selectedDate}
         areaPrks={areaPrks}
         defaultValues={defaultHabitTaskValues}
-       />
+        />
       <AiSuggestionDialog 
         isOpen={isAiSuggestOpen} 
         onOpenChange={setAiSuggestOpen} 

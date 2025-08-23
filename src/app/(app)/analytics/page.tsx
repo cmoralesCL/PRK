@@ -4,7 +4,6 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-import { Header } from '@/components/header';
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
 import { getAnalyticsData } from '@/app/server/queries';
 import type { AnalyticsData } from '@/lib/types';
@@ -57,22 +56,19 @@ export default function AnalyticsPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen">
-            <Header />
-            <main className="flex-1 overflow-y-auto">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                     {isLoading || !data ? (
-                        <AnalyticsSkeleton />
-                     ) : (
-                        <AnalyticsDashboard 
-                            data={data} 
-                            onFilterChange={handleFilterChange}
-                            filters={{ lifePrkId, areaPrkId, habitTaskId }}
-                        />
-                     )}
-                </div>
-            </main>
-        </div>
+        <main className="flex-1 overflow-y-auto">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                 {isLoading || !data ? (
+                    <AnalyticsSkeleton />
+                 ) : (
+                    <AnalyticsDashboard 
+                        data={data} 
+                        onFilterChange={handleFilterChange}
+                        filters={{ lifePrkId, areaPrkId, habitTaskId }}
+                    />
+                 )}
+            </div>
+        </main>
     );
 }
 
