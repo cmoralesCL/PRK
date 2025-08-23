@@ -66,7 +66,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {
           const dayIndex = getDay(day);
           const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Domingo es 0, lo mapeamos al final del array
