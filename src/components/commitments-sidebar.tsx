@@ -13,6 +13,7 @@ import { logHabitTaskCompletion, removeHabitTaskCompletion, archiveHabitTask } f
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ScrollArea } from './ui/scroll-area';
 
 
 type CommitmentTab = 'weekly' | 'monthly' | 'quarterly';
@@ -117,23 +118,23 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
   }
 
   return (
-      <Card className="h-full w-full flex flex-col transition-all duration-300 ease-in-out">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="h-full w-full flex flex-col transition-all duration-300 ease-in-out shadow-none border-0">
+        <CardHeader className="flex flex-row items-center justify-between p-3">
             <div className="w-full">
-              <CardTitle className="font-headline text-lg flex items-center gap-2">
-                  <ListTodo className="h-5 w-5 text-primary" />
+              <CardTitle className="font-headline text-base flex items-center gap-2">
+                  <ListTodo className="h-4 w-4 text-primary" />
                   Compromisos
               </CardTitle>
-              <CardDescription>Metas sin día fijo.</CardDescription>
+              <CardDescription className="text-xs">Metas sin día fijo.</CardDescription>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="flex-shrink-0">
-                <PanelRightClose className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="flex-shrink-0 h-8 w-8">
+                <PanelRightClose className="h-4 w-4" />
             </Button>
         </CardHeader>
-        <CardContent className="flex-grow">
+        <CardContent className="flex-grow p-3 overflow-hidden">
         <Tabs 
           defaultValue="weekly" 
-          className="w-full"
+          className="w-full h-full flex flex-col"
           onValueChange={(value) => setActiveTab(value as CommitmentTab)}
         >
             <TabsList className="grid w-full grid-cols-3">
@@ -141,19 +142,21 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
               <TabsTrigger value="monthly">Mensual</TabsTrigger>
               <TabsTrigger value="quarterly">Trimestral</TabsTrigger>
             </TabsList>
-            <TabsContent value="weekly" className="mt-4">
-              {renderCommitmentList(weeklyCommitments)}
-            </TabsContent>
-            <TabsContent value="monthly" className="mt-4">
-                {renderCommitmentList(monthlyCommitments)}
-            </TabsContent>
-            <TabsContent value="quarterly" className="mt-4">
-              {renderCommitmentList(quarterlyCommitments)}
-            </TabsContent>
+            <ScrollArea className="flex-grow mt-2">
+                <TabsContent value="weekly" className="mt-2 pr-2">
+                {renderCommitmentList(weeklyCommitments)}
+                </TabsContent>
+                <TabsContent value="monthly" className="mt-2 pr-2">
+                    {renderCommitmentList(monthlyCommitments)}
+                </TabsContent>
+                <TabsContent value="quarterly" className="mt-2 pr-2">
+                {renderCommitmentList(quarterlyCommitments)}
+                </TabsContent>
+            </ScrollArea>
         </Tabs>
         </CardContent>
-         <CardFooter>
-            <Button className="w-full" onClick={() => onAddCommitment(tabToFrequencyMap[activeTab])}>
+         <CardFooter className="p-3">
+            <Button size="sm" className="w-full" onClick={() => onAddCommitment(tabToFrequencyMap[activeTab])}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Compromiso
             </Button>

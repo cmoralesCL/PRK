@@ -32,7 +32,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 211 100% 50%;
  
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
  
   .dark {
@@ -69,6 +69,9 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    @apply text-sm sm:text-base;
   }
   body {
     @apply bg-background text-foreground;

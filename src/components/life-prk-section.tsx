@@ -98,28 +98,28 @@ export function LifePrkSection({
 
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
-       <div className="py-4 bg-card rounded-lg shadow-sm px-6">
+       <div className="py-3 bg-card rounded-lg shadow-sm px-4">
         <AccordionTrigger asChild className="p-0 hover:no-underline flex-grow cursor-pointer group w-full">
-            <div className="flex justify-between items-start gap-4 p-2">
+            <div className="flex justify-between items-start gap-2 p-2">
                 <div className="flex-grow">
-                    <div className="mb-4 sm:mb-0">
-                        <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-                            <Target className="h-8 w-8 text-primary" />
+                    <div className="mb-2 sm:mb-0">
+                        <h2 className="text-xl md:text-2xl font-bold font-headline flex items-center gap-3">
+                            <Target className="h-6 w-6 text-primary" />
                             {lifePrk.title}
                         </h2>
-                        <p className="mt-1 text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+                        <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{lifePrk.description}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 self-center">
-                    <Button variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-center">
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
                         <Plus className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Agregar PRK de Área</span>
-                        <span className="inline sm:hidden">PRK Área</span>
+                        <span className="hidden sm:inline">PRK de Área</span>
+                        <span className="inline sm:hidden">Área</span>
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                <MoreVertical className="h-5 w-5" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -138,9 +138,9 @@ export function LifePrkSection({
               </div>
         </AccordionTrigger>
         
-        <div className="px-4">
-            <div className="space-y-2 mt-4">
-                <div className="flex justify-between text-sm font-medium text-muted-foreground">
+        <div className="px-2">
+            <div className="space-y-1 mt-2">
+                <div className="flex justify-between text-xs font-medium text-muted-foreground">
                     <span>Progreso General</span>
                     <span>{lifePrkProgress.toFixed(0)}%</span>
                 </div>
@@ -148,9 +148,9 @@ export function LifePrkSection({
             </div>
         </div>
 
-      <AccordionContent className="pt-6 px-4">
+      <AccordionContent className="pt-4 px-2">
         {areaPrks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {areaPrks.map((kp) => (
               <AreaPrkCard
                   key={kp.id}
@@ -169,9 +169,9 @@ export function LifePrkSection({
               ))}
           </div>
           ) : (
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 bg-muted/50 rounded-lg border border-dashed">
-                  <p className="text-muted-foreground">Aún no hay PRK de Área para esta visión.</p>
-                  <Button variant="link" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>
+                  <Button variant="link" size="sm" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
               </div>
           )}
       </AccordionContent>

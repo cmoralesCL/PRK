@@ -51,24 +51,24 @@ export function AreaPrkCard({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
-      <Card className="bg-card/70 shadow-md transition-shadow hover:shadow-lg flex flex-col">
+      <Card className="bg-card/70 shadow-sm transition-shadow hover:shadow-md flex flex-col">
         <CollapsibleTrigger asChild>
-          <CardHeader className='cursor-pointer'>
+          <CardHeader className='cursor-pointer p-4'>
             <div className="flex justify-between items-start">
-                <div className='flex-grow'>
-                    <CardTitle className="font-headline text-lg flex items-center gap-2">
-                        <Gauge className="h-5 w-5 text-accent" />
+                <div className='flex-grow pr-2'>
+                    <CardTitle className="font-headline text-base flex items-center gap-2">
+                        <Gauge className="h-4 w-4 text-accent" />
                         {areaPrk.title}
                     </CardTitle>
-                    <CardDescription className="pt-1">
+                    <CardDescription className="pt-1 text-xs">
                         {areaPrk.description}
                     </CardDescription>
                 </div>
                 <div className='flex items-center'>
-                  <ChevronDown className={`h-5 w-5 mr-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 mr-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -87,17 +87,17 @@ export function AreaPrkCard({
             </div>
             
             <div className="pt-2">
-              <div className="flex justify-between text-sm text-muted-foreground mb-1">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Progreso</span>
                 <span>{progress.toFixed(0)}%</span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress value={progress} className="h-1.5" />
             </div>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="space-y-2 flex-grow">
-            <h4 className="text-sm font-semibold text-muted-foreground">Hábitos y Tareas</h4>
+          <CardContent className="space-y-1 p-4 pt-0 flex-grow">
+            <h4 className="text-xs font-semibold text-muted-foreground pt-2">Hábitos y Tareas</h4>
             {habitTasks.length > 0 ? (
               <div className="space-y-1">
                 {habitTasks.map((item) => (
@@ -113,17 +113,17 @@ export function AreaPrkCard({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
+              <p className="text-xs text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
             )}
           </CardContent>
-          <CardFooter className="flex justify-end gap-2 flex-wrap">
-            <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(areaPrk)}>
+          <CardFooter className="flex justify-end gap-2 p-2 pt-0">
+            <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(areaPrk)} className="h-8">
               <Sparkles className="mr-2 h-4 w-4" />
-              Sugerir Tareas
+              Sugerir
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)}>
+            <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="h-8">
               <Plus className="mr-2 h-4 w-4" />
-              Agregar Hábito/Tarea
+              Agregar
             </Button>
           </CardFooter>
         </CollapsibleContent>

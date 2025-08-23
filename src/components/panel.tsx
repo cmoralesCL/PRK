@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -238,7 +239,7 @@ export function Panel({
           onDateChange={handleDateChange}
         />
         <div className="flex flex-1 overflow-hidden">
-            <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-y-auto">
+            <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
               {lifePrks.length === 0 && !isPending && (
                   <div className="text-center py-24">
                       <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
@@ -253,7 +254,7 @@ export function Panel({
               )}
               {!isPending && lifePrks.length > 0 && (
                 <>
-                  <div className="flex justify-end gap-2 my-4">
+                  <div className="flex justify-end gap-2 my-2">
                       <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                           Expandir Todo
                       </Button>
@@ -263,7 +264,7 @@ export function Panel({
                   </div>
                   <Accordion 
                     type="multiple" 
-                    className="w-full space-y-4" 
+                    className="w-full space-y-3" 
                     value={openLifePrkIds}
                     onValueChange={setOpenLifePrkIds}
                   >
@@ -291,7 +292,7 @@ export function Panel({
             </main>
              <aside className={cn(
                 "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
-                isSidebarOpen ? 'w-96 p-4' : 'w-16 p-2 items-center justify-center'
+                isSidebarOpen ? 'w-80 p-2' : 'w-14 p-1 items-center justify-center'
             )}>
                 <CommitmentsSidebar
                     commitments={commitments}

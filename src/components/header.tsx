@@ -68,19 +68,19 @@ export function Header({
 
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-10 border-b">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-6">
-            <Link href="/" className="flex items-center space-x-3">
-                <Compass className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold font-headline text-foreground hidden sm:block">
-                Brújula de Resultados
+      <div className="container mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-14">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <Link href="/" className="flex items-center space-x-2">
+                <Compass className="h-7 w-7 text-primary" />
+                <h1 className="text-lg font-bold font-headline text-foreground hidden sm:block">
+                Brújula
                 </h1>
             </Link>
             {showAuth && (
-              <nav className="flex items-center gap-1">
+              <nav className="flex items-center">
                   {navLinks.map(link => (
-                      <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild>
+                      <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild size="sm">
                           <Link href={link.href}>
                               <link.icon className="h-4 w-4 sm:mr-2"/>
                               <span className="hidden sm:inline">{link.label}</span>
@@ -92,7 +92,7 @@ export function Header({
           </div>
           <div className="flex items-center gap-2">
             {currentTime && (
-                <div className="text-sm text-muted-foreground font-mono bg-muted px-3 py-1.5 rounded-md hidden lg:block">
+                <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md hidden lg:block">
                     {format(currentTime, 'Pp', { locale: es })}
                 </div>
             )}
@@ -101,10 +101,12 @@ export function Header({
                     <PopoverTrigger asChild>
                         <Button
                         variant={"outline"}
-                        className={cn("w-[240px] justify-start text-left font-normal")}
+                        size="sm"
+                        className={cn("w-[180px] sm:w-[240px] justify-start text-left font-normal")}
                         >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                        <span className="hidden sm:inline">{selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}</span>
+                        <span className="inline sm:hidden">{selectedDate ? format(selectedDate, "d/MM", { locale: es }) : <span>Fecha</span>}</span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -117,14 +119,14 @@ export function Header({
                     </PopoverContent>
                 </Popover>
             )}
-            <Button onClick={handleAddClick} variant="default" className="shadow-md">
-                <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={handleAddClick} variant="default" size="sm" className="shadow-md">
+                <Plus className="mr-0 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
                 <span className="sm:hidden">PRK</span>
             </Button>
 
             {showAuth && (
-              <Button onClick={handleSignOut} variant="ghost" size="icon" title="Cerrar sesión">
+              <Button onClick={handleSignOut} variant="ghost" size="icon" title="Cerrar sesión" className="h-9 w-9">
                 <LogOut className="h-4 w-4" />
               </Button>
             )}
