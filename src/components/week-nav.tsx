@@ -29,7 +29,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
     'bg-teal-100 text-teal-900',       // Miércoles
     'bg-green-100 text-green-900',     // Jueves
     'bg-amber-100 text-amber-900',     // Viernes
-    'bg-orange-500 text-white',        // Sábado
+    'bg-orange-100 text-orange-900',   // Sábado (Pastel)
     'bg-red-100 text-red-900'          // Domingo
   ];
   const dayHoverColors = [
@@ -38,7 +38,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
     'hover:bg-teal-200/70',
     'hover:bg-green-200/70',
     'hover:bg-amber-200/70',
-    'hover:bg-orange-600/90',
+    'hover:bg-orange-200/70',
     'hover:bg-red-200/70',
   ];
   const daySelectedColors = [
@@ -47,7 +47,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
       'bg-teal-500 text-white',
       'bg-green-500 text-white',
       'bg-amber-500 text-white',
-      'bg-orange-600 text-white',
+      'bg-orange-500 text-white',
       'bg-red-500 text-white'
   ]
 
