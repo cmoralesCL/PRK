@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2, LineChart, CheckSquare, Sun } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, LogOut, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { useSidebar } from './sidebar';
 
 
 interface HeaderProps {
@@ -32,6 +33,8 @@ export function Header({
   const pathname = usePathname();
   const { onOpen } = useDialog();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const { toggleSidebar, isMobile } = useSidebar();
+
 
   useEffect(() => {
     // Update time every second on the client
@@ -42,15 +45,6 @@ export function Header({
     setCurrentTime(new Date());
     return () => clearInterval(timer);
   }, []);
-
-  const navLinks = [
-    { href: "/day", label: "Mi Día", icon: Sun },
-    { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
-    { href: "/panel", label: "Panel", icon: Compass },
-    { href: "/calendar", label: "Calendario", icon: CalendarIcon },
-    { href: "/analytics", label: "Analíticas", icon: LineChart },
-    { href: "/tasks", label: "Tareas", icon: CheckSquare },
-  ];
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -71,6 +65,11 @@ export function Header({
       <div className="container mx-auto px-2 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center space-x-2 md:space-x-4">
+             {isMobile && (
+              <Button onClick={toggleSidebar} variant="ghost" size="icon">
+                <PanelLeft className="h-5 w-5" />
+              </Button>
+            )}
             <Link href="/" className="flex items-center space-x-2">
                 <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
                   <Compass className="h-5 w-5" />
@@ -79,18 +78,6 @@ export function Header({
                 Brújula
                 </h1>
             </Link>
-            {showAuth && (
-              <nav className="flex items-center">
-                  {navLinks.map(link => (
-                      <Button key={link.href} variant={pathname.startsWith(link.href) ? "secondary" : "ghost"} asChild size="sm">
-                          <Link href={link.href}>
-                              <link.icon className="h-4 w-4 sm:mr-2"/>
-                              <span className="hidden sm:inline">{link.label}</span>
-                          </Link>
-                      </Button>
-                  ))}
-              </nav>
-            )}
           </div>
           <div className="flex items-center gap-2">
             {currentTime && (
