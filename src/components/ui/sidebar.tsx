@@ -41,7 +41,7 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
-  selectedDate: Date
+  selectedDate: Date | null
   handleDateChange: (date: Date | undefined) => void;
 }
 
@@ -82,7 +82,7 @@ const SidebarProvider = React.forwardRef<
     const searchParams = useSearchParams();
     
     // Initialize with a server-safe value, then update on client
-    const [selectedDate, setSelectedDate] = React.useState<Date>(new Date(searchParams.get('date') || new Date().toISOString()));
+    const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
 
     React.useEffect(() => {
         const dateParam = searchParams.get('date');
@@ -445,11 +445,11 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset"
 
 const SidebarInput = React.forwardRef<
-  React.ElementRef<typeof Input>,
-  React.ComponentProps<typeof Input>
+  React.ElementRef<"input">,
+  React.ComponentProps<"input">
 >(({ className, ...props }, ref) => {
   return (
-    <Input
+    <input
       ref={ref}
       data-sidebar="input"
       className={cn(
@@ -775,12 +775,12 @@ const SidebarMenuSkeleton = React.forwardRef<
       {...props}
     >
       {showIcon && (
-        <Skeleton
+        <div
           className="size-4 rounded-md"
           data-sidebar="menu-skeleton-icon"
         />
       )}
-      <Skeleton
+      <div
         className="h-4 flex-1 max-w-[--skeleton-width]"
         data-sidebar="menu-skeleton-text"
         style={
