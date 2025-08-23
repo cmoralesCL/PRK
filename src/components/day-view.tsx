@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { 
     addHabitTask, 
     updateHabitTask,
+    logHabitTaskCompletion,
+    removeHabitTaskCompletion,
+    archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
@@ -91,6 +94,55 @@ export function DayView({
     });
   };
 
+  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
+    const allTasks = [...habitTasks, ...commitments];
+    const task = allTasks.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+
+    startTransition(async () => {
+      try {
+        if (completed) {
+          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+        } else {
+          await removeHabitTaskCompletion(id, task.type, completionDate);
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
+      }
+    });
+  };
+
+  const handleUndoHabitTask = (id: string, date: Date) => {
+     const allTasks = [...habitTasks, ...commitments];
+    const task = allTasks.find(ht => ht.id === id);
+    if (!task) return;
+
+    const completionDate = date.toISOString().split('T')[0];
+    startTransition(async () => {
+        try {
+            await removeHabitTaskCompletion(id, task.type, completionDate);
+            toast({ title: "Registro deshecho" });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
+        }
+    });
+  };
+
+  const handleArchiveHabitTask = (id: string) => {
+    if (!selectedDate) return;
+    startTransition(async () => {
+        try {
+          await archiveHabitTask(id, selectedDate.toISOString());
+          toast({ title: 'Hábito/Tarea Archivado' });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+        }
+    });
+  };
+
+
   if (!selectedDate) {
     return (
         <div className="flex items-center justify-center h-screen">
@@ -114,7 +166,9 @@ export function DayView({
                         item={task}
                         selectedDate={selectedDate}
                         onEdit={handleOpenEditHabitTaskDialog}
-                        // Add toggle and archive handlers if needed
+                        onToggle={handleToggleHabitTask}
+                        onUndo={handleUndoHabitTask}
+                        onArchive={handleArchiveHabitTask}
                       />
                     ))
                 ) : (
@@ -132,9 +186,10 @@ export function DayView({
                 <CommitmentsCard 
                     commitments={commitments}
                     selectedDate={selectedDate}
-                    onToggle={() => {}} // Placeholder
+                    onToggle={handleToggleHabitTask}
+                    onUndo={handleUndoHabitTask}
                     onEdit={handleOpenEditHabitTaskDialog}
-                    onArchive={() => {}} // Placeholder
+                    onArchive={handleArchiveHabitTask}
                 />
             </div>
         </div>
