@@ -72,7 +72,9 @@ export function Header({
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center space-x-2 md:space-x-4">
             <Link href="/" className="flex items-center space-x-2">
-                <Compass className="h-7 w-7 text-primary" />
+                <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
+                  <Compass className="h-5 w-5" />
+                </div>
                 <h1 className="text-lg font-bold font-headline text-foreground hidden sm:block">
                 Brújula
                 </h1>
@@ -119,7 +121,7 @@ export function Header({
                     </PopoverContent>
                 </Popover>
             )}
-            <Button onClick={handleAddClick} variant="default" size="sm" className="shadow-md h-9">
+            <Button onClick={handleAddClick} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground">
                 <Plus className="mr-0 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
                 <span className="sm:hidden">PRK</span>

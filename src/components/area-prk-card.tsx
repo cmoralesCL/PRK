@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil } from 'lucide-react';
@@ -57,7 +56,7 @@ export function AreaPrkCard({
             <div className="flex justify-between items-start">
                 <div className='flex-grow pr-2'>
                     <CardTitle className="font-headline text-base flex items-center gap-2">
-                        <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
+                        <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
                             <Gauge className="h-4 w-4" />
                         </div>
                         {areaPrk.title}

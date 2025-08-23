@@ -12,8 +12,7 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => {
   const progressValue = value || 0;
   
-  // Use a gradient for the progress indicator
-  const colorClass = 'bg-gradient-to-r from-primary to-accent';
+  const colorClass = 'bg-gradient-to-r from-primary via-accent to-warm';
 
   return (
     <ProgressPrimitive.Root
@@ -26,7 +25,7 @@ const Progress = React.forwardRef<
     >
       <ProgressPrimitive.Indicator
         className={cn("h-full w-full flex-1 transition-all", colorClass)}
-        style={{ width: `${progressValue}%` }}
+        style={{ transform: `translateX(-${100 - (progressValue || 0)}%)` }}
       />
     </ProgressPrimitive.Root>
   )

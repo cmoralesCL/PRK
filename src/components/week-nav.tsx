@@ -24,23 +24,32 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
   };
 
   const dayColors = [
-    'bg-red-50 text-red-800',       // Lunes (1) -> getDay returns 1
-    'bg-orange-50 text-orange-800', // Martes (2)
-    'bg-amber-50 text-amber-800',   // Miércoles (3)
-    'bg-yellow-50 text-yellow-800', // Jueves (4)
-    'bg-lime-50 text-lime-800',     // Viernes (5)
-    'bg-green-50 text-green-800',   // Sábado (6)
-    'bg-emerald-50 text-emerald-800'  // Domingo (0)
+    'bg-blue-50 text-blue-800',       // Lunes
+    'bg-cyan-50 text-cyan-800',   // Martes
+    'bg-teal-50 text-teal-800',   // Miércoles
+    'bg-green-50 text-green-800', // Jueves
+    'bg-amber-50 text-amber-800',     // Viernes
+    'bg-orange-50 text-orange-800',   // Sábado
+    'bg-red-50 text-red-800'  // Domingo
   ];
   const dayHoverColors = [
-    'hover:bg-red-100',
-    'hover:bg-orange-100',
-    'hover:bg-amber-100',
-    'hover:bg-yellow-100',
-    'hover:bg-lime-100',
+    'hover:bg-blue-100',
+    'hover:bg-cyan-100',
+    'hover:bg-teal-100',
     'hover:bg-green-100',
-    'hover:bg-emerald-100',
+    'hover:bg-amber-100',
+    'hover:bg-orange-100',
+    'hover:bg-red-100',
   ];
+  const daySelectedColors = [
+      'bg-blue-500',
+      'bg-cyan-500',
+      'bg-teal-500',
+      'bg-green-500',
+      'bg-amber-500',
+      'bg-orange-500',
+      'bg-red-500'
+  ]
 
   return (
     <div className="bg-card p-2 rounded-xl shadow-sm border">
@@ -60,7 +69,6 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
       <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
           const dayIndex = getDay(day);
-          // Adjust index because getDay() returns 0 for Sunday
           const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1;
 
           return (
@@ -70,7 +78,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
               className={cn(
                 "flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 group",
                 isSameDay(day, selectedDate)
-                  ? "bg-primary text-primary-foreground shadow-md"
+                  ? `${daySelectedColors[colorIndex]} text-primary-foreground shadow-md`
                   : cn(
                       dayColors[colorIndex],
                       dayHoverColors[colorIndex],
