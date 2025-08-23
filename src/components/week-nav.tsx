@@ -2,7 +2,7 @@
 
 import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -76,7 +76,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
               key={day.toString()}
               onClick={() => onDateChange(day)}
               className={cn(
-                "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+                "relative flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
                 isSameDay(day, selectedDate)
                   ? `${daySelectedColors[colorIndex]} shadow-md scale-105`
                   : cn(
@@ -84,9 +84,11 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
                       dayHoverColors[colorIndex],
                       "hover:scale-105 hover:shadow-md"
                   ),
-                isToday(day) && !isSameDay(day, selectedDate) && "ring-2 ring-primary ring-offset-2 ring-offset-background"
               )}
             >
+              {isToday(day) && (
+                <Star className="absolute top-1.5 right-1.5 h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+              )}
               <span className={cn(
                 "text-xs uppercase font-medium", 
                 isSameDay(day, selectedDate) ? "text-white/80" : "opacity-70 group-hover:opacity-100"
