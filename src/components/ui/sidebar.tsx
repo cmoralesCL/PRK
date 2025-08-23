@@ -83,7 +83,8 @@ const SidebarProvider = React.forwardRef<
     
     const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
 
-    React.useEffect(() => {
+     React.useEffect(() => {
+        // This effect runs only on the client, preventing hydration mismatch
         const dateParam = searchParams.get('date');
         const newDate = dateParam ? new Date(dateParam) : new Date();
         setSelectedDate(newDate);
@@ -226,9 +227,6 @@ const Sidebar = React.forwardRef<
                         Brújula
                         </h1>
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hidden md:flex group-data-[collapsible=icon]:hidden" onClick={toggleSidebar}>
-                        <PanelLeftClose />
-                    </Button>
                  </div>
             </SidebarHeader>
 
@@ -238,7 +236,7 @@ const Sidebar = React.forwardRef<
 
             <SidebarFooter>
                  {currentTime && (
-                    <div className="text-xs text-muted-foreground text-left px-1">
+                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center">
                         {format(currentTime, 'Pp', { locale: es })}
                     </div>
                 )}
@@ -249,6 +247,11 @@ const Sidebar = React.forwardRef<
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Cerrar Sesión</span>
+                </Button>
+                <Separator />
+                <Button variant="ghost" className="w-full justify-start" onClick={toggleSidebar}>
+                    <PanelLeft className="mr-2 h-4 w-4" />
+                    <span>Contraer</span>
                 </Button>
             </SidebarFooter>
         </>
@@ -285,7 +288,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="p-2 border-b">
-              <SheetTitle className="sr-only">Navegación</SheetTitle>
+              <SheetTitle>Navegación</SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{sidebarContent}</div>
           </SheetContent>
