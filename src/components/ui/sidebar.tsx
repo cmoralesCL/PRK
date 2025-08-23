@@ -81,10 +81,8 @@ const SidebarProvider = React.forwardRef<
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const [selectedDate, setSelectedDate] = React.useState<Date>(() => {
-        const dateParam = searchParams.get('date');
-        return dateParam ? new Date(dateParam) : new Date();
-    });
+    // Initialize with a server-safe value, then update on client
+    const [selectedDate, setSelectedDate] = React.useState<Date>(new Date(searchParams.get('date') || new Date().toISOString()));
 
     React.useEffect(() => {
         const dateParam = searchParams.get('date');
@@ -213,9 +211,11 @@ const Sidebar = React.forwardRef<
     const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
      React.useEffect(() => {
+      // Update time every second on the client
       const timer = setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
+      // Set initial time on mount to avoid hydration mismatch
       setCurrentTime(new Date());
       return () => clearInterval(timer);
     }, []);
