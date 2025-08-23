@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { Compass, PanelLeft, Plus, Calendar as CalendarIcon, LogOut } from "lucide-react"
+import { Compass, PanelLeft, Plus, Calendar as CalendarIcon, LogOut, PanelLeftClose } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -81,7 +81,6 @@ const SidebarProvider = React.forwardRef<
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    // Initialize with a server-safe value, then update on client
     const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
 
     React.useEffect(() => {
@@ -98,9 +97,6 @@ const SidebarProvider = React.forwardRef<
         router.push(`${currentPath}?date=${dateString}`);
     }
 
-
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
@@ -111,21 +107,17 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-
-        // This sets the cookie to keep the sidebar state.
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
       },
       [setOpenProp, open]
     )
 
-    // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       return isMobile
         ? setOpenMobile((open) => !open)
         : setOpen((open) => !open)
     }, [isMobile, setOpen, setOpenMobile])
 
-    // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
@@ -141,8 +133,6 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    // We add a state so that we can do data-state="expanded" or "collapsed".
-    // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
 
     const contextValue = React.useMemo<SidebarContext>(
@@ -206,16 +196,14 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile, selectedDate, handleDateChange } = useSidebar();
+    const { isMobile, openMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
     const { onOpen } = useDialog();
     const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
      React.useEffect(() => {
-      // Update time every second on the client
       const timer = setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
-      // Set initial time on mount to avoid hydration mismatch
       setCurrentTime(new Date());
       return () => clearInterval(timer);
     }, []);
@@ -226,18 +214,22 @@ const Sidebar = React.forwardRef<
         window.location.href = '/login';
     };
 
-
     const sidebarContent = (
          <>
             <SidebarHeader>
-                 <Link href="/" className="flex items-center space-x-2">
-                    <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
-                    <Compass className="h-5 w-5" />
-                    </div>
-                    <h1 className="text-lg font-bold font-headline text-foreground">
-                    Brújula
-                    </h1>
-                </Link>
+                 <div className="flex items-center justify-between">
+                    <Link href="/" className="flex items-center space-x-2">
+                        <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
+                        <Compass className="h-5 w-5" />
+                        </div>
+                        <h1 className="text-lg font-bold font-headline text-foreground">
+                        Brújula
+                        </h1>
+                    </Link>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hidden md:flex group-data-[collapsible=icon]:hidden" onClick={toggleSidebar}>
+                        <PanelLeftClose />
+                    </Button>
+                 </div>
             </SidebarHeader>
 
             <SidebarContent>
@@ -246,31 +238,9 @@ const Sidebar = React.forwardRef<
 
             <SidebarFooter>
                  {currentTime && (
-                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center">
+                    <div className="text-xs text-muted-foreground text-left px-1">
                         {format(currentTime, 'Pp', { locale: es })}
                     </div>
-                )}
-                {selectedDate && handleDateChange && (
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            size="sm"
-                            className={cn("w-full justify-start text-left font-normal h-9")}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            <span>{selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}</span>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={handleDateChange}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
                 )}
                 <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground">
                     <Plus className="mr-2 h-4 w-4" />
@@ -283,7 +253,6 @@ const Sidebar = React.forwardRef<
             </SidebarFooter>
         </>
     )
-
 
     if (collapsible === "none") {
       return (
@@ -316,7 +285,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="p-2 border-b">
-              <SheetTitle>Navegación</SheetTitle>
+              <SheetTitle className="sr-only">Navegación</SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{sidebarContent}</div>
           </SheetContent>
@@ -333,7 +302,6 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
       >
-        {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
@@ -350,7 +318,6 @@ const Sidebar = React.forwardRef<
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-            // Adjust the padding for floating and inset variants.
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
@@ -573,7 +540,6 @@ const SidebarGroupAction = React.forwardRef<
       data-sidebar="group-action"
       className={cn(
         "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "group-data-[collapsible=icon]:hidden",
         className
@@ -719,7 +685,6 @@ const SidebarMenuAction = React.forwardRef<
       data-sidebar="menu-action"
       className={cn(
         "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
         "peer-data-[size=default]/menu-button:top-1.5",
@@ -762,7 +727,6 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
   const width = React.useMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
   }, [])
