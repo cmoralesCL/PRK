@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Sidebar, SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/sidebar";
+import { Sidebar, SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { PageWrapper } from "@/components/page-wrapper";
 import { Compass, Calendar as CalendarIcon, BarChart2, LineChart, CheckSquare, Sun } from "lucide-react";
 import Link from "next/link";
