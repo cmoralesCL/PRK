@@ -11,12 +11,9 @@ const Progress = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
 >(({ className, value, ...props }, ref) => {
   const progressValue = value || 0;
-  const colorClass = 
-    progressValue >= 75
-      ? 'bg-accent'  // Use accent (gold) for high progress
-      : progressValue >= 40
-      ? 'bg-primary' // Use primary (dark blue) for medium progress
-      : 'bg-destructive'; // Use destructive (orange) for low progress
+  
+  // Use a gradient for the progress indicator
+  const colorClass = 'bg-gradient-to-r from-primary to-accent';
 
   return (
     <ProgressPrimitive.Root

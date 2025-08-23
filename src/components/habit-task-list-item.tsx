@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers, Save, Plus, Undo2 } from 'lucide-react';
@@ -117,7 +118,9 @@ export function HabitTaskListItem({
         <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
+                        <Icon className="h-4 w-4" />
+                    </div>
                     <Label
                         className={cn(
                             'text-sm font-medium leading-none flex-grow',
@@ -140,9 +143,9 @@ export function HabitTaskListItem({
                     )}
                 </div>
             </div>
-            {item.description && <p className="pl-8 text-xs text-muted-foreground">{item.description}</p>}
+            {item.description && <p className="pl-12 text-xs text-muted-foreground">{item.description}</p>}
             
-            <div className="pl-8 space-y-2">
+            <div className="pl-12 space-y-2">
                  <div className="flex justify-between items-end">
                     <span className="text-sm font-semibold text-primary">{Math.floor(currentTotal)} / {target} veces</span>
                  </div>
@@ -150,7 +153,7 @@ export function HabitTaskListItem({
             </div>
 
             {onToggle && (
-                <div className="pl-8 flex items-center gap-2 pt-1">
+                <div className="pl-12 flex items-center gap-2 pt-1">
                     <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
                       <Plus className="h-4 w-4 mr-2"/>
                       Log
@@ -177,7 +180,9 @@ export function HabitTaskListItem({
         <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
+                        <Icon className="h-4 w-4" />
+                    </div>
                     <Label
                         className={cn(
                             'text-sm font-medium leading-none flex-grow',
@@ -200,9 +205,9 @@ export function HabitTaskListItem({
                     )}
                 </div>
             </div>
-            {item.description && <p className="pl-8 text-xs text-muted-foreground">{item.description}</p>}
+            {item.description && <p className="pl-12 text-xs text-muted-foreground">{item.description}</p>}
             
-            <div className="pl-8 space-y-2">
+            <div className="pl-12 space-y-2">
                  <div className="flex justify-between items-end">
                     <span className="text-sm font-semibold text-primary">{item.current_progress_value ?? 0}</span>
                     <span className="text-xs text-muted-foreground">/ {item.measurement_goal?.target_count} {item.measurement_goal?.unit}</span>
@@ -211,7 +216,7 @@ export function HabitTaskListItem({
             </div>
 
             {onToggle && !isCompleted && (
-                <div className="pl-8 flex items-center gap-2 pt-1">
+                <div className="pl-12 flex items-center gap-2 pt-1">
                     <Input
                         type="number"
                         value={progressValue}

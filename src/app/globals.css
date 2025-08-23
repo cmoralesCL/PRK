@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
  
-    --primary: 200 90% 19%; /* Dark Blue from palette */
+    --primary: 221 83% 53%; /* Blue from palette */
     --primary-foreground: 210 40% 98%;
  
     --secondary: 210 40% 96.1%;
@@ -22,15 +22,15 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 40 93% 53%; /* Yellow/Gold from palette */
-    --accent-foreground: 224 71% 4%;
+    --accent: 172 76% 42%; /* Teal from palette */
+    --accent-foreground: 210 40% 98%;
  
-    --destructive: 30 91% 50%; /* Orange from palette */
+    --destructive: 0 84% 60%; /* Red from palette */
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 200 90% 19%; /* Dark Blue from palette */
+    --ring: 221 83% 53%; /* Blue from palette */
  
     --radius: 0.5rem;
   }
@@ -45,8 +45,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 197 49% 50%; /* Medium Blue for dark mode */
-    --primary-foreground: 200 90% 19%;
+    --primary: 217 91% 60%; /* Brighter Blue for dark mode */
+    --primary-foreground: 222.2 47.4% 11.2%;
  
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -54,15 +54,15 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
  
-    --accent: 40 93% 53%; /* Yellow/Gold from palette */
-    --accent-foreground: 224 71% 4%;
+    --accent: 173 91% 42%; /* Brighter Teal for dark mode */
+    --accent-foreground: 222.2 47.4% 11.2%;
  
-    --destructive: 30 91% 50%; /* Orange from palette */
+    --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
  
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 197 49% 50%; /* Medium Blue for dark mode */
+    --ring: 217 91% 60%;
   }
 }
  

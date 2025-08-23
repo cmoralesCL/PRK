@@ -11,15 +11,15 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: {
-        DEFAULT: '1rem',
-        sm: '2rem',
-      },
+      padding: "2rem",
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))',
+      },
       gridTemplateColumns: {
         'calendar-week-sm': 'repeat(8, minmax(0, 1fr))',
         'calendar-week-md': 'repeat(8, minmax(0, 1fr))',

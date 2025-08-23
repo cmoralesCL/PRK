@@ -104,7 +104,9 @@ export function LifePrkSection({
                 <div className="flex-grow">
                     <div className="mb-2 sm:mb-0">
                         <h2 className="text-xl md:text-2xl font-bold font-headline flex items-center gap-3">
-                            <Target className="h-6 w-6 text-primary" />
+                             <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
+                                <Target className="h-5 w-5" />
+                            </div>
                             {lifePrk.title}
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{lifePrk.description}</p>
