@@ -84,7 +84,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
                       dayHoverColors[colorIndex],
                       "hover:scale-105 hover:shadow-md"
                   ),
-                isToday(day) && !isSameDay(day, selectedDate) && "ring-2 ring-primary/50"
+                isToday(day) && !isSameDay(day, selectedDate) && "ring-2 ring-primary ring-offset-2 ring-offset-background"
               )}
             >
               <span className={cn(
