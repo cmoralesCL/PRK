@@ -13,10 +13,10 @@ const Progress = React.forwardRef<
   const progressValue = value || 0;
   const colorClass = 
     progressValue >= 75
-      ? 'bg-green-500' 
+      ? 'bg-accent'  // Use accent (gold) for high progress
       : progressValue >= 40
-      ? 'bg-orange-400' 
-      : 'bg-red-500';
+      ? 'bg-primary' // Use primary (dark blue) for medium progress
+      : 'bg-destructive'; // Use destructive (orange) for low progress
 
   return (
     <ProgressPrimitive.Root

@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --background: 220 20% 98%; /* Very Light Cool Gray */
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 20% 98%; /* Light Cool Gray */
+    --foreground: 224 71% 4%; /* Near Black */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71% 4%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 224 71% 4%;
  
-    --primary: 221 83% 53%; /* Vibrant Indigo/Blue */
+    --primary: 200 90% 19%; /* Dark Blue from palette */
     --primary-foreground: 210 40% 98%;
  
     --secondary: 210 40% 96.1%;
@@ -22,15 +22,15 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 174 78% 43%; /* Vibrant Teal */
-    --accent-foreground: 210 40% 98%;
+    --accent: 40 93% 53%; /* Yellow/Gold from palette */
+    --accent-foreground: 224 71% 4%;
  
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 30 91% 50%; /* Orange from palette */
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 200 90% 19%; /* Dark Blue from palette */
  
     --radius: 0.5rem;
   }
@@ -45,8 +45,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 197 49% 50%; /* Medium Blue for dark mode */
+    --primary-foreground: 200 90% 19%;
  
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -54,15 +54,15 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
  
-    --accent: 174 78% 43%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 40 93% 53%; /* Yellow/Gold from palette */
+    --accent-foreground: 224 71% 4%;
  
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 30 91% 50%; /* Orange from palette */
     --destructive-foreground: 210 40% 98%;
  
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 221 83% 53%;
+    --ring: 197 49% 50%; /* Medium Blue for dark mode */
   }
 }
  
