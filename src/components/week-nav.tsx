@@ -28,7 +28,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
     'bg-cyan-100 text-cyan-900',       // Martes
     'bg-teal-100 text-teal-900',       // Miércoles
     'bg-green-100 text-green-900',     // Jueves
-    'bg-purple-100 text-purple-900',   // Viernes
+    'bg-pink-100 text-pink-900',       // Viernes
     'bg-orange-100 text-orange-900',   // Sábado (Pastel)
     'bg-red-100 text-red-900'          // Domingo
   ];
@@ -37,7 +37,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
     'hover:bg-cyan-200/70',
     'hover:bg-teal-200/70',
     'hover:bg-green-200/70',
-    'hover:bg-purple-200/70',
+    'hover:bg-pink-200/70',
     'hover:bg-orange-200/70',
     'hover:bg-red-200/70',
   ];
@@ -46,7 +46,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
       'bg-cyan-500 text-white',
       'bg-teal-500 text-white',
       'bg-green-500 text-white',
-      'bg-purple-500 text-white',
+      'bg-pink-500 text-white',
       'bg-orange-500 text-white',
       'bg-red-500 text-white'
   ]
