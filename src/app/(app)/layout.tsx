@@ -34,7 +34,7 @@ export default function AppLayout({
                                 <SidebarMenuButton asChild isActive={pathname.startsWith(link.href)}>
                                     <Link href={link.href}>
                                         <link.icon />
-                                        <span>{link.label}</span>
+                                        <span className="group-data-[state=collapsed]:hidden">{link.label}</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

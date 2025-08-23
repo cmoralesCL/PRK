@@ -30,7 +30,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH_ICON = "3.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -219,12 +219,12 @@ const Sidebar = React.forwardRef<
          <>
             <SidebarHeader>
                  <div className="flex items-center justify-between">
-                    <Link href="/" className="flex items-center space-x-2">
+                    <Link href="/" className="flex items-center space-x-2 group-data-[state=collapsed]:hidden">
                         <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
-                        <Compass className="h-5 w-5" />
+                          <Compass className="h-5 w-5" />
                         </div>
                         <h1 className="text-lg font-bold font-headline text-foreground">
-                        Brújula
+                          Brújula
                         </h1>
                     </Link>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleSidebar}>
@@ -239,17 +239,17 @@ const Sidebar = React.forwardRef<
 
             <SidebarFooter>
                  {currentTime && (
-                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center">
+                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center group-data-[state=collapsed]:hidden">
                         {format(currentTime, 'Pp', { locale: es })}
                     </div>
                 )}
-                <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground">
+                <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground w-full">
                     <Plus className="mr-2 h-4 w-4" />
-                    <span>PRK de Vida</span>
+                    <span className="group-data-[state=collapsed]:hidden">PRK de Vida</span>
                 </Button>
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Cerrar Sesión</span>
+                    <span className="group-data-[state=collapsed]:hidden">Cerrar Sesión</span>
                 </Button>
             </SidebarFooter>
         </>
@@ -285,9 +285,6 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetHeader className="p-2 border-b">
-              <SheetTitle>Navegación</SheetTitle>
-            </SheetHeader>
             <div className="flex h-full w-full flex-col">{sidebarContent}</div>
           </SheetContent>
         </Sheet>
@@ -591,7 +588,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:justify-center [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
