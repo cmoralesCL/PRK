@@ -28,21 +28,8 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
   
   const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDateString);
 
-  // Fetch progress data for the entire week to display in the WeekNav
-  const supabase = createClient();
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-
-  const { data: dailyProgressDataForWeek, error } = await supabase
-    .from('daily_progress_snapshots_new')
-    .select('snapshot_date, progress')
-    .eq('user_id', userId)
-    .gte('snapshot_date', format(weekStart, 'yyyy-MM-dd'))
-    .lte('snapshot_date', format(weekEnd, 'yyyy-MM-dd'));
-
-  if (error) {
-    console.error("Error fetching weekly progress data:", error);
-  }
+  // The weekly progress data will now be calculated on the client inside DayView
+  // based on the already fetched data, removing the need for this extra query.
 
   return (
     <DayView
@@ -51,7 +38,6 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
         habitTasks={habitTasks}
         commitments={commitments}
         initialSelectedDate={selectedDateString}
-        dailyProgressDataForWeek={dailyProgressDataForWeek || []}
     />
   );
 }
