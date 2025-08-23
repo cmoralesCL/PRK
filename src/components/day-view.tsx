@@ -28,6 +28,7 @@ interface DayViewProps {
   habitTasks: HabitTask[];
   commitments: HabitTask[];
   initialSelectedDate: string;
+  dailyProgressDataForWeek: DailyProgressSnapshot[];
 }
 
 export function DayView({
@@ -36,6 +37,7 @@ export function DayView({
   habitTasks: initialHabitTasks,
   commitments,
   initialSelectedDate,
+  dailyProgressDataForWeek,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -190,29 +192,6 @@ export function DayView({
 
     return totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
   }, [habitTasks]);
-
-  const dailyProgressDataForWeek = useMemo(() => {
-    if (!selectedDate) return [];
-    
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-    const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-    // This is a simplified calculation. For a fully accurate one, we'd need
-    // to fetch all tasks and logs for the entire week. This provides a good
-    // approximation based on the data available for the selected day.
-    // The proper way would be another server call or expanding the initial fetch.
-    // For now, we'll just show the selected day's progress.
-    const progressForDay = lifePrks.length > 0
-        ? lifePrks.reduce((acc, lp) => acc + (lp.progress ?? 0), 0) / lifePrks.filter(lp => lp.progress !== null).length
-        : 0;
-
-    return [{
-        snapshot_date: format(selectedDate, 'yyyy-MM-dd'),
-        progress: progressForDay
-    }];
-  }, [selectedDate, lifePrks]);
-
 
   if (!selectedDate) {
     return (

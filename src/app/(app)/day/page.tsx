@@ -1,7 +1,7 @@
 
 
 import * as React from 'react';
-import { getDashboardData } from '@/app/server/queries';
+import { getDashboardData, getCalendarData } from '@/app/server/queries';
 import { parseISO, format, startOfWeek, endOfWeek } from 'date-fns';
 import { DayView } from '@/components/day-view';
 import { createClient } from '@/lib/supabase/server';
@@ -28,8 +28,9 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
   
   const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDateString);
 
-  // The weekly progress data will now be calculated on the client inside DayView
-  // based on the already fetched data, removing the need for this extra query.
+  // Fetch the progress for the entire week to display in the WeekNav component.
+  const calendarDataForWeek = await getCalendarData(selectedDate);
+  const dailyProgressDataForWeek = calendarDataForWeek.dailyProgress;
 
   return (
     <DayView
@@ -38,6 +39,7 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
         habitTasks={habitTasks}
         commitments={commitments}
         initialSelectedDate={selectedDateString}
+        dailyProgressDataForWeek={dailyProgressDataForWeek}
     />
   );
 }
