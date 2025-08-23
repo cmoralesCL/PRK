@@ -44,14 +44,14 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
             key={day.toString()}
             onClick={() => onDateChange(day)}
             className={cn(
-              "flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200",
+              "flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 group",
               isSameDay(day, selectedDate)
                 ? "bg-primary text-primary-foreground shadow-md"
                 : "hover:bg-accent hover:text-accent-foreground",
               isToday(day) && !isSameDay(day, selectedDate) && "border-2 border-primary/50"
             )}
           >
-            <span className="text-xs uppercase font-medium text-muted-foreground/80 group-hover:text-accent-foreground">
+            <span className={cn("text-xs uppercase font-medium", isSameDay(day, selectedDate) ? "text-primary-foreground/80" : "text-muted-foreground/80 group-hover:text-accent-foreground")}>
               {format(day, 'eee', { locale: es })}
             </span>
             <span className="text-lg font-bold mt-1">

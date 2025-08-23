@@ -102,7 +102,7 @@ export function Header({
                         <Button
                         variant={"outline"}
                         size="sm"
-                        className={cn("w-[180px] sm:w-[240px] justify-start text-left font-normal")}
+                        className={cn("w-[180px] sm:w-[240px] justify-start text-left font-normal h-9")}
                         >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         <span className="hidden sm:inline">{selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}</span>
@@ -119,7 +119,7 @@ export function Header({
                     </PopoverContent>
                 </Popover>
             )}
-            <Button onClick={handleAddClick} variant="default" size="sm" className="shadow-md">
+            <Button onClick={handleAddClick} variant="default" size="sm" className="shadow-md h-9">
                 <Plus className="mr-0 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">PRK de Vida</span>
                 <span className="sm:hidden">PRK</span>

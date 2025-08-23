@@ -2,28 +2,19 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LifePrkSection } from './life-prk-section';
-import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
 import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
-import { AiSuggestionDialog } from './ai-suggestion-dialog';
-import type { LifePrk, AreaPrk, HabitTask, HabitFrequency } from '@/lib/types';
+import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
-    addAreaPrk, 
-    updateAreaPrk,
     addHabitTask, 
     updateHabitTask,
-    archiveLifePrk,
-    archiveAreaPrk,
-    archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
-import { Accordion } from '@/components/ui/accordion';
-import { useDialog } from '@/hooks/use-dialog';
 import { CommitmentsCard } from './commitments-card';
 import { WeekNav } from './week-nav';
 import { Plus } from 'lucide-react';
+import { HabitTaskListItem } from './habit-task-list-item';
 
 interface DayViewProps {
   lifePrks: LifePrk[];
@@ -43,7 +34,6 @@ export function DayView({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const { setLifePrkToEdit } = useDialog();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
@@ -52,17 +42,13 @@ export function DayView({
   }, [initialSelectedDate]);
 
   // State for dialogs
-  const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-  const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
   const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
 
   // State for editing items
-  const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   
   // State for context when adding new items
-  const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
   
   const handleDateChange = (date: Date | undefined) => {
@@ -78,6 +64,13 @@ export function DayView({
     setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
     setDefaultHabitTaskValues(undefined);
     setEditingHabitTask(null);
+    setHabitTaskDialogOpen(true);
+  };
+  
+    const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
+    setEditingHabitTask(habitTask);
+    setDefaultHabitTaskValues(undefined);
+    setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
     setHabitTaskDialogOpen(true);
   };
 
@@ -113,11 +106,17 @@ export function DayView({
 
         <div className="mt-6">
             <h2 className="text-2xl font-headline font-bold">Tareas del Día</h2>
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-2">
                 {habitTasks.length > 0 ? (
-                    // Aquí podrías mapear y mostrar las tareas, similar a como lo hacen otros componentes
-                    // Por simplicidad, por ahora solo mostraremos un contador.
-                    <p>{habitTasks.length} tareas para hoy.</p>
+                    habitTasks.map(task => (
+                      <HabitTaskListItem 
+                        key={task.id}
+                        item={task}
+                        selectedDate={selectedDate}
+                        onEdit={handleOpenEditHabitTaskDialog}
+                        // Add toggle and archive handlers if needed
+                      />
+                    ))
                 ) : (
                     <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed">
                         <p className="text-muted-foreground">No hay tareas programadas para hoy.</p>
@@ -133,18 +132,18 @@ export function DayView({
                 <CommitmentsCard 
                     commitments={commitments}
                     selectedDate={selectedDate}
-                    onToggle={() => {}} // Se debería implementar la lógica de toggle
-                    onEdit={() => {}} // Se debería implementar la lógica de edición
-                    onArchive={() => {}} // Se debería implementar la lógica de archivo
+                    onToggle={() => {}} // Placeholder
+                    onEdit={handleOpenEditHabitTaskDialog}
+                    onArchive={() => {}} // Placeholder
                 />
             </div>
         </div>
       </main>
 
       <div className="fixed bottom-6 right-6">
-        <Button onClick={() => handleOpenAddHabitTaskDialog()} size="lg" className="rounded-full shadow-lg">
-            <Plus className="mr-2 h-5 w-5" />
-            Nueva Acción
+        <Button onClick={() => handleOpenAddHabitTaskDialog()} size="lg" className="rounded-full shadow-lg h-12 w-12 p-0 sm:w-auto sm:px-6 sm:h-11">
+            <Plus className="h-6 w-6 sm:h-5 sm:w-5 sm:mr-2" />
+            <span className="hidden sm:inline">Nueva Acción</span>
         </Button>
       </div>
 
