@@ -149,7 +149,7 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": isMobile ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH,
+                "--sidebar-width": SIDEBAR_WIDTH,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties
@@ -238,6 +238,11 @@ const Sidebar = React.forwardRef<
                     <LogOut className="h-5 w-5" />
                     <span className="group-data-[state=collapsed]:hidden ml-2">Cerrar Sesión</span>
                 </Button>
+                 {currentTime && (
+                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center group-data-[state=collapsed]:hidden">
+                        {format(currentTime, 'Pp', { locale: es })}
+                    </div>
+                )}
             </SidebarFooter>
         </>
     )
@@ -247,7 +252,7 @@ const Sidebar = React.forwardRef<
         ref={ref}
         className={cn(
             "group text-sidebar-foreground sticky top-0 h-screen",
-            "transition-all duration-300 ease-in-out",
+            "transition-all duration-300 ease-in-out z-30",
             state === 'expanded' ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-icon)]"
         )}
         data-state={state}
