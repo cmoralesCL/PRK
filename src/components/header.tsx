@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
-import { useSidebar } from './sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 
 
 interface HeaderProps {
