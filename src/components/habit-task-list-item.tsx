@@ -160,7 +160,7 @@ export function HabitTaskListItem({
                 <div className="pl-12 flex items-center gap-2 pt-1">
                     <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
                       <Plus className="h-4 w-4 mr-2"/>
-                      + Registrar Avance
+                      Registrar Avance
                     </Button>
                      {hasLogForSelectedDate && onUndo && (
                          <Button size="sm" variant="outline" className="h-8" onClick={handleUndoInstance}>
