@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay } from 'date-fns';
@@ -6,13 +7,15 @@ import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { DailyProgressSnapshot } from '@/lib/types';
 
 interface WeekNavProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
+  dailyProgressData: Pick<DailyProgressSnapshot, 'snapshot_date' | 'progress'>[];
 }
 
-export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
+export function WeekNav({ selectedDate, onDateChange, dailyProgressData = [] }: WeekNavProps) {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
   const days = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
@@ -52,6 +55,8 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
       'bg-orange-500 text-white'
   ]
 
+  const progressMap = new Map(dailyProgressData.map(p => [p.snapshot_date, p.progress]));
+
   return (
     <div className="bg-card p-2 rounded-xl shadow-sm border">
       <div className="flex items-center justify-between mb-2 px-2">
@@ -71,6 +76,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
         {days.map((day) => {
           const dayIndex = getDay(day);
           const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Domingo es 0, lo mapeamos al final del array
+          const dayProgress = progressMap.get(format(day, 'yyyy-MM-dd'));
 
           return (
             <button
@@ -100,6 +106,14 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
               <span className="text-lg font-bold mt-1">
                 {format(day, 'd')}
               </span>
+              {dayProgress !== undefined && (
+                 <span className={cn(
+                    "text-xs font-bold mt-1 px-1.5 py-0.5 rounded-full",
+                    isSameDay(day, selectedDate) ? 'bg-white/20' : 'bg-black/10'
+                 )}>
+                    {Math.round(dayProgress)}%
+                </span>
+              )}
             </button>
           )
         })}

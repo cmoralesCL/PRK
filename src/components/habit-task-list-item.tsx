@@ -2,7 +2,7 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers, Save, Plus, Undo2 } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers, Save, Plus, Undo2, GripVertical, Star } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ interface HabitTaskListItemProps {
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog';
+  isFocus?: boolean;
+  isDraggable?: boolean;
 }
 
 export function HabitTaskListItem({ 
@@ -31,7 +33,9 @@ export function HabitTaskListItem({
     onArchive, 
     onEdit, 
     selectedDate, 
-    variant = 'dashboard' 
+    variant = 'dashboard',
+    isFocus = false,
+    isDraggable = false,
 }: HabitTaskListItemProps) {
   const getIcon = () => {
     switch (item.type) {
@@ -156,7 +160,7 @@ export function HabitTaskListItem({
                 <div className="pl-12 flex items-center gap-2 pt-1">
                     <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
                       <Plus className="h-4 w-4 mr-2"/>
-                      Log
+                      + Registrar Avance
                     </Button>
                      {hasLogForSelectedDate && onUndo && (
                          <Button size="sm" variant="outline" className="h-8" onClick={handleUndoInstance}>
@@ -236,7 +240,13 @@ export function HabitTaskListItem({
 
   // Default binary/task item
   return (
-    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group">
+    <div className={cn(
+        "flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group",
+        isFocus && "bg-secondary/70 border border-primary/50 shadow-md"
+    )}>
+        {isDraggable && (
+            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+        )}
         <Checkbox
             id={item.id}
             checked={isCompleted}
@@ -255,6 +265,7 @@ export function HabitTaskListItem({
                             !onToggle ? "cursor-default" : "cursor-pointer"
                         )}
                     >
+                        {isFocus && <Star className="h-4 w-4 inline-block mr-2 text-yellow-500 fill-yellow-400" />}
                         {item.title}
                     </Label>
                     {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}

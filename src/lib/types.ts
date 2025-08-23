@@ -1,4 +1,5 @@
 
+
 export interface LifePrk {
   id: string;
   user_id: string;
@@ -93,10 +94,10 @@ export interface ProgressLog {
 }
 
 export interface DailyProgressSnapshot {
-  id: string;
-  user_id: string;
   snapshot_date: string;
   progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
+  user_id?: string;
+  id?: string;
 }
 
 export interface WeeklyProgressSnapshot {

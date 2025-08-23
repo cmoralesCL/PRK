@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
-import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
+import type { LifePrk, AreaPrk, HabitTask, DailyProgressSnapshot } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
     addHabitTask, 
@@ -16,8 +17,10 @@ import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { CommitmentsCard } from './commitments-card';
 import { WeekNav } from './week-nav';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical } from 'lucide-react';
 import { HabitTaskListItem } from './habit-task-list-item';
+import { getDashboardData } from '@/app/server/queries';
+import { ProgressCircle } from './ui/progress-circle';
 
 interface DayViewProps {
   lifePrks: LifePrk[];
@@ -25,24 +28,31 @@ interface DayViewProps {
   habitTasks: HabitTask[];
   commitments: HabitTask[];
   initialSelectedDate: string;
+  dailyProgressDataForWeek: DailyProgressSnapshot[];
 }
 
 export function DayView({
   lifePrks,
   areaPrks,
-  habitTasks,
+  habitTasks: initialHabitTasks,
   commitments,
   initialSelectedDate,
+  dailyProgressDataForWeek,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [habitTasks, setHabitTasks] = useState(initialHabitTasks);
   
+  // State for drag and drop
+  const [draggedItem, setDraggedItem] = useState<HabitTask | null>(null);
+
   useEffect(() => {
     setSelectedDate(parseISO(initialSelectedDate));
-  }, [initialSelectedDate]);
+    setHabitTasks(initialHabitTasks);
+  }, [initialSelectedDate, initialHabitTasks]);
 
   // State for dialogs
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
@@ -70,7 +80,7 @@ export function DayView({
     setHabitTaskDialogOpen(true);
   };
   
-    const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
+  const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
     setDefaultHabitTaskValues(undefined);
     setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
@@ -141,6 +151,37 @@ export function DayView({
         }
     });
   };
+  
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>, item: HabitTask) => {
+    setDraggedItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.id);
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>, targetItem: HabitTask) => {
+    if (!draggedItem) return;
+
+    const currentIndex = habitTasks.findIndex(item => item.id === draggedItem.id);
+    const targetIndex = habitTasks.findIndex(item => item.id === targetItem.id);
+
+    if (currentIndex !== -1 && targetIndex !== -1) {
+      const newTasks = [...habitTasks];
+      const [removed] = newTasks.splice(currentIndex, 1);
+      newTasks.splice(targetIndex, 0, removed);
+      setHabitTasks(newTasks);
+    }
+    setDraggedItem(null);
+  };
+
+  const dailyProgress = useMemo(() => {
+    if (habitTasks.length === 0) return 0;
+    const completedTasks = habitTasks.filter(t => t.completedToday).length;
+    return (completedTasks / habitTasks.length) * 100;
+  }, [habitTasks]);
 
 
   if (!selectedDate) {
@@ -154,27 +195,41 @@ export function DayView({
   return (
     <>
       <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4">
-        <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} />
+        <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
 
         <div className="mt-6">
-            <h2 className="text-2xl font-headline font-bold">Tareas del Día</h2>
+            <div className="flex items-center gap-4 mb-4">
+              <h2 className="text-2xl font-headline font-bold">Tareas del Día</h2>
+              <ProgressCircle progress={dailyProgress} />
+            </div>
             <div className="mt-4 space-y-2">
                 {habitTasks.length > 0 ? (
-                    habitTasks.map(task => (
-                      <HabitTaskListItem 
+                    habitTasks.map((task, index) => (
+                      <div
                         key={task.id}
-                        item={task}
-                        selectedDate={selectedDate}
-                        onEdit={handleOpenEditHabitTaskDialog}
-                        onToggle={handleToggleHabitTask}
-                        onUndo={handleUndoHabitTask}
-                        onArchive={handleArchiveHabitTask}
-                      />
+                        draggable
+                        onDragStart={(e) => onDragStart(e, task)}
+                        onDragOver={onDragOver}
+                        onDrop={(e) => onDrop(e, task)}
+                        className={`transition-all duration-300 ${draggedItem?.id === task.id ? "opacity-50" : ""}`}
+                      >
+                        <HabitTaskListItem 
+                          item={task}
+                          selectedDate={selectedDate}
+                          onEdit={handleOpenEditHabitTaskDialog}
+                          onToggle={handleToggleHabitTask}
+                          onUndo={handleUndoHabitTask}
+                          onArchive={handleArchiveHabitTask}
+                          isFocus={index === 0}
+                          isDraggable
+                        />
+                      </div>
                     ))
                 ) : (
                     <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed">
-                        <p className="text-muted-foreground">No hay tareas programadas para hoy.</p>
-                        <Button variant="link" size="sm" onClick={() => handleOpenAddHabitTaskDialog()}>¡Agrega la primera!</Button>
+                        <p className="text-muted-foreground font-semibold text-lg">¡Día despejado!</p>
+                        <p className="text-muted-foreground mt-1">¿Qué te gustaría lograr hoy?</p>
+                        <Button variant="link" size="sm" onClick={() => handleOpenAddHabitTaskDialog()}>¡Agrega una nueva acción!</Button>
                     </div>
                 )}
             </div>
@@ -195,7 +250,7 @@ export function DayView({
         </div>
       </main>
 
-      <div className="fixed bottom-6 right-6">
+      <div className="fixed bottom-6 right-6 z-20">
         <Button onClick={() => handleOpenAddHabitTaskDialog()} size="lg" className="rounded-full shadow-lg h-12 w-12 p-0 sm:w-auto sm:px-6 sm:h-11">
             <Plus className="h-6 w-6 sm:h-5 sm:w-5 sm:mr-2" />
             <span className="hidden sm:inline">Nueva Acción</span>
