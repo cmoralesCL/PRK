@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { format } from 'date-fns';
@@ -9,7 +8,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define public and protected routes
-  const protectedRoutes = ['/panel', '/dashboard', '/calendar', '/analytics', '/tasks'];
+  const protectedRoutes = ['/day', '/panel', '/dashboard', '/calendar', '/analytics', '/tasks'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (!user && isProtectedRoute) {
@@ -17,22 +16,23 @@ export async function middleware(request: NextRequest) {
   }
   
   if (user && pathname.startsWith('/login')) {
-    // Redirect authenticated users from login page to the dashboard with the current date
+    // Redirect authenticated users from login page to the day view with the current date
     const today = format(new Date(), 'yyyy-MM-dd');
-    return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
+    return NextResponse.redirect(new URL(`/day?date=${today}`, request.url));
   }
 
-  if (user && pathname === '/dashboard') {
+  if (user && (pathname === '/' || pathname === '/dashboard')) {
     const today = format(new Date(), 'yyyy-MM-dd');
-    // If accessing /dashboard directly, ensure it has the date query param
-    if (!request.nextUrl.searchParams.has('date')) {
-        return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
-    }
+    // Redirect root and dashboard to the new day view
+    return NextResponse.redirect(new URL(`/day?date=${today}`, request.url));
   }
   
-  if (user && pathname === '/') {
+  if (user && pathname === '/day') {
     const today = format(new Date(), 'yyyy-MM-dd');
-    return NextResponse.redirect(new URL(`/dashboard?date=${today}`, request.url));
+    // If accessing /day directly, ensure it has the date query param
+    if (!request.nextUrl.searchParams.has('date')) {
+        return NextResponse.redirect(new URL(`/day?date=${today}`, request.url));
+    }
   }
   
   if (!user && pathname === '/') {

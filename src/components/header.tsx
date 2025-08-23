@@ -1,7 +1,6 @@
-
 'use client';
 
-import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2, LineChart, CheckSquare } from 'lucide-react';
+import { Compass, Plus, Calendar as CalendarIcon, LogOut, BarChart2, LineChart, CheckSquare, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -45,6 +44,7 @@ export function Header({
   }, []);
 
   const navLinks = [
+    { href: "/day", label: "Mi Día", icon: Sun },
     { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
     { href: "/panel", label: "Panel", icon: Compass },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
