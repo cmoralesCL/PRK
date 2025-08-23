@@ -27,22 +27,24 @@ export default function AppLayout({
     return (
         <PageWrapper>
             <SidebarProvider>
-                <Sidebar>
-                    <SidebarMenu>
-                        {navLinks.map(link => (
-                            <SidebarMenuItem key={link.href}>
-                                <SidebarMenuButton asChild isActive={pathname.startsWith(link.href)}>
-                                    <Link href={link.href}>
-                                        <link.icon className="h-6 w-6" />
-                                        <span className="group-data-[state=collapsed]:hidden">{link.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                </Sidebar>
-                <div className="flex-1 flex flex-col">
-                    {children}
+                <div className="flex">
+                    <Sidebar>
+                        <SidebarMenu>
+                            {navLinks.map(link => (
+                                <SidebarMenuItem key={link.href}>
+                                    <SidebarMenuButton asChild isActive={pathname.startsWith(link.href)}>
+                                        <Link href={link.href}>
+                                            <link.icon className="h-6 w-6" />
+                                            <span className="group-data-[state=collapsed]:hidden">{link.label}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </Sidebar>
+                    <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+                        {children}
+                    </main>
                 </div>
             </SidebarProvider>
         </PageWrapper>

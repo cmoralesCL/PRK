@@ -37,8 +37,6 @@ type SidebarContext = {
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
   selectedDate: Date | null
@@ -77,14 +75,12 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const isMobile = useIsMobile()
-    const [openMobile, setOpenMobile] = React.useState(false)
     const router = useRouter();
     const searchParams = useSearchParams();
     
     const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
 
      React.useEffect(() => {
-        // This effect runs only on the client, preventing hydration mismatch
         const dateParam = searchParams.get('date');
         const newDate = dateParam ? new Date(dateParam) : new Date();
         setSelectedDate(newDate);
@@ -114,10 +110,8 @@ const SidebarProvider = React.forwardRef<
     )
 
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+      setOpen((open) => !open)
+    }, [setOpen])
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -142,13 +136,11 @@ const SidebarProvider = React.forwardRef<
         open,
         setOpen,
         isMobile,
-        openMobile,
-        setOpenMobile,
         toggleSidebar,
         selectedDate,
         handleDateChange,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, selectedDate, handleDateChange]
+      [state, open, setOpen, isMobile, toggleSidebar, selectedDate, handleDateChange]
     )
 
     return (
@@ -157,13 +149,13 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
+                "--sidebar-width": isMobile ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper",
               className
             )}
             ref={ref}
@@ -183,7 +175,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     variant?: "sidebar" | "floating" | "inset"
-    collapsible?: "offcanvas" | "icon" | "none"
+    collapsible?: "icon" | "none"
   }
 >(
   (
@@ -197,16 +189,16 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, openMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
+    const { isMobile, toggleSidebar, state } = useSidebar();
     const { onOpen } = useDialog();
     const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
      React.useEffect(() => {
-      const timer = setInterval(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
         setCurrentTime(new Date());
-      }, 1000);
-      setCurrentTime(new Date());
-      return () => clearInterval(timer);
+        return () => clearInterval(timer);
     }, []);
 
     const handleSignOut = async () => {
@@ -238,11 +230,6 @@ const Sidebar = React.forwardRef<
             </SidebarContent>
 
             <SidebarFooter>
-                 {currentTime && (
-                    <div className="text-sm text-muted-foreground bg-muted/70 px-2 py-1.5 rounded-md text-center group-data-[state=collapsed]:hidden">
-                        {format(currentTime, 'Pp', { locale: es })}
-                    </div>
-                )}
                 <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground w-full">
                     <Plus className="h-5 w-5" />
                     <span className="group-data-[state=collapsed]:hidden ml-2">PRK de Vida</span>
@@ -251,88 +238,25 @@ const Sidebar = React.forwardRef<
                     <LogOut className="h-5 w-5" />
                     <span className="group-data-[state=collapsed]:hidden ml-2">Cerrar Sesión</span>
                 </Button>
-                 <Button variant="ghost" size="sm" className="h-9 w-full justify-start" onClick={toggleSidebar}>
-                    <PanelLeft className="h-5 w-5" />
-                    <span className="group-data-[state=collapsed]:hidden ml-2">Contraer</span>
-                </Button>
             </SidebarFooter>
         </>
     )
 
-    if (collapsible === "none") {
-      return (
-        <div
-          className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
-            className
-          )}
-          ref={ref}
-          {...props}
-        >
-          {sidebarContent}
-        </div>
-      )
-    }
-
-    if (isMobile) {
-      return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-          <SheetContent
-            showOverlay={false}
-            data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width] bg-card p-0 text-sidebar-foreground [&>button]:hidden"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
-            side={side}
-          >
-            <div className="flex h-full w-full flex-col">{sidebarContent}</div>
-          </SheetContent>
-        </Sheet>
-      )
-    }
-
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-sidebar-foreground"
+        className={cn(
+            "group text-sidebar-foreground sticky top-0 h-screen",
+            "transition-all duration-300 ease-in-out",
+            state === 'expanded' ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-icon)]"
+        )}
         data-state={state}
-        data-collapsible={state === "collapsed" ? collapsible : ""}
-        data-variant={variant}
-        data-side={side}
       >
         <div
-          className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
-            "group-data-[collapsible=offcanvas]:w-0",
-            "group-data-[side=right]:rotate-180",
-            variant === "floating" || variant === "inset"
-              ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]"
-          )}
-        />
-        <div
-          className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
-            side === "left"
-              ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-              : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-            variant === "floating" || variant === "inset"
-              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
-            className
-          )}
-          {...props}
-        >
-          <div
             data-sidebar="sidebar"
-            className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
-          >
+            className="flex h-full w-full flex-col bg-card border-r"
+        >
             {sidebarContent}
-          </div>
         </div>
       </div>
     )
