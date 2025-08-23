@@ -212,7 +212,7 @@ const Sidebar = React.forwardRef<
     const { onOpen } = useDialog();
     const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
-     useEffect(() => {
+     React.useEffect(() => {
       const timer = setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
