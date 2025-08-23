@@ -227,6 +227,9 @@ const Sidebar = React.forwardRef<
                         Brújula
                         </h1>
                     </Link>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleSidebar}>
+                        <PanelLeftClose className="h-4 w-4"/>
+                    </Button>
                  </div>
             </SidebarHeader>
 
@@ -247,11 +250,6 @@ const Sidebar = React.forwardRef<
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Cerrar Sesión</span>
-                </Button>
-                <Separator />
-                <Button variant="ghost" className="w-full justify-start" onClick={toggleSidebar}>
-                    <PanelLeft className="mr-2 h-4 w-4" />
-                    <span>Contraer</span>
                 </Button>
             </SidebarFooter>
         </>
