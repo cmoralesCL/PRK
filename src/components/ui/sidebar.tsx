@@ -218,7 +218,10 @@ const Sidebar = React.forwardRef<
     const sidebarContent = (
          <>
             <SidebarHeader>
-                 <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleSidebar}>
+                        <PanelLeftClose className="h-6 w-6"/>
+                    </Button>
                     <Link href="/" className="flex items-center space-x-2 group-data-[state=collapsed]:hidden">
                         <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
                           <Compass className="h-5 w-5" />
@@ -227,9 +230,6 @@ const Sidebar = React.forwardRef<
                           Brújula
                         </h1>
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleSidebar}>
-                        <PanelLeftClose className="h-4 w-4"/>
-                    </Button>
                  </div>
             </SidebarHeader>
 
@@ -239,17 +239,21 @@ const Sidebar = React.forwardRef<
 
             <SidebarFooter>
                  {currentTime && (
-                    <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center group-data-[state=collapsed]:hidden">
+                    <div className="text-sm text-muted-foreground bg-muted/70 px-2 py-1.5 rounded-md text-center group-data-[state=collapsed]:hidden">
                         {format(currentTime, 'Pp', { locale: es })}
                     </div>
                 )}
                 <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground w-full">
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span className="group-data-[state=collapsed]:hidden">PRK de Vida</span>
+                    <Plus className="h-5 w-5" />
+                    <span className="group-data-[state=collapsed]:hidden ml-2">PRK de Vida</span>
                 </Button>
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span className="group-data-[state=collapsed]:hidden">Cerrar Sesión</span>
+                    <LogOut className="h-5 w-5" />
+                    <span className="group-data-[state=collapsed]:hidden ml-2">Cerrar Sesión</span>
+                </Button>
+                 <Button variant="ghost" size="sm" className="h-9 w-full justify-start" onClick={toggleSidebar}>
+                    <PanelLeft className="h-5 w-5" />
+                    <span className="group-data-[state=collapsed]:hidden ml-2">Contraer</span>
                 </Button>
             </SidebarFooter>
         </>
