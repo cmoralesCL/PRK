@@ -1,6 +1,6 @@
 'use client';
 
-import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay } from 'fns';
+import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
     'bg-cyan-100 text-cyan-900',       // Martes
     'bg-teal-100 text-teal-900',       // Miércoles
     'bg-green-100 text-green-900',     // Jueves
-    'bg-purple-100 text-purple-900',     // Viernes
+    'bg-purple-100 text-purple-900',   // Viernes
     'bg-orange-100 text-orange-900',   // Sábado (Pastel)
     'bg-red-100 text-red-900'          // Domingo
   ];
