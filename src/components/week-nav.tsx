@@ -24,31 +24,31 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
   };
 
   const dayColors = [
-    'bg-blue-50 text-blue-800',       // Lunes
-    'bg-cyan-50 text-cyan-800',   // Martes
-    'bg-teal-50 text-teal-800',   // Miércoles
-    'bg-green-50 text-green-800', // Jueves
-    'bg-amber-50 text-amber-800',     // Viernes
-    'bg-orange-50 text-orange-800',   // Sábado
-    'bg-red-50 text-red-800'  // Domingo
+    'bg-blue-100 text-blue-900',       // Lunes
+    'bg-cyan-100 text-cyan-900',       // Martes
+    'bg-teal-100 text-teal-900',       // Miércoles
+    'bg-green-100 text-green-900',     // Jueves
+    'bg-amber-100 text-amber-900',     // Viernes
+    'bg-orange-500 text-white',        // Sábado
+    'bg-red-100 text-red-900'          // Domingo
   ];
   const dayHoverColors = [
-    'hover:bg-blue-100',
-    'hover:bg-cyan-100',
-    'hover:bg-teal-100',
-    'hover:bg-green-100',
-    'hover:bg-amber-100',
-    'hover:bg-orange-100',
-    'hover:bg-red-100',
+    'hover:bg-blue-200/70',
+    'hover:bg-cyan-200/70',
+    'hover:bg-teal-200/70',
+    'hover:bg-green-200/70',
+    'hover:bg-amber-200/70',
+    'hover:bg-orange-600/90',
+    'hover:bg-red-200/70',
   ];
   const daySelectedColors = [
-      'bg-blue-500',
-      'bg-cyan-500',
-      'bg-teal-500',
-      'bg-green-500',
-      'bg-amber-500',
-      'bg-orange-500',
-      'bg-red-500'
+      'bg-blue-500 text-white',
+      'bg-cyan-500 text-white',
+      'bg-teal-500 text-white',
+      'bg-green-500 text-white',
+      'bg-amber-500 text-white',
+      'bg-orange-600 text-white',
+      'bg-red-500 text-white'
   ]
 
   return (
@@ -69,27 +69,27 @@ export function WeekNav({ selectedDate, onDateChange }: WeekNavProps) {
       <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
           const dayIndex = getDay(day);
-          const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+          const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Domingo es 0, lo mapeamos al final del array
 
           return (
             <button
               key={day.toString()}
               onClick={() => onDateChange(day)}
               className={cn(
-                "flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 group",
+                "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
                 isSameDay(day, selectedDate)
-                  ? `${daySelectedColors[colorIndex]} text-primary-foreground shadow-md`
+                  ? `${daySelectedColors[colorIndex]} shadow-md scale-105`
                   : cn(
                       dayColors[colorIndex],
                       dayHoverColors[colorIndex],
-                      "text-foreground/80"
+                      "hover:scale-105 hover:shadow-md"
                   ),
-                isToday(day) && !isSameDay(day, selectedDate) && "border-2 border-primary/50"
+                isToday(day) && !isSameDay(day, selectedDate) && "ring-2 ring-primary/50"
               )}
             >
               <span className={cn(
                 "text-xs uppercase font-medium", 
-                isSameDay(day, selectedDate) ? "text-primary-foreground/80" : "opacity-70 group-hover:opacity-100"
+                isSameDay(day, selectedDate) ? "text-white/80" : "opacity-70 group-hover:opacity-100"
               )}>
                 {format(day, 'eee', { locale: es })}
               </span>
