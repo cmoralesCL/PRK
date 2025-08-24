@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star } from 'lucide-react';
@@ -92,34 +93,29 @@ export function HabitTaskListItem({
 
   const handleArchive = () => {
     if (onArchive) {
-      onArchive(item.id, selectedDate);
+      onArchive(item.id);
     }
   }
 
   // --- Read-Only Variant ---
   if (variant === 'read-only') {
       return (
-        <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/30">
-             <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <div className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30">
+             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
              <div className="flex-grow">
-                 <p className={cn('text-sm font-medium leading-none', item.completedToday && 'line-through text-muted-foreground')}>
+                 <p className={cn('text-xs font-medium leading-none', item.completedToday && 'line-through text-muted-foreground')}>
                      {item.title}
                  </p>
-                 {(item.measurement_type === 'quantitative' || item.frequency?.includes('ACUMULATIVO')) && (
-                     <p className="text-xs text-muted-foreground">
-                        {item.current_progress_value ?? 0} / {item.measurement_goal?.target_count} {item.measurement_goal?.unit || 'veces'}
-                     </p>
-                 )}
              </div>
              <div className="flex items-center ml-auto">
                 {onEdit && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(item)}>
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit && onEdit(item)}>
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                 )}
                 {onArchive && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
-                        <Archive className="h-4 w-4 text-muted-foreground" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleArchive}>
+                        <Archive className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                 )}
             </div>

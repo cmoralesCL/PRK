@@ -218,14 +218,14 @@ export function Panel({
   return (
     <>
       <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
-        <div className="mb-6">
-            <h1 className="text-3xl font-bold font-headline">Panel</h1>
-             <div className="flex items-center text-sm text-muted-foreground mt-2">
-                <Button variant="link" className="p-0 h-auto" onClick={handleShowAll}>Panel</Button>
+        <div className="mb-4">
+            <h1 className="text-2xl font-bold font-headline">Panel</h1>
+             <div className="flex items-center text-sm text-muted-foreground mt-1">
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={handleShowAll}>Panel</Button>
                 {activeLifePrk && (
                     <>
                         <ChevronRight className="h-4 w-4 mx-1" />
-                        <span className="font-semibold text-foreground">{activeLifePrk.title}</span>
+                        <span className="font-semibold text-foreground truncate">{activeLifePrk.title}</span>
                     </>
                 )}
             </div>
@@ -233,19 +233,19 @@ export function Panel({
 
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
-                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
-                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                <h2 className="text-xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                <p className="mt-2 text-sm text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
                 <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
             </div>
         )}
         {isPending && (
             <div className="text-center py-24">
-                  <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
+                  <h2 className="text-xl font-headline font-semibold">Cargando...</h2>
             </div>
         )}
         {!isPending && lifePrks.length > 0 && !activeLifePrk && (
           <>
-            <div className="flex justify-end gap-2 my-2">
+            <div className="flex justify-end gap-2 mb-2">
                 <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                     Expandir Todo
                 </Button>
@@ -264,12 +264,10 @@ export function Panel({
                   key={lp.id}
                   lifePrk={lp}
                   areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                  actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === action.area_prk_id))}
                   onAddAreaPrk={handleOpenAddAreaPrkDialog}
                   onEditAreaPrk={handleOpenEditAreaPrkDialog}
                   onAddHabitTask={handleOpenAddHabitTaskDialog}
                   onEditHabitTask={handleOpenEditHabitTaskDialog}
-                  onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
                   onArchive={handleArchiveLifePrk}
                   onEdit={handleOpenEditLifePrkDialog}
                   onArchiveAreaPrk={handleArchiveAreaPrk}
@@ -286,12 +284,10 @@ export function Panel({
                 isStandaloneView={true}
                 lifePrk={activeLifePrk}
                 areaPrks={areaPrks.filter(kp => kp.life_prk_id === activeLifePrk.id)}
-                actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === activeLifePrk.id && ap.id === action.area_prk_id))}
                 onAddAreaPrk={handleOpenAddAreaPrkDialog}
                 onEditAreaPrk={handleOpenEditAreaPrkDialog}
                 onAddHabitTask={handleOpenAddHabitTaskDialog}
                 onEditHabitTask={handleOpenEditHabitTaskDialog}
-                onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
                 onArchive={handleArchiveLifePrk}
                 onEdit={handleOpenEditLifePrkDialog}
                 onArchiveAreaPrk={handleArchiveAreaPrk}
