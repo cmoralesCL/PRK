@@ -3,7 +3,7 @@
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { AddPulseDialog, PulseFormValues } from './add-pulse-dialog';
+import { AddPulseDialog, PulseFormValues } from './add-habit-task-dialog';
 import type { Orbit, Phase, Pulse, DailyProgressSnapshot } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -213,7 +213,7 @@ export function DayView({
               <ProgressCircle progress={dailyProgress} />
             </div>
             <div className="mt-4 space-y-2">
-                {pulses.length > 0 ? (
+                {pulses && pulses.length > 0 ? (
                     pulses.map((task, index) => (
                       <div
                         key={task.id}
