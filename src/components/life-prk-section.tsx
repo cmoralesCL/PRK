@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
@@ -22,7 +23,6 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTransition } from 'react';
-import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
 
 
 interface LifePrkSectionProps {
@@ -62,47 +62,11 @@ export function LifePrkSection({
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
-  const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
-
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const task = actions.find(ht => ht.id === id);
-    if (!task) return;
-
-    const completionDate = date.toISOString().split('T')[0];
-
-    startTransition(async () => {
-      try {
-        if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
-        } else {
-          await removeHabitTaskCompletion(id, task.type, completionDate);
-        }
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
-      }
-    });
-  };
-
-  const handleUndoHabitTask = (id: string, date: Date) => {
-    const task = actions.find(ht => ht.id === id);
-    if (!task) return;
-
-    const completionDate = date.toISOString().split('T')[0];
-    startTransition(async () => {
-        try {
-            await removeHabitTaskCompletion(id, task.type, completionDate);
-            toast({ title: "Registro deshecho" });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
-        }
-    });
-  };
-
+  
   const areaPrkGrid = (
     <div className="pt-4 px-0 md:px-2">
         {areaPrks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+           <Accordion type="multiple" className="space-y-3" defaultValue={areaPrks.map(ap => ap.id)}>
               {areaPrks.map((kp) => (
               <AreaPrkCard
                   key={kp.id}
@@ -110,8 +74,6 @@ export function LifePrkSection({
                   actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
                   onAddHabitTask={onAddHabitTask}
                   onEditHabitTask={onEditHabitTask}
-                  onToggleHabitTask={handleToggleHabitTask}
-                  onUndoHabitTask={handleUndoHabitTask}
                   onGetAiSuggestions={onGetAiSuggestions}
                   onArchive={onArchiveAreaPrk}
                   onEdit={onEditAreaPrk}
@@ -119,7 +81,7 @@ export function LifePrkSection({
                   selectedDate={selectedDate}
               />
               ))}
-          </div>
+          </Accordion>
           ) : (
             <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
                   <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>

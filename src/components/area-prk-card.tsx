@@ -14,18 +14,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { useState } from 'react';
 import { Separator } from './ui/separator';
 
-
 interface AreaPrkCardProps {
   areaPrk: AreaPrk;
-  actions: HabitTask[]; // Replaces habitTasks
+  actions: HabitTask[];
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
-  onUndoHabitTask: (id: string, selectedDate: Date) => void;
   onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (areaPrk: AreaPrk) => void;
@@ -38,8 +39,6 @@ export function AreaPrkCard({
   actions,
   onAddHabitTask,
   onEditHabitTask,
-  onToggleHabitTask,
-  onUndoHabitTask,
   onGetAiSuggestions,
   onArchive,
   onEdit,
@@ -47,115 +46,79 @@ export function AreaPrkCard({
   selectedDate,
 }: AreaPrkCardProps) {
   const progress = areaPrk.progress ?? 0;
-  const [isOpen, setIsOpen] = useState(true);
-
-  const dailyActions = actions.filter(a => !a.frequency?.includes('ACUMULATIVO'));
-  const commitments = actions.filter(a => a.frequency?.includes('ACUMULATIVO'));
+  const completedActionsCount = actions.filter(a => a.completedToday).length;
+  const totalActionsCount = actions.length;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
-      <Card className="bg-card/70 shadow-sm transition-shadow hover:shadow-md flex flex-col">
-        <CollapsibleTrigger asChild>
-          <CardHeader className='cursor-pointer p-4'>
-            <div className="flex justify-between items-start">
-                <div className='flex-grow pr-2'>
-                    <CardTitle className="font-headline text-base flex items-center gap-2">
-                        <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
-                            <Gauge className="h-4 w-4" />
-                        </div>
-                        {areaPrk.title}
-                    </CardTitle>
-                    <CardDescription className="pt-1 text-xs">
-                        {areaPrk.description}
-                    </CardDescription>
-                </div>
-                <div className='flex items-center'>
-                  <ChevronDown className={`h-4 w-4 mr-1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Editar PRK de Área
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
-                      <Archive className="mr-2 h-4 w-4" />
-                      Archivar PRK de Área
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                </div>
+    <AccordionItem value={areaPrk.id} className="border bg-card/70 shadow-sm rounded-lg transition-shadow hover:shadow-md">
+      <AccordionTrigger className="p-4 hover:no-underline">
+        <div className="w-full flex flex-col gap-2 text-left">
+          <div className="flex justify-between items-start w-full">
+            <h3 className="font-headline text-base flex items-center gap-2 text-card-foreground">
+              <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
+                <Gauge className="h-4 w-4" />
+              </div>
+              {areaPrk.title}
+            </h3>
+            <div className="flex items-center -mr-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar Área
+                  </DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => onGetAiSuggestions(areaPrk)}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Sugerir Acciones
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archivar Área
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+               <ChevronDown className="h-4 w-4 ml-1 shrink-0 transition-transform duration-200" />
             </div>
-            
-            <div className="pt-2">
-              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          </div>
+          <div className="space-y-1 pr-8">
+             <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Progreso</span>
-                <span>{progress.toFixed(0)}%</span>
+                <span>({completedActionsCount}/{totalActionsCount} acciones)</span>
               </div>
-              <Progress value={progress} className="h-1.5" />
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <CardContent className="space-y-3 p-4 pt-0 flex-grow">
-            {dailyActions.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground pt-2">Acciones Diarias</h4>
-                <div className="space-y-1 mt-1">
-                  {dailyActions.map((item) => (
-                    <HabitTaskListItem 
-                      key={item.id} 
-                      item={item} 
-                      onToggle={onToggleHabitTask}
-                      onUndo={onUndoHabitTask}
-                      onArchive={onArchiveHabitTask} 
-                      onEdit={onEditHabitTask} 
-                      selectedDate={selectedDate} 
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-             {commitments.length > 0 && (
-              <div>
-                {dailyActions.length > 0 && <Separator className="my-3" />}
-                <h4 className="text-xs font-semibold text-muted-foreground pt-2 flex items-center gap-2"><ListTodo className="h-3 w-3"/>Compromisos</h4>
-                <div className="space-y-1 mt-1">
-                  {commitments.map((item) => (
-                    <HabitTaskListItem 
-                      key={item.id} 
-                      item={item} 
-                      onToggle={onToggleHabitTask}
-                      onUndo={onUndoHabitTask}
-                      onArchive={onArchiveHabitTask} 
-                      onEdit={onEditHabitTask} 
-                      selectedDate={selectedDate} 
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {actions.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">Aún no hay acciones. ¡Agrega una para empezar!</p>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-end gap-2 p-2 pt-0">
-            <Button variant="ghost" size="sm" onClick={() => onGetAiSuggestions(areaPrk)} className="h-8">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Sugerir
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="h-8">
+            <Progress value={progress} className="h-1.5" />
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="p-4 pt-0">
+          <Separator className="my-4" />
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="text-sm font-semibold text-muted-foreground">Acciones</h4>
+             <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="h-8">
               <Plus className="mr-2 h-4 w-4" />
-              Acción
+              Agregar Acción
             </Button>
-          </CardFooter>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+          </div>
+          <div className="space-y-2">
+              {actions.length > 0 ? (
+                actions.map((item) => (
+                  <HabitTaskListItem 
+                    key={item.id} 
+                    item={item} 
+                    onEdit={onEditHabitTask} 
+                    onArchive={onArchiveHabitTask} 
+                    selectedDate={selectedDate} 
+                  />
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No hay acciones definidas para esta área.</p>
+              )}
+          </div>
+      </AccordionContent>
+    </AccordionItem>
   );
 }
