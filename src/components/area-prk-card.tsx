@@ -51,51 +51,50 @@ export function AreaPrkCard({
 
   return (
     <AccordionItem value={areaPrk.id} className="border bg-card/70 shadow-sm rounded-lg transition-shadow hover:shadow-md">
-      <AccordionTrigger className="p-4 hover:no-underline">
-        <div className="w-full flex flex-col gap-2 text-left">
-          <div className="flex justify-between items-start w-full">
-            <h3 className="font-headline text-base flex items-center gap-2 text-card-foreground">
-              <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
-                <Gauge className="h-4 w-4" />
-              </div>
-              {areaPrk.title}
-            </h3>
-            <div className="flex items-center -mr-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar Área
-                  </DropdownMenuItem>
-                   <DropdownMenuItem onClick={() => onGetAiSuggestions(areaPrk)}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Sugerir Acciones
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
-                    <Archive className="mr-2 h-4 w-4" />
-                    Archivar Área
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-               <ChevronDown className="h-4 w-4 ml-1 shrink-0 transition-transform duration-200" />
+      <AccordionTrigger className="p-3 hover:no-underline">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-3 text-left">
+            {/* Icon, Title and Action Count */}
+            <div className="flex-grow flex items-center gap-2">
+                <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
+                    <Gauge className="h-4 w-4" />
+                </div>
+                <h3 className="font-headline text-base text-card-foreground flex-grow pr-2">{areaPrk.title}</h3>
+                <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                    ({completedActionsCount}/{totalActionsCount})
+                </span>
             </div>
-          </div>
-          <div className="space-y-1 pr-8">
-             <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Progreso</span>
-                <span>({completedActionsCount}/{totalActionsCount} acciones)</span>
-              </div>
-            <Progress value={progress} className="h-1.5" />
-          </div>
+            
+            {/* Progress Bar and Menu */}
+            <div className="flex-grow sm:flex-grow-0 sm:w-1/3 flex items-center gap-3 pl-8 sm:pl-0">
+                <Progress value={progress} className="h-2 w-full" />
+                <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar Área
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onGetAiSuggestions(areaPrk)}>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Sugerir Acciones
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archivar Área
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            </div>
         </div>
       </AccordionTrigger>
       <AccordionContent className="p-4 pt-0">
-          <Separator className="my-4" />
+          <Separator className="my-2" />
           <div className="flex justify-between items-center mb-3">
             <h4 className="text-sm font-semibold text-muted-foreground">Acciones</h4>
              <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="h-8">

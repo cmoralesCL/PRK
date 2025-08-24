@@ -64,7 +64,7 @@ export function LifePrkSection({
   const lifePrkProgress = lifePrk.progress ?? 0;
   
   const areaPrkGrid = (
-    <div className="pt-4 px-0 md:px-2">
+    <div className="pt-4 px-0">
         {areaPrks.length > 0 ? (
            <Accordion type="multiple" className="space-y-3" defaultValue={areaPrks.map(ap => ap.id)}>
               {areaPrks.map((kp) => (
@@ -94,7 +94,7 @@ export function LifePrkSection({
   if (isStandaloneView) {
     return (
       <div className="space-y-4">
-        <Card className="p-4 sm:p-6">
+        <Card className="p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-grow">
                     <h2 className="text-2xl md:text-3xl font-bold font-headline flex items-center gap-3">
@@ -129,12 +129,10 @@ export function LifePrkSection({
                     </DropdownMenu>
                 </div>
             </div>
-            <div className="mt-4 space-y-1">
-                <div className="flex justify-between text-sm font-medium text-muted-foreground">
-                    <span>Progreso General</span>
-                    <span>{lifePrkProgress.toFixed(0)}%</span>
-                </div>
-                <Progress value={lifePrkProgress} className="h-2.5" />
+            <div className="mt-4 flex items-center gap-4">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Progreso General</span>
+                <Progress value={lifePrkProgress} className="h-2.5 w-full" />
+                <span className="text-sm font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
             </div>
         </Card>
         {areaPrkGrid}
@@ -192,14 +190,10 @@ export function LifePrkSection({
               </div>
         </AccordionTrigger>
         
-        <div className="px-2">
-            <div className="space-y-1 mt-2">
-                <div className="flex justify-between text-xs font-medium text-muted-foreground">
-                    <span>Progreso General</span>
-                    <span>{lifePrkProgress.toFixed(0)}%</span>
-                </div>
-                <Progress value={lifePrkProgress} className="h-2" />
-            </div>
+        <div className="px-2 mt-2 flex items-center gap-4">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Progreso</span>
+            <Progress value={lifePrkProgress} className="h-2 w-full" />
+            <span className="text-xs font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
         </div>
 
       <AccordionContent className="pt-4 px-2">
