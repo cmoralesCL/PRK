@@ -3,7 +3,7 @@
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { AddPulseDialog, PulseFormValues } from './add-habit-task-dialog';
+import { AddPulseDialog, PulseFormValues } from './add-pulse-dialog';
 import type { Orbit, Phase, Pulse, DailyProgressSnapshot } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -179,7 +179,7 @@ export function DayView({
   };
 
   const dailyProgress = useMemo(() => {
-    if (pulses.length === 0) return 0;
+    if (!pulses || pulses.length === 0) return 0;
 
     let totalWeight = 0;
     let weightedCompleted = 0;
@@ -279,5 +279,3 @@ export function DayView({
     </>
   );
 }
-
-    
