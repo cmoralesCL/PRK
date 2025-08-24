@@ -346,7 +346,7 @@ export function AddPulseDialog({
                   <FormLabel>Fase(s) Asociada(s)</FormLabel>
                   <FormControl>
                      <MultiSelect
-                        options={phases.map(ap => ({ label: ap.title, value: ap.id }))}
+                        options={phases ? phases.map(ap => ({ label: ap.title, value: ap.id })) : []}
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                         placeholder="Selecciona una o más Fases..."
