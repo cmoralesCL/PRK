@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Plus, Archive, ChevronDown, Pencil, Check, Square, AlertTriangle, Flame } from 'lucide-react';
@@ -14,7 +15,7 @@ import {
 import { MoreVertical } from "lucide-react"
 import { differenceInDays, startOfToday, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
-import React, { useState } from 'react';
+import React, 'useState } from 'react';
 import { Card } from './ui/card';
 import {
   Collapsible,
@@ -76,8 +77,8 @@ export function AreaPrkCard({
   return (
     <Card className="flex flex-col">
        <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
-         <CollapsibleTrigger className="p-4 w-full text-left group">
-           <div className="flex justify-between items-start gap-2">
+         <div className="flex w-full items-start justify-between gap-2 p-4 group">
+            <CollapsibleTrigger className="flex-grow text-left">
               <div className="flex-grow">
                   <h3 className="font-headline text-base font-semibold text-card-foreground">{areaPrk.title}</h3>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono mt-1">
@@ -95,14 +96,28 @@ export function AreaPrkCard({
                       </div>
                   </div>
               </div>
-               <div className="flex items-center flex-shrink-0">
-                 <DropdownMenu>
+              <div className="flex items-center gap-3 pt-3">
+                  <Progress value={progress} className="h-2 w-full" />
+                  <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
+              </div>
+              {upcomingTask && (
+                  <div className={cn(
+                      "flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap px-2 py-0.5 rounded-full mt-2 w-fit",
+                      upcomingTask.days < 2 ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
+                  )}>
+                      <Flame className="h-3 w-3" />
+                      <span>Vence {upcomingTask.days === 0 ? 'hoy' : upcomingTask.days === 1 ? 'mañana' : `en ${upcomingTask.days} días`}</span>
+                  </div>
+              )}
+            </CollapsibleTrigger>
+            <div className="flex items-center flex-shrink-0">
+                <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar Área
@@ -112,24 +127,11 @@ export function AreaPrkCard({
                             Archivar Área
                         </DropdownMenuItem>
                     </DropdownMenuContent>
-                  </DropdownMenu>
-                   <ChevronDown className={`h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180`} />
-               </div>
-           </div>
-           <div className="flex items-center gap-3 pt-3">
-               <Progress value={progress} className="h-2 w-full" />
-               <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
+                </DropdownMenu>
+                <ChevronDown className={`h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180`} />
+            </div>
           </div>
-           {upcomingTask && (
-              <div className={cn(
-                  "flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap px-2 py-0.5 rounded-full mt-2 w-fit",
-                  upcomingTask.days < 2 ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
-              )}>
-                  <Flame className="h-3 w-3" />
-                  <span>Vence {upcomingTask.days === 0 ? 'hoy' : upcomingTask.days === 1 ? 'mañana' : `en ${upcomingTask.days} días`}</span>
-              </div>
-          )}
-         </CollapsibleTrigger>
+
          <CollapsibleContent className="px-4 pb-4">
             <div className="space-y-2 border-t pt-4">
                 {actions.map((item) => (
