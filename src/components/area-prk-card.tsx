@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Plus, Archive, ChevronDown, Pencil, Check, Square, AlertTriangle, Flame } from 'lucide-react';
@@ -15,7 +14,7 @@ import {
 import { MoreVertical } from "lucide-react"
 import { differenceInDays, startOfToday, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
-import React, 'useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from './ui/card';
 import {
   Collapsible,
@@ -79,9 +78,9 @@ export function AreaPrkCard({
        <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
          <div className="flex w-full items-start justify-between gap-2 p-4 group">
             <CollapsibleTrigger className="flex-grow text-left">
-              <div className="flex-grow">
-                  <h3 className="font-headline text-base font-semibold text-card-foreground">{areaPrk.title}</h3>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono mt-1">
+              <div className="flex items-center gap-3">
+                 <h3 className="font-headline text-base font-semibold text-card-foreground">{areaPrk.title}</h3>
+                 <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
                       <div className="flex items-center gap-1" title="Completadas">
                           <Check className="h-3 w-3 text-green-500" />
                           <span>{summary.completed}</span>
@@ -96,7 +95,7 @@ export function AreaPrkCard({
                       </div>
                   </div>
               </div>
-              <div className="flex items-center gap-3 pt-3">
+              <div className="flex items-center gap-3 pt-1">
                   <Progress value={progress} className="h-2 w-full" />
                   <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
               </div>
@@ -110,14 +109,14 @@ export function AreaPrkCard({
                   </div>
               )}
             </CollapsibleTrigger>
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7">
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar Área
