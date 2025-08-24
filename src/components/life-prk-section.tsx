@@ -110,7 +110,7 @@ export function LifePrkSection({
                 <PhaseCard
                     key={kp.id}
                     phase={kp}
-                    actions={allPulses.filter(ht => ht.phase_ids.includes(kp.id))}
+                    actions={allPulses.filter(ht => Array.isArray(ht.phase_ids) && ht.phase_ids.includes(kp.id))}
                     onAddPulse={onAddPulse}
                     onEditPulse={onEditPulse}
                     onArchive={onArchivePhase}
