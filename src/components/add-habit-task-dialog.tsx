@@ -35,6 +35,13 @@ import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { MultiSelect } from './ui/multi-select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const numberPreprocess = (val: any) => (val === '' || val === null ? undefined : val);
 
