@@ -110,7 +110,7 @@ export function AreaPrkCard({
                     key={item.id} 
                     item={item} 
                     onEdit={onEditHabitTask} 
-                    onArchive={onArchiveHabitTask} 
+                    onArchive={() => onArchiveHabitTask(item.id)}
                     selectedDate={selectedDate} 
                   />
                 ))
