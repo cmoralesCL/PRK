@@ -153,29 +153,29 @@ export function Panel({
     <>
       <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
         <div className="mb-4">
-            <h1 className="text-2xl font-bold font-headline">Panel Estratégico</h1>
+            <h1 className="text-2xl font-bold font-headline text-foreground">Panel Estratégico</h1>
             <p className="text-sm text-muted-foreground">Una vista completa de todos tus objetivos y acciones.</p>
         </div>
 
         {lifePrks.length === 0 && !isPending && (
             <div className="text-center py-24">
-                <h2 className="text-xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                <h2 className="text-xl font-headline font-semibold text-foreground">Bienvenido a tu Brújula</h2>
                 <p className="mt-2 text-sm text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
                 <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
             </div>
         )}
         {isPending && (
             <div className="text-center py-24">
-                  <h2 className="text-xl font-headline font-semibold">Cargando...</h2>
+                  <h2 className="text-xl font-headline font-semibold text-foreground">Cargando...</h2>
             </div>
         )}
         {!isPending && lifePrks.length > 0 && (
           <>
             <div className="flex justify-end gap-2 mb-2">
-                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
+                <Button variant="ghost" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                     Expandir Todo
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
+                <Button variant="ghost" size="sm" onClick={() => setOpenLifePrkIds([])}>
                     Contraer Todo
                 </Button>
             </div>

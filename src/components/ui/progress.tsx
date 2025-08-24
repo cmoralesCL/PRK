@@ -12,13 +12,13 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => {
   const progressValue = value || 0;
   
-  const colorClass = 'bg-gradient-to-r from-primary via-accent to-warm';
+  const colorClass = 'bg-gradient-to-r from-teal-400 to-cyan-500';
 
   return (
     <ProgressPrimitive.Root
       ref={ref}
       className={cn(
-        "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+        "relative h-2 w-full overflow-hidden rounded-full bg-muted",
         className
       )}
       {...props}
