@@ -1,9 +1,8 @@
 
 'use client';
 
-import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil, ListTodo } from 'lucide-react';
+import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil, Check, Square, AlertTriangle, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
 import type { AreaPrk, HabitTask } from '@/lib/types';
@@ -19,8 +18,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { useState } from 'react';
 import { Separator } from './ui/separator';
+import { differenceInDays, startOfToday, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
+import React from 'react';
+
 
 interface AreaPrkCardProps {
   areaPrk: AreaPrk;
@@ -46,50 +48,96 @@ export function AreaPrkCard({
   selectedDate,
 }: AreaPrkCardProps) {
   const progress = areaPrk.progress ?? 0;
-  const completedActionsCount = actions.filter(a => a.completedToday).length;
-  const totalActionsCount = actions.length;
+
+  const summary = React.useMemo(() => {
+    const completed = actions.filter(a => a.completedToday).length;
+    const pending = actions.length - completed;
+    const atRisk = actions.filter(a => a.is_critical && !a.completedToday).length;
+    return { completed, pending, atRisk };
+  }, [actions]);
+
+  const upcomingTask = React.useMemo(() => {
+    const today = startOfToday();
+    let soonestTask: { task: HabitTask; days: number } | null = null;
+
+    for (const task of actions) {
+        if (!task.completedToday && task.due_date) {
+            const dueDate = parseISO(task.due_date);
+            const daysUntilDue = differenceInDays(dueDate, today);
+
+            if (daysUntilDue >= 0 && (soonestTask === null || daysUntilDue < soonestTask.days)) {
+                soonestTask = { task, days: daysUntilDue };
+            }
+        }
+    }
+    return soonestTask;
+  }, [actions]);
+
 
   return (
-    <AccordionItem value={areaPrk.id} className="border bg-card/70 shadow-sm rounded-lg transition-shadow hover:shadow-md">
-      <AccordionTrigger className="p-3 hover:no-underline">
-        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-3 text-left">
-            {/* Icon, Title and Action Count */}
-            <div className="flex-grow flex items-center gap-2">
-                <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
-                    <Gauge className="h-4 w-4" />
+    <AccordionItem value={areaPrk.id} className="border bg-card shadow-sm rounded-lg transition-shadow hover:shadow-md">
+      <AccordionTrigger className="p-3 hover:no-underline group">
+        <div className="w-full flex flex-col gap-3 text-left">
+            {/* Top Row: Title, Summary, Menu */}
+            <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2 flex-grow pr-2">
+                    <div className="flex-shrink-0 bg-accent/10 text-accent p-1.5 rounded-full">
+                        <Gauge className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-headline text-base text-card-foreground flex-grow">{areaPrk.title}</h3>
                 </div>
-                <h3 className="font-headline text-base text-card-foreground flex-grow pr-2">{areaPrk.title}</h3>
-                <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
-                    ({completedActionsCount}/{totalActionsCount})
-                </span>
+                 <div className="flex items-center flex-shrink-0">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono mr-2">
+                        <div className="flex items-center gap-1" title="Completadas">
+                            <Check className="h-3 w-3 text-green-500" />
+                            <span>{summary.completed}</span>
+                        </div>
+                         <div className="flex items-center gap-1" title="Pendientes">
+                            <Square className="h-3 w-3" />
+                            <span>{summary.pending}</span>
+                        </div>
+                         <div className="flex items-center gap-1" title="Críticas no completadas">
+                            <AlertTriangle className="h-3 w-3 text-orange-500" />
+                            <span>{summary.atRisk}</span>
+                        </div>
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar Área
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onGetAiSuggestions(areaPrk)}>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Sugerir Acciones
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archivar Área
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 ml-1" />
+                </div>
             </div>
-            
-            {/* Progress Bar and Menu */}
-            <div className="flex-grow sm:flex-grow-0 sm:w-1/3 flex items-center gap-3 pl-8 sm:pl-0">
-                <Progress value={progress} className="h-2 w-full" />
-                <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar Área
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onGetAiSuggestions(areaPrk)}>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Sugerir Acciones
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archivar Área
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            {/* Bottom Row: Progress Bar and Due Date */}
+            <div className="flex items-center gap-3 pl-8">
+                 <Progress value={progress} className="h-2 w-full" />
+                 <span className="text-xs font-semibold w-10 text-right">{Math.round(progress)}%</span>
+                  {upcomingTask && (
+                    <div className={cn(
+                        "flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap px-2 py-0.5 rounded-full",
+                        upcomingTask.days < 2 ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
+                    )}>
+                        <Flame className="h-3 w-3" />
+                        <span>Vence {upcomingTask.days === 0 ? 'hoy' : upcomingTask.days === 1 ? 'mañana' : `en ${upcomingTask.days} días`}</span>
+                    </div>
+                )}
             </div>
         </div>
       </AccordionTrigger>
