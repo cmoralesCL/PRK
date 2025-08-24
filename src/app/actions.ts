@@ -97,13 +97,14 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
   }
 }
 
-export async function addLifePrk(values: { title: string; description?: string }) {
+export async function addLifePrk(values: { title: string; description?: string, color_theme?: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
         const { data, error } = await supabase.from('life_prks').insert([{ 
             title: values.title, 
             description: values.description || '',
+            color_theme: values.color_theme || 'mint',
             user_id: userId,
         }]).select();
 
@@ -117,7 +118,7 @@ export async function addLifePrk(values: { title: string; description?: string }
     revalidatePath('/day');
 }
 
-export async function updateLifePrk(id: string, values: { title: string; description?: string }) {
+export async function updateLifePrk(id: string, values: { title: string; description?: string, color_theme?: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -126,6 +127,7 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
             .update({ 
                 title: values.title, 
                 description: values.description || '',
+                color_theme: values.color_theme || 'mint',
             })
             .eq('id', id)
             .eq('user_id', userId);
@@ -191,20 +193,28 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     const supabase = createClient();
     const userId = await getCurrentUserId();
     
-    const dataToInsert: any = { ...values, user_id: userId };
+    const { area_prk_ids, ...taskData } = values;
+    const dataToInsert: any = { ...taskData, user_id: userId };
 
     if (dataToInsert.frequency === 'UNICA') {
         dataToInsert.frequency = null;
     }
-
+    
     try {
-        const { data, error } = await supabase.from('habit_tasks').insert([dataToInsert]);
-        if(error) {
-            await logError(error, { at: 'addHabitTask', values: dataToInsert });
-            throw error;
+        const { data: newTask, error } = await supabase.from('habit_tasks').insert([dataToInsert]).select().single();
+        if (error) throw error;
+
+        if (area_prk_ids && area_prk_ids.length > 0) {
+            const links = area_prk_ids.map(area_prk_id => ({
+                habit_task_id: newTask.id,
+                area_prk_id: area_prk_id,
+            }));
+            const { error: linkError } = await supabase.from('habit_task_area_prk_links').insert(links);
+            if (linkError) throw linkError;
         }
+
     } catch (error) {
-        // Error is logged above
+        await logError(error, { at: 'addHabitTask', values: dataToInsert, area_prk_ids });
         console.error("Error adding Habit/Task:", error);
         throw error;
     }
@@ -217,10 +227,10 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     const supabase = createClient();
     const userId = await getCurrentUserId();
     
-    const updateData: any = { ...values };
+    const { area_prk_ids, ...updateData } = values;
 
-    if (updateData.frequency === 'UNICA') {
-        updateData.frequency = null;
+    if ('frequency' in updateData && updateData.frequency === 'UNICA') {
+        (updateData as any).frequency = null;
     }
 
     try {
@@ -230,11 +240,25 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
             .eq('id', id)
             .eq('user_id', userId);
 
-        if (error) {
-            await logError(error, { at: 'updateHabitTask', id, values: updateData });
-            throw error;
+        if (error) throw error;
+        
+        if (area_prk_ids) {
+            // Delete existing links
+            const { error: deleteError } = await supabase.from('habit_task_area_prk_links').delete().eq('habit_task_id', id);
+            if (deleteError) throw deleteError;
+            
+            // Insert new links
+            if (area_prk_ids.length > 0) {
+                 const links = area_prk_ids.map(area_prk_id => ({
+                    habit_task_id: id,
+                    area_prk_id: area_prk_id,
+                }));
+                const { error: linkError } = await supabase.from('habit_task_area_prk_links').insert(links);
+                if (linkError) throw linkError;
+            }
         }
     } catch (error) {
+        await logError(error, { at: 'updateHabitTask', id, values });
         console.error("Error updating Habit/Task:", error);
         throw error;
     }
