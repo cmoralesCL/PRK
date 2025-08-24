@@ -1,4 +1,3 @@
-
 'use client';
 
 import { login, signup, loginAsGuest } from "@/app/actions";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Compass } from "lucide-react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 
@@ -21,7 +20,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-sm mx-auto">
             <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
-                    <Compass className="h-12 w-12 text-primary" />
+                    <Image src="/logo.png" alt="Cenit Logo" width={64} height={64} />
                 </div>
                 <CardTitle className="text-2xl font-headline">Cenit</CardTitle>
                 <CardDescription>
