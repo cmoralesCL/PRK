@@ -28,7 +28,7 @@ import { useTransition } from 'react';
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
   areaPrks: AreaPrk[];
-  actions: HabitTask[]; 
+  actions: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
@@ -66,7 +66,7 @@ export function LifePrkSection({
   const areaPrkGrid = (
     <div className="pt-4 px-0">
         {areaPrks.length > 0 ? (
-           <Accordion type="multiple" className="space-y-3" defaultValue={areaPrks.map(ap => ap.id)}>
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {areaPrks.map((kp) => (
               <AreaPrkCard
                   key={kp.id}
@@ -81,7 +81,7 @@ export function LifePrkSection({
                   selectedDate={selectedDate}
               />
               ))}
-          </Accordion>
+          </div>
           ) : (
             <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
                   <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>
@@ -129,9 +129,9 @@ export function LifePrkSection({
                     </DropdownMenu>
                 </div>
             </div>
-            <div className="mt-4 flex items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Progreso General</span>
-                <Progress value={lifePrkProgress} className="h-2.5 w-full" />
+             <div className="mt-4 flex items-center gap-3">
+                <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Progreso General</span>
+                <Progress value={lifePrkProgress} className="h-2 w-full" />
                 <span className="text-sm font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
             </div>
         </Card>
@@ -190,8 +190,8 @@ export function LifePrkSection({
               </div>
         </AccordionTrigger>
         
-        <div className="px-2 mt-2 flex items-center gap-4">
-            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Progreso</span>
+        <div className="px-2 mt-2 flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Progreso</span>
             <Progress value={lifePrkProgress} className="h-2 w-full" />
             <span className="text-xs font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
         </div>
