@@ -7,24 +7,24 @@ import { format, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import { ProgressCalendar } from '@/components/progress-calendar';
-import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
-import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask } from '@/app/actions';
+import { AddPulseDialog, type PulseFormValues } from './add-habit-task-dialog';
+import type { DailyProgressSnapshot, Pulse, Phase, WeeklyProgressSnapshot } from '@/lib/types';
+import { addPulse, updatePulse, archivePulse } from '@/app/actions';
 import { DayDetailDialog } from './day-detail-dialog';
 import { CommitmentsCard } from './commitments-card';
 
 interface CalendarViewProps {
     initialMonthString: string;
     dailyProgressData: DailyProgressSnapshot[];
-    habitTasksData: Record<string, HabitTask[]>;
-    areaPrks: AreaPrk[];
+    habitTasksData: Record<string, Pulse[]>;
+    areaPrks: Phase[];
     weeklyProgressData: WeeklyProgressSnapshot[];
     monthlyProgress: number;
-    commitments: HabitTask[];
+    commitments: Pulse[];
     onDayClick: (day: Date) => void;
     onToggleCommitment: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
     onUndoCommitment: (id: string, date: Date) => void;
-    onEditCommitment: (task: HabitTask) => void;
+    onEditCommitment: (task: Pulse) => void;
     onArchiveCommitment: (id: string) => void;
 }
 
@@ -46,8 +46,8 @@ export function CalendarView({
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
-    const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-    const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
+    const [isPulseDialogOpen, setPulseDialogOpen] = useState(false);
+    const [editingPulse, setEditingPulse] = useState<Pulse | null>(null);
     const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | undefined>(undefined);
     
     const [isDayDetailOpen, setDayDetailOpen] = useState(false);
@@ -59,16 +59,16 @@ export function CalendarView({
         });
     }
 
-    const handleOpenAddTaskDialog = (date: Date) => {
-        setEditingHabitTask(null);
+    const handleOpenAddPulseDialog = (date: Date) => {
+        setEditingPulse(null);
         setSelectedDateForDialog(date);
-        setHabitTaskDialogOpen(true);
+        setPulseDialogOpen(true);
     };
 
-    const handleOpenEditTaskDialog = (habitTask: HabitTask, date: Date) => {
-        setEditingHabitTask(habitTask);
+    const handleOpenEditPulseDialog = (pulse: Pulse, date: Date) => {
+        setEditingPulse(pulse);
         setSelectedDateForDialog(date);
-        setHabitTaskDialogOpen(true);
+        setPulseDialogOpen(true);
     };
 
     const handleOpenDayDetail = (day: Date) => {
@@ -80,15 +80,15 @@ export function CalendarView({
         setDayDetailOpen(false);
     }
 
-    const handleSaveHabitTask = (values: HabitTaskFormValues) => {
+    const handleSavePulse = (values: PulseFormValues) => {
         startTransition(async () => {
             try {
-                const habitTaskData = {
+                const pulseData: Partial<Pulse> = {
                     title: values.title,
                     type: values.type,
-                    area_prk_id: values.area_prk_id,
-                    start_date: values.start_date ? values.start_date.toISOString().split('T')[0] : undefined,
-                    due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
+                    phase_ids: values.phase_ids,
+                    start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
+                    due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
                     frequency: values.frequency,
                     frequency_days: values.frequency_days,
                     weight: values.weight,
@@ -97,27 +97,27 @@ export function CalendarView({
                     measurement_goal: values.measurement_goal,
                 };
                 
-                if (editingHabitTask) {
-                    await updateHabitTask(editingHabitTask.id, habitTaskData);
-                    toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
+                if (editingPulse) {
+                    await updatePulse(editingPulse.id, pulseData);
+                    toast({ title: '¡Pulso Actualizado!', description: `Se ha actualizado "${values.title}".` });
                 } else {
-                    await addHabitTask(habitTaskData);
-                    toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+                    await addPulse(pulseData);
+                    toast({ title: '¡Pulso Agregado!', description: `Se ha agregado "${values.title}".` });
                 }
             } catch (error) {
-                console.error("Error al guardar la acción:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
+                console.error("Error al guardar el Pulso:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el Pulso.' });
             }
         });
     };
 
-    const handleArchiveHabitTask = (id: string, date: Date) => {
+    const handleArchivePulse = (id: string, date: Date) => {
         startTransition(async () => {
             try {
-                await archiveHabitTask(id, date.toISOString());
-                toast({ title: 'Acción Archivada' });
+                await archivePulse(id, date.toISOString());
+                toast({ title: 'Pulso Archivado' });
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la acción.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Pulso.' });
             }
         });
     }
@@ -147,13 +147,13 @@ export function CalendarView({
                     onArchive={onArchiveCommitment}
                 />
             </main>
-            <AddHabitTaskDialog 
-                isOpen={isHabitTaskDialogOpen}
-                onOpenChange={setHabitTaskDialogOpen}
-                onSave={handleSaveHabitTask}
-                habitTask={editingHabitTask}
+            <AddPulseDialog 
+                isOpen={isPulseDialogOpen}
+                onOpenChange={setPulseDialogOpen}
+                onSave={handleSavePulse}
+                pulse={editingPulse}
                 defaultDate={selectedDateForDialog}
-                areaPrks={areaPrks}
+                phases={areaPrks}
             />
             <DayDetailDialog 
                 isOpen={isDayDetailOpen}
@@ -162,14 +162,16 @@ export function CalendarView({
                 tasks={selectedDayForDetail ? habitTasksData[format(selectedDayForDetail, 'yyyy-MM-dd')] || [] : []}
                 onAddTask={(date) => {
                     handleCloseDayDetail(); 
-                    handleOpenAddTaskDialog(date);
+                    handleOpenAddPulseDialog(date);
                 }}
                 onEditTask={(task, date) => {
                     handleCloseDayDetail();
-                    handleOpenEditTaskDialog(task, date);
+                    handleOpenEditPulseDialog(task, date);
                 }}
-                onArchiveTask={handleArchiveHabitTask}
+                onArchiveTask={handleArchivePulse}
             />
         </>
     );
 }
+
+    

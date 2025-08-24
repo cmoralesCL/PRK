@@ -3,15 +3,15 @@
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
-import type { LifePrk, AreaPrk, HabitTask, DailyProgressSnapshot } from '@/lib/types';
+import { AddPulseDialog, PulseFormValues } from './add-habit-task-dialog';
+import type { Orbit, Phase, Pulse, DailyProgressSnapshot } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
-    addHabitTask, 
-    updateHabitTask,
-    logHabitTaskCompletion,
-    removeHabitTaskCompletion,
-    archiveHabitTask,
+    addPulse, 
+    updatePulse,
+    logPulseCompletion,
+    removePulseCompletion,
+    archivePulse,
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO, format, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
@@ -21,20 +21,21 @@ import { Plus, GripVertical } from 'lucide-react';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { getDashboardData } from '@/app/server/queries';
 import { ProgressCircle } from './ui/progress-circle';
+import { LifePrkSection } from './life-prk-section';
 
 interface DayViewProps {
-  lifePrks: LifePrk[];
-  areaPrks: AreaPrk[];
-  habitTasks: HabitTask[];
-  commitments: HabitTask[];
+  orbits: Orbit[];
+  phases: Phase[];
+  pulses: Pulse[];
+  commitments: Pulse[];
   initialSelectedDate: string;
   dailyProgressDataForWeek: DailyProgressSnapshot[];
 }
 
 export function DayView({
-  lifePrks,
-  areaPrks,
-  habitTasks: initialHabitTasks,
+  orbits,
+  phases,
+  pulses: initialPulses,
   commitments,
   initialSelectedDate,
   dailyProgressDataForWeek,
@@ -44,25 +45,25 @@ export function DayView({
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [habitTasks, setHabitTasks] = useState(initialHabitTasks);
+  const [pulses, setPulses] = useState(initialPulses);
   
   // State for drag and drop
-  const [draggedItem, setDraggedItem] = useState<HabitTask | null>(null);
+  const [draggedItem, setDraggedItem] = useState<Pulse | null>(null);
 
   useEffect(() => {
     setSelectedDate(parseISO(initialSelectedDate));
-    setHabitTasks(initialHabitTasks);
-  }, [initialSelectedDate, initialHabitTasks]);
+    setPulses(initialPulses);
+  }, [initialSelectedDate, initialPulses]);
 
   // State for dialogs
-  const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-  const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
+  const [isPulseDialogOpen, setPulseDialogOpen] = useState(false);
+  const [defaultPulseValues, setDefaultPulseValues] = useState<Partial<PulseFormValues> | undefined>(undefined);
 
   // State for editing items
-  const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
+  const [editingPulse, setEditingPulse] = useState<Pulse | null>(null);
   
   // State for context when adding new items
-  const [activeAreaPrkIds, setActiveAreaPrkIds] = useState<string[]>([]);
+  const [activePhaseIds, setActivePhaseIds] = useState<string[]>([]);
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -73,50 +74,50 @@ export function DayView({
     });
   }
 
-  const handleOpenAddHabitTaskDialog = (areaPrkId?: string) => {
-    setActiveAreaPrkIds(areaPrkId ? [areaPrkId] : []);
-    setDefaultHabitTaskValues(undefined);
-    setEditingHabitTask(null);
-    setHabitTaskDialogOpen(true);
+  const handleOpenAddPulseDialog = (phaseId?: string) => {
+    setActivePhaseIds(phaseId ? [phaseId] : []);
+    setDefaultPulseValues(undefined);
+    setEditingPulse(null);
+    setPulseDialogOpen(true);
   };
   
-  const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
-    setEditingHabitTask(habitTask);
-    setDefaultHabitTaskValues(undefined);
-    setActiveAreaPrkIds(habitTask.area_prk_ids);
-    setHabitTaskDialogOpen(true);
+  const handleOpenEditPulseDialog = (pulse: Pulse) => {
+    setEditingPulse(pulse);
+    setDefaultPulseValues(undefined);
+    setActivePhaseIds(pulse.phase_ids);
+    setPulseDialogOpen(true);
   };
 
-  const handleSaveHabitTask = (values: Partial<HabitTask>) => {
+  const handleSavePulse = (values: Partial<Pulse>) => {
     startTransition(async () => {
         try {
-            if (editingHabitTask) {
-                await updateHabitTask(editingHabitTask.id, values);
-                toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
+            if (editingPulse) {
+                await updatePulse(editingPulse.id, values);
+                toast({ title: '¡Pulso Actualizado!', description: `Se ha actualizado "${values.title}".` });
             } else {
-                await addHabitTask(values);
-                toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+                await addPulse(values);
+                toast({ title: '¡Pulso Agregado!', description: `Se ha agregado "${values.title}".` });
             }
         } catch (error) {
-            console.error("Error al guardar la acción:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción. Revisa los campos e inténtalo de nuevo.' });
+            console.error("Error al guardar el Pulso:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el Pulso. Revisa los campos e inténtalo de nuevo.' });
         }
     });
   };
 
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const allTasks = [...habitTasks, ...commitments];
-    const task = allTasks.find(ht => ht.id === id);
-    if (!task) return;
+  const handleTogglePulse = (id: string, completed: boolean, date: Date, progressValue?: number) => {
+    const allPulses = [...pulses, ...commitments];
+    const pulse = allPulses.find(ht => ht.id === id);
+    if (!pulse) return;
 
     const completionDate = date.toISOString().split('T')[0];
 
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+          await logPulseCompletion(id, pulse.type, completionDate, progressValue);
         } else {
-          await removeHabitTaskCompletion(id, task.type, completionDate);
+          await removePulseCompletion(id, pulse.type, completionDate);
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
@@ -124,15 +125,15 @@ export function DayView({
     });
   };
 
-  const handleUndoHabitTask = (id: string, date: Date) => {
-     const allTasks = [...habitTasks, ...commitments];
-    const task = allTasks.find(ht => ht.id === id);
-    if (!task) return;
+  const handleUndoPulse = (id: string, date: Date) => {
+     const allPulses = [...pulses, ...commitments];
+    const pulse = allPulses.find(ht => ht.id === id);
+    if (!pulse) return;
 
     const completionDate = date.toISOString().split('T')[0];
     startTransition(async () => {
         try {
-            await removeHabitTaskCompletion(id, task.type, completionDate);
+            await removePulseCompletion(id, pulse.type, completionDate);
             toast({ title: "Registro deshecho" });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
@@ -140,19 +141,19 @@ export function DayView({
     });
   };
 
-  const handleArchiveHabitTask = (id: string) => {
+  const handleArchivePulse = (id: string) => {
     if (!selectedDate) return;
     startTransition(async () => {
         try {
-          await archiveHabitTask(id, selectedDate.toISOString());
-          toast({ title: 'Hábito/Tarea Archivado' });
+          await archivePulse(id, selectedDate.toISOString());
+          toast({ title: 'Pulso Archivado' });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Pulso.' });
         }
     });
   };
   
-  const onDragStart = (e: React.DragEvent<HTMLDivElement>, item: HabitTask) => {
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>, item: Pulse) => {
     setDraggedItem(item);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', item.id);
@@ -162,28 +163,28 @@ export function DayView({
     e.preventDefault();
   };
 
-  const onDrop = (e: React.DragEvent<HTMLDivElement>, targetItem: HabitTask) => {
+  const onDrop = (e: React.DragEvent<HTMLDivElement>, targetItem: Pulse) => {
     if (!draggedItem) return;
 
-    const currentIndex = habitTasks.findIndex(item => item.id === draggedItem.id);
-    const targetIndex = habitTasks.findIndex(item => item.id === targetItem.id);
+    const currentIndex = pulses.findIndex(item => item.id === draggedItem.id);
+    const targetIndex = pulses.findIndex(item => item.id === targetItem.id);
 
     if (currentIndex !== -1 && targetIndex !== -1) {
-      const newTasks = [...habitTasks];
-      const [removed] = newTasks.splice(currentIndex, 1);
-      newTasks.splice(targetIndex, 0, removed);
-      setHabitTasks(newTasks);
+      const newPulses = [...pulses];
+      const [removed] = newPulses.splice(currentIndex, 1);
+      newPulses.splice(targetIndex, 0, removed);
+      setPulses(newPulses);
     }
     setDraggedItem(null);
   };
 
   const dailyProgress = useMemo(() => {
-    if (habitTasks.length === 0) return 0;
+    if (pulses.length === 0) return 0;
 
     let totalWeight = 0;
     let weightedCompleted = 0;
 
-    habitTasks.forEach(task => {
+    pulses.forEach(task => {
         totalWeight += task.weight;
         if(task.completedToday) {
             weightedCompleted += task.weight;
@@ -191,7 +192,7 @@ export function DayView({
     });
 
     return totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
-  }, [habitTasks]);
+  }, [pulses]);
 
   if (!selectedDate) {
     return (
@@ -208,12 +209,12 @@ export function DayView({
 
         <div className="mt-6">
             <div className="flex items-center gap-4 mb-4">
-              <h2 className="text-2xl font-headline font-bold">Tareas del Día</h2>
+              <h2 className="text-2xl font-headline font-bold">Pulsos del Día</h2>
               <ProgressCircle progress={dailyProgress} />
             </div>
             <div className="mt-4 space-y-2">
-                {habitTasks.length > 0 ? (
-                    habitTasks.map((task, index) => (
+                {pulses.length > 0 ? (
+                    pulses.map((task, index) => (
                       <div
                         key={task.id}
                         draggable
@@ -225,10 +226,10 @@ export function DayView({
                         <HabitTaskListItem 
                           item={task}
                           selectedDate={selectedDate}
-                          onEdit={handleOpenEditHabitTaskDialog}
-                          onToggle={handleToggleHabitTask}
-                          onUndo={handleUndoHabitTask}
-                          onArchive={handleArchiveHabitTask}
+                          onEdit={handleOpenEditPulseDialog}
+                          onToggle={handleTogglePulse}
+                          onUndo={handleUndoPulse}
+                          onArchive={handleArchivePulse}
                           isDraggable
                         />
                       </div>
@@ -237,7 +238,7 @@ export function DayView({
                     <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed">
                         <p className="text-muted-foreground font-semibold text-lg">¡Día despejado!</p>
                         <p className="text-muted-foreground mt-1">¿Qué te gustaría lograr hoy?</p>
-                        <Button variant="link" size="sm" onClick={() => handleOpenAddHabitTaskDialog()}>¡Agrega una nueva acción!</Button>
+                        <Button variant="link" size="sm" onClick={() => handleOpenAddPulseDialog()}>¡Agrega un nuevo Pulso!</Button>
                     </div>
                 )}
             </div>
@@ -249,31 +250,31 @@ export function DayView({
                 <CommitmentsCard 
                     commitments={commitments}
                     selectedDate={selectedDate}
-                    onToggle={handleToggleHabitTask}
-                    onUndo={handleUndoHabitTask}
-                    onEdit={handleOpenEditHabitTaskDialog}
-                    onArchive={handleArchiveHabitTask}
+                    onToggle={handleTogglePulse}
+                    onUndo={handleUndoPulse}
+                    onEdit={handleOpenEditPulseDialog}
+                    onArchive={handleArchivePulse}
                 />
             </div>
         </div>
       </main>
 
       <div className="fixed bottom-6 right-6 z-20">
-        <Button onClick={() => handleOpenAddHabitTaskDialog()} size="lg" className="rounded-full shadow-lg h-12 w-12 p-0 sm:w-auto sm:px-6 sm:h-11">
+        <Button onClick={() => handleOpenAddPulseDialog()} size="lg" className="rounded-full shadow-lg h-12 w-12 p-0 sm:w-auto sm:px-6 sm:h-11">
             <Plus className="h-6 w-6 sm:h-5 sm:w-5 sm:mr-2" />
-            <span className="hidden sm:inline">Nueva Acción</span>
+            <span className="hidden sm:inline">Nuevo Pulso</span>
         </Button>
       </div>
 
-      <AddHabitTaskDialog 
-        isOpen={isHabitTaskDialogOpen} 
-        onOpenChange={setHabitTaskDialogOpen} 
-        onSave={handleSaveHabitTask}
-        habitTask={editingHabitTask}
-        defaultAreaPrkIds={activeAreaPrkIds}
+      <AddPulseDialog 
+        isOpen={isPulseDialogOpen} 
+        onOpenChange={setPulseDialogOpen} 
+        onSave={handleSavePulse}
+        pulse={editingPulse}
+        defaultPhaseIds={activePhaseIds}
         defaultDate={selectedDate}
-        areaPrks={areaPrks}
-        defaultValues={defaultHabitTaskValues}
+        phases={phases}
+        defaultValues={defaultPulseValues}
        />
     </>
   );

@@ -8,22 +8,22 @@ import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-import type { DailyProgressSnapshot, HabitTask, AreaPrk, WeeklyProgressSnapshot, HabitFrequency } from '@/lib/types';
-import { addHabitTask, updateHabitTask, archiveHabitTask, logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+import type { DailyProgressSnapshot, Pulse, Phase, WeeklyProgressSnapshot, HabitFrequency } from '@/lib/types';
+import { addPulse, updatePulse, archivePulse, logPulseCompletion, removePulseCompletion } from '@/app/actions';
 
 import { CalendarView } from '@/components/calendar-view';
 import { CommitmentsSidebar } from '@/components/commitments-sidebar';
 import { DayDetailDialog } from './day-detail-dialog';
-import { AddHabitTaskDialog, type HabitTaskFormValues } from './add-habit-task-dialog';
+import { AddPulseDialog, type PulseFormValues } from './add-habit-task-dialog';
 
 interface CalendarPageClientProps {
     initialData: {
         dailyProgress: DailyProgressSnapshot[];
-        habitTasks: Record<string, HabitTask[]>;
-        areaPrks: AreaPrk[];
+        habitTasks: Record<string, Pulse[]>;
+        areaPrks: Phase[];
         weeklyProgress: WeeklyProgressSnapshot[];
         monthlyProgress: number;
-        commitments: HabitTask[];
+        commitments: Pulse[];
     };
     initialMonthString: string;
 }
@@ -34,10 +34,10 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
     const [isPending, startTransition] = useTransition();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-    const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-    const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
+    const [isPulseDialogOpen, setPulseDialogOpen] = useState(false);
+    const [editingPulse, setEditingPulse] = useState<Pulse | null>(null);
     const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | undefined>(undefined);
-    const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
+    const [defaultPulseValues, setDefaultPulseValues] = useState<Partial<PulseFormValues> | undefined>(undefined);
 
     const [isDayDetailOpen, setDayDetailOpen] = useState(false);
     const [selectedDayForDetail, setSelectedDayForDetail] = useState<Date | null>(null);
@@ -46,28 +46,28 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
     // Reference date for actions is now always the current date.
     const [referenceDate, setReferenceDate] = useState(() => new Date());
 
-    const handleOpenAddTaskDialog = (date: Date) => {
-        setEditingHabitTask(null);
-        setDefaultHabitTaskValues(undefined);
+    const handleOpenAddPulseDialog = (date: Date) => {
+        setEditingPulse(null);
+        setDefaultPulseValues(undefined);
         setSelectedDateForDialog(date);
-        setHabitTaskDialogOpen(true);
+        setPulseDialogOpen(true);
     };
 
-    const handleOpenEditTaskDialog = (habitTask: HabitTask, date?: Date) => {
-        setEditingHabitTask(habitTask);
-        setDefaultHabitTaskValues(undefined);
+    const handleOpenEditPulseDialog = (pulse: Pulse, date?: Date) => {
+        setEditingPulse(pulse);
+        setDefaultPulseValues(undefined);
         setSelectedDateForDialog(date || new Date());
-        setHabitTaskDialogOpen(true);
+        setPulseDialogOpen(true);
     };
 
     const handleOpenAddCommitmentDialog = (frequency: HabitFrequency) => {
-        setEditingHabitTask(null);
+        setEditingPulse(null);
         setSelectedDateForDialog(new Date()); 
-        setDefaultHabitTaskValues({
+        setDefaultPulseValues({
             type: 'habit',
             frequency: frequency,
         });
-        setHabitTaskDialogOpen(true);
+        setPulseDialogOpen(true);
     };
 
     const handleOpenDayDetail = (day: Date) => {
@@ -84,30 +84,30 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
         handleOpenDayDetail(day);
     }
 
-    const handleSaveHabitTask = (values: Partial<HabitTask>) => {
+    const handleSavePulse = (values: Partial<Pulse>) => {
         startTransition(async () => {
             try {
-                if (editingHabitTask) {
-                    await updateHabitTask(editingHabitTask.id, values);
-                    toast({ title: '¡Acción Actualizada!', description: `Se ha actualizado "${values.title}".` });
+                if (editingPulse) {
+                    await updatePulse(editingPulse.id, values);
+                    toast({ title: '¡Pulso Actualizado!', description: `Se ha actualizado "${values.title}".` });
                 } else {
-                    await addHabitTask(values);
-                    toast({ title: '¡Acción Agregada!', description: `Se ha agregado "${values.title}".` });
+                    await addPulse(values);
+                    toast({ title: '¡Pulso Agregado!', description: `Se ha agregado "${values.title}".` });
                 }
             } catch (error) {
-                console.error("Error al guardar la acción:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la acción.' });
+                console.error("Error al guardar el Pulso:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el Pulso.' });
             }
         });
     };
 
-    const handleArchiveHabitTask = (id: string, date: Date) => {
+    const handleArchivePulse = (id: string, date: Date) => {
         startTransition(async () => {
             try {
-                await archiveHabitTask(id, date.toISOString());
-                toast({ title: 'Acción Archivada' });
+                await archivePulse(id, date.toISOString());
+                toast({ title: 'Pulso Archivado' });
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la acción.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Pulso.' });
             }
         });
     }
@@ -120,7 +120,7 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
         
         startTransition(async () => {
             try {
-                await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+                await logPulseCompletion(id, task.type, completionDate, progressValue);
                 toast({ title: '¡Progreso registrado!' });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
@@ -135,7 +135,7 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
         const completionDate = date.toISOString().split('T')[0];
         startTransition(async () => {
             try {
-                await removeHabitTaskCompletion(id, task.type, completionDate);
+                await removePulseCompletion(id, task.type, completionDate);
                 toast({ title: 'Registro deshecho' });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
@@ -158,8 +158,8 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
                     onDayClick={handleDayClick}
                     onToggleCommitment={handleToggleCommitment}
                     onUndoCommitment={handleUndoCommitment}
-                    onEditCommitment={handleOpenEditTaskDialog}
-                    onArchiveCommitment={(id) => handleArchiveHabitTask(id, new Date())}
+                    onEditCommitment={handleOpenEditPulseDialog}
+                    onArchiveCommitment={(id) => handleArchivePulse(id, new Date())}
                 />
             </main>
             <aside className={cn(
@@ -172,7 +172,7 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
                     isOpen={isSidebarOpen}
                     setIsOpen={setSidebarOpen}
                     onAddCommitment={handleOpenAddCommitmentDialog}
-                    onEditCommitment={handleOpenEditTaskDialog}
+                    onEditCommitment={handleOpenEditPulseDialog}
                 />
             </aside>
             <DayDetailDialog 
@@ -182,23 +182,25 @@ export function CalendarPageClient({ initialData, initialMonthString }: Calendar
                 tasks={selectedDayForDetail ? initialData.habitTasks[format(selectedDayForDetail, 'yyyy-MM-dd')] || [] : []}
                 onAddTask={(date) => {
                     handleCloseDayDetail(); 
-                    handleOpenAddTaskDialog(date);
+                    handleOpenAddPulseDialog(date);
                 }}
                 onEditTask={(task, date) => {
                     handleCloseDayDetail();
-                    handleOpenEditTaskDialog(task, date);
+                    handleOpenEditPulseDialog(task, date);
                 }}
-                onArchiveTask={handleArchiveHabitTask}
+                onArchiveTask={handleArchivePulse}
             />
-             <AddHabitTaskDialog 
-                isOpen={isHabitTaskDialogOpen}
-                onOpenChange={setHabitTaskDialogOpen}
-                onSave={handleSaveHabitTask}
-                habitTask={editingHabitTask}
+             <AddPulseDialog 
+                isOpen={isPulseDialogOpen}
+                onOpenChange={setPulseDialogOpen}
+                onSave={handleSavePulse}
+                pulse={editingPulse}
                 defaultDate={selectedDateForDialog}
-                areaPrks={initialData.areaPrks}
-                defaultValues={defaultHabitTaskValues}
+                phases={initialData.areaPrks}
+                defaultValues={defaultPulseValues}
             />
         </div>
     );
 }
+
+    
