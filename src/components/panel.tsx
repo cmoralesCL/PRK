@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { LifePrkSection } from './life-prk-section';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
@@ -14,9 +14,6 @@ import {
     updateAreaPrk,
     addHabitTask, 
     updateHabitTask,
-    updateLifePrk,
-    logHabitTaskCompletion,
-    removeHabitTaskCompletion,
     archiveLifePrk,
     archiveAreaPrk,
     archiveHabitTask,
@@ -25,7 +22,6 @@ import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { useDialog } from '@/hooks/use-dialog';
-import { CommitmentsSidebar } from './commitments-sidebar';
 import { cn } from '@/lib/utils';
 
 interface PanelProps {
@@ -48,10 +44,12 @@ export function Panel({
   const router = useRouter();
   const { setLifePrkToEdit } = useDialog();
 
-
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [openLifePrkIds, setOpenLifePrkIds] = useState<string[]>(lifePrks.map(lp => lp.id));
   
+  // Unify all actions into a single list
+  const allActions = useMemo(() => [...habitTasks, ...commitments], [habitTasks, commitments]);
+
   useEffect(() => {
     setSelectedDate(parseISO(initialSelectedDate));
   }, [initialSelectedDate]);
@@ -78,7 +76,6 @@ export function Panel({
   // State for context when adding new items
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -138,16 +135,6 @@ export function Panel({
     setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
     setHabitTaskDialogOpen(true);
   };
-
-  const handleOpenAddCommitmentDialog = (frequency: HabitFrequency) => {
-    setEditingHabitTask(null);
-    setDefaultHabitTaskValues({
-        type: 'habit',
-        frequency: frequency,
-    });
-    setHabitTaskDialogOpen(true);
-  };
-
 
   const handleSaveHabitTask = (values: Partial<HabitTask>) => {
     startTransition(async () => {
@@ -266,7 +253,7 @@ export function Panel({
                       key={lp.id}
                       lifePrk={lp}
                       areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                      habitTasks={habitTasks.filter(ht => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === ht.area_prk_id))}
+                      actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === action.area_prk_id))}
                       onAddAreaPrk={handleOpenAddAreaPrkDialog}
                       onEditAreaPrk={handleOpenEditAreaPrkDialog}
                       onAddHabitTask={handleOpenAddHabitTaskDialog}
@@ -283,19 +270,6 @@ export function Panel({
               </>
             )}
           </main>
-            <aside className={cn(
-              "hidden lg:flex bg-card/50 border-l transition-all duration-300 ease-in-out", 
-              isSidebarOpen ? 'w-80 p-2' : 'w-14 p-1 items-center justify-center'
-          )}>
-              <CommitmentsSidebar
-                  commitments={commitments}
-                  selectedDate={selectedDate}
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setSidebarOpen}
-                  onAddCommitment={handleOpenAddCommitmentDialog}
-                  onEditCommitment={handleOpenEditHabitTaskDialog}
-              />
-          </aside>
       </div>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 

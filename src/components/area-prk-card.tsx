@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil } from 'lucide-react';
+import { Gauge, Plus, Sparkles, Archive, ChevronDown, Pencil, ListTodo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -16,11 +16,12 @@ import {
 import { MoreVertical } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
+import { Separator } from './ui/separator';
 
 
 interface AreaPrkCardProps {
   areaPrk: AreaPrk;
-  habitTasks: HabitTask[];
+  actions: HabitTask[]; // Replaces habitTasks
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
   onToggleHabitTask: (id: string, completed: boolean, selectedDate: Date, progressValue?: number) => void;
@@ -34,7 +35,7 @@ interface AreaPrkCardProps {
 
 export function AreaPrkCard({
   areaPrk,
-  habitTasks,
+  actions,
   onAddHabitTask,
   onEditHabitTask,
   onToggleHabitTask,
@@ -47,6 +48,9 @@ export function AreaPrkCard({
 }: AreaPrkCardProps) {
   const progress = areaPrk.progress ?? 0;
   const [isOpen, setIsOpen] = useState(true);
+
+  const dailyActions = actions.filter(a => !a.frequency?.includes('ACUMULATIVO'));
+  const commitments = actions.filter(a => a.frequency?.includes('ACUMULATIVO'));
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
@@ -97,24 +101,47 @@ export function AreaPrkCard({
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="space-y-1 p-4 pt-0 flex-grow">
-            <h4 className="text-xs font-semibold text-muted-foreground pt-2">Hábitos y Tareas</h4>
-            {habitTasks.length > 0 ? (
-              <div className="space-y-1">
-                {habitTasks.map((item) => (
-                  <HabitTaskListItem 
-                    key={item.id} 
-                    item={item} 
-                    onToggle={onToggleHabitTask}
-                    onUndo={onUndoHabitTask}
-                    onArchive={onArchiveHabitTask} 
-                    onEdit={onEditHabitTask} 
-                    selectedDate={selectedDate} 
-                  />
-                ))}
+          <CardContent className="space-y-3 p-4 pt-0 flex-grow">
+            {dailyActions.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground pt-2">Acciones Diarias</h4>
+                <div className="space-y-1 mt-1">
+                  {dailyActions.map((item) => (
+                    <HabitTaskListItem 
+                      key={item.id} 
+                      item={item} 
+                      onToggle={onToggleHabitTask}
+                      onUndo={onUndoHabitTask}
+                      onArchive={onArchiveHabitTask} 
+                      onEdit={onEditHabitTask} 
+                      selectedDate={selectedDate} 
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-4">Aún no hay hábitos o tareas. ¡Agrega uno para empezar!</p>
+            )}
+             {commitments.length > 0 && (
+              <div>
+                {dailyActions.length > 0 && <Separator className="my-3" />}
+                <h4 className="text-xs font-semibold text-muted-foreground pt-2 flex items-center gap-2"><ListTodo className="h-3 w-3"/>Compromisos</h4>
+                <div className="space-y-1 mt-1">
+                  {commitments.map((item) => (
+                    <HabitTaskListItem 
+                      key={item.id} 
+                      item={item} 
+                      onToggle={onToggleHabitTask}
+                      onUndo={onUndoHabitTask}
+                      onArchive={onArchiveHabitTask} 
+                      onEdit={onEditHabitTask} 
+                      selectedDate={selectedDate} 
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {actions.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">Aún no hay acciones. ¡Agrega una para empezar!</p>
             )}
           </CardContent>
           <CardFooter className="flex justify-end gap-2 p-2 pt-0">
@@ -124,7 +151,7 @@ export function AreaPrkCard({
             </Button>
             <Button variant="secondary" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="h-8">
               <Plus className="mr-2 h-4 w-4" />
-              Agregar
+              Acción
             </Button>
           </CardFooter>
         </CollapsibleContent>

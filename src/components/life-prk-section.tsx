@@ -27,7 +27,7 @@ import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
   areaPrks: AreaPrk[];
-  habitTasks: HabitTask[];
+  actions: HabitTask[]; // Now receives a unified list of actions
   onAddAreaPrk: (lifePrkId: string) => void;
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
@@ -43,7 +43,7 @@ interface LifePrkSectionProps {
 export function LifePrkSection({
   lifePrk,
   areaPrks,
-  habitTasks,
+  actions,
   onAddAreaPrk,
   onEditAreaPrk,
   onAddHabitTask,
@@ -61,7 +61,7 @@ export function LifePrkSection({
   const [isPending, startTransition] = useTransition();
 
   const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
-    const task = habitTasks.find(ht => ht.id === id);
+    const task = actions.find(ht => ht.id === id);
     if (!task) return;
 
     const completionDate = date.toISOString().split('T')[0];
@@ -80,7 +80,7 @@ export function LifePrkSection({
   };
 
   const handleUndoHabitTask = (id: string, date: Date) => {
-    const task = habitTasks.find(ht => ht.id === id);
+    const task = actions.find(ht => ht.id === id);
     if (!task) return;
 
     const completionDate = date.toISOString().split('T')[0];
@@ -156,7 +156,7 @@ export function LifePrkSection({
               <AreaPrkCard
                   key={kp.id}
                   areaPrk={kp}
-                  habitTasks={habitTasks.filter((ht) => ht.area_prk_id === kp.id)}
+                  actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
                   onAddHabitTask={onAddHabitTask}
                   onEditHabitTask={onEditHabitTask}
                   onToggleHabitTask={handleToggleHabitTask}
