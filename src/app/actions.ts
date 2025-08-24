@@ -41,7 +41,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    redirect("/day");
 }
 
 export async function loginAsGuest() {
@@ -60,7 +60,7 @@ export async function loginAsGuest() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect("/day");
 }
 
 
@@ -114,7 +114,7 @@ export async function addLifePrk(values: { title: string; description?: string }
         throw error;
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function updateLifePrk(id: string, values: { title: string; description?: string }) {
@@ -137,7 +137,7 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
         throw error;
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function addAreaPrk(values: { title: string; description?: string, life_prk_id: string }) {
@@ -161,7 +161,7 @@ export async function addAreaPrk(values: { title: string; description?: string, 
         throw error;
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function updateAreaPrk(id: string, values: { title: string; description?: string }) {
@@ -184,7 +184,7 @@ export async function updateAreaPrk(id: string, values: { title: string; descrip
         throw error;
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
@@ -210,7 +210,7 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     }
     revalidatePath('/panel');
     revalidatePath('/calendar');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at' | 'user_id'>>): Promise<void> {
@@ -241,7 +241,7 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
 
     revalidatePath('/panel');
     revalidatePath('/calendar');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
@@ -308,7 +308,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
 
         revalidatePath('/panel');
         revalidatePath('/calendar');
-        revalidatePath('/dashboard');
+        revalidatePath('/day');
     } catch (error) {
         await logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
         console.error('Error in logHabitTaskCompletion:', error);
@@ -346,7 +346,7 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         
         revalidatePath('/panel');
         revalidatePath('/calendar');
-        revalidatePath('/dashboard');
+        revalidatePath('/day');
     } catch (error) {
         await logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
         console.error('Error in removeHabitTaskCompletion:', error);
@@ -366,7 +366,7 @@ export async function archiveLifePrk(id: string) {
         throw new Error("Failed to archive life prk.");
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function archiveAreaPrk(id: string) {
@@ -381,7 +381,7 @@ export async function archiveAreaPrk(id: string) {
         throw new Error("Failed to archive area prk.");
     }
     revalidatePath('/panel');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 export async function archiveHabitTask(id: string, archiveDate: string) {
@@ -406,7 +406,7 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 
     revalidatePath('/panel');
     revalidatePath('/calendar');
-    revalidatePath('/dashboard');
+    revalidatePath('/day');
 }
 
 

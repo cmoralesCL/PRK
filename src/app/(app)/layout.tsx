@@ -17,7 +17,6 @@ export default function AppLayout({
 
     const navLinks = [
         { href: "/day", label: "Mi Día", icon: Sun },
-        { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
         { href: "/panel", label: "Panel", icon: Compass },
         { href: "/calendar", label: "Calendario", icon: CalendarIcon },
         { href: "/analytics", label: "Analíticas", icon: LineChart },
