@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -20,10 +19,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { useTransition } from 'react';
-
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
@@ -33,7 +28,6 @@ interface LifePrkSectionProps {
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
   onEditHabitTask: (habitTask: HabitTask) => void;
-  onGetAiSuggestions: (areaPrk: AreaPrk) => void;
   onArchive: (id: string) => void;
   onEdit: (lifePrk: LifePrk) => void;
   onArchiveAreaPrk: (id: string) => void;
@@ -51,7 +45,6 @@ export function LifePrkSection({
   onEditAreaPrk,
   onAddHabitTask,
   onEditHabitTask,
-  onGetAiSuggestions,
   onArchive,
   onEdit,
   onArchiveAreaPrk,
@@ -63,25 +56,22 @@ export function LifePrkSection({
 
   const lifePrkProgress = lifePrk.progress ?? 0;
   
-  const areaPrkGrid = (
-    <div className="pt-4 px-0">
+  const areaPrkList = (
+    <div className="pt-4 px-0 space-y-3">
         {areaPrks.length > 0 ? (
-           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {areaPrks.map((kp) => (
-              <AreaPrkCard
-                  key={kp.id}
-                  areaPrk={kp}
-                  actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
-                  onAddHabitTask={onAddHabitTask}
-                  onEditHabitTask={onEditHabitTask}
-                  onGetAiSuggestions={onGetAiSuggestions}
-                  onArchive={onArchiveAreaPrk}
-                  onEdit={onEditAreaPrk}
-                  onArchiveHabitTask={onArchiveHabitTask}
-                  selectedDate={selectedDate}
-              />
-              ))}
-          </div>
+           areaPrks.map((kp) => (
+            <AreaPrkCard
+                key={kp.id}
+                areaPrk={kp}
+                actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
+                onAddHabitTask={onAddHabitTask}
+                onEditHabitTask={onEditHabitTask}
+                onArchive={onArchiveAreaPrk}
+                onEdit={onEditAreaPrk}
+                onArchiveHabitTask={onArchiveHabitTask}
+                selectedDate={selectedDate}
+            />
+            ))
           ) : (
             <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
                   <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>
@@ -97,13 +87,13 @@ export function LifePrkSection({
         <Card className="p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-grow">
-                    <h2 className="text-2xl md:text-3xl font-bold font-headline flex items-center gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold font-headline flex items-center gap-3">
                         <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
                             <Target className="h-5 w-5" />
                         </div>
                         {lifePrk.title}
                     </h2>
-                    <p className="mt-2 text-base text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+                    <p className="mt-2 text-sm text-muted-foreground max-w-2xl">{lifePrk.description}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
                     <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
@@ -130,12 +120,12 @@ export function LifePrkSection({
                 </div>
             </div>
              <div className="mt-4 flex items-center gap-3">
-                <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Progreso General</span>
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Progreso General</span>
                 <Progress value={lifePrkProgress} className="h-2 w-full" />
                 <span className="text-sm font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
             </div>
         </Card>
-        {areaPrkGrid}
+        {areaPrkList}
       </div>
     );
   }
@@ -153,13 +143,13 @@ export function LifePrkSection({
                     }
                 }}>
                     <div className="mb-2 sm:mb-0">
-                        <h2 className="text-xl md:text-2xl font-bold font-headline flex items-center gap-3">
+                        <h2 className="text-lg font-bold font-headline flex items-center gap-3">
                              <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
-                                <Target className="h-5 w-5" />
+                                <Target className="h-4 w-4" />
                             </div>
                             {lifePrk.title}
                         </h2>
-                        <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+                        <p className="mt-1 text-xs text-muted-foreground max-w-2xl">{lifePrk.description}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-center">
@@ -197,7 +187,7 @@ export function LifePrkSection({
         </div>
 
       <AccordionContent className="pt-4 px-2">
-        {areaPrkGrid}
+        {areaPrkList}
       </AccordionContent>
       </div>
     </AccordionItem>

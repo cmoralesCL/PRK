@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star } from 'lucide-react';
@@ -20,7 +18,7 @@ interface HabitTaskListItemProps {
   onArchive?: (id: string) => void;
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
-  variant?: 'dashboard' | 'calendar' | 'dialog';
+  variant?: 'dashboard' | 'calendar' | 'dialog' | 'read-only';
   isFocus?: boolean;
   isDraggable?: boolean;
 }
@@ -98,6 +96,37 @@ export function HabitTaskListItem({
     }
   }
 
+  // --- Read-Only Variant ---
+  if (variant === 'read-only') {
+      return (
+        <div className="flex items-center gap-3 p-2 rounded-md bg-secondary/30">
+             <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+             <div className="flex-grow">
+                 <p className={cn('text-sm font-medium leading-none', item.completedToday && 'line-through text-muted-foreground')}>
+                     {item.title}
+                 </p>
+                 {(item.measurement_type === 'quantitative' || item.frequency?.includes('ACUMULATIVO')) && (
+                     <p className="text-xs text-muted-foreground">
+                        {item.current_progress_value ?? 0} / {item.measurement_goal?.target_count} {item.measurement_goal?.unit || 'veces'}
+                     </p>
+                 )}
+             </div>
+             <div className="flex items-center ml-auto">
+                {onEdit && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(item)}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                )}
+                {onArchive && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                )}
+            </div>
+        </div>
+      );
+  }
+
   // --- Type B: Quantitative / Frequency Habit ---
   if (item.measurement_type === 'quantitative' || (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO'))) {
       const target = item.measurement_goal?.target_count ?? 1;
@@ -149,7 +178,7 @@ export function HabitTaskListItem({
                     {isBinaryAccumulative ? (
                         <>
                             <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
-                              <Plus className="h-4 w-4 mr-2"/>
+                              <Plus className="h-4 w-4 mr-1"/>
                               Registrar Avance
                             </Button>
                              {hasLogForSelectedDate && onUndo && (
@@ -170,7 +199,7 @@ export function HabitTaskListItem({
                                 placeholder="Añadir..."
                             />
                             <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>
-                              <Plus className="h-4 w-4 mr-2"/>
+                              <Plus className="h-4 w-4 mr-1"/>
                               Registrar Avance
                             </Button>
                          </>
