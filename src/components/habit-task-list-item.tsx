@@ -2,15 +2,14 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, Calendar, MoreVertical, Layers, Save, Plus, Undo2, GripVertical, Star } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { HabitTask } from '@/lib/types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { format, parseISO, isToday, startOfToday, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { isSameDay, parseISO } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { Progress } from './ui/progress';
 
@@ -18,7 +17,7 @@ interface HabitTaskListItemProps {
   item: HabitTask;
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onUndo?: (id: string, date: Date) => void;
-  onArchive?: (id: string, date: Date) => void;
+  onArchive?: (id: string) => void;
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog';
@@ -56,9 +55,8 @@ export function HabitTaskListItem({
   useEffect(() => {
     setIsCompleted(item.completedToday ?? false);
     setCurrentTotal(item.current_progress_value ?? 0)
-    setProgressValue(''); // Reset input after a save
+    setProgressValue('');
     
-    // Check if there's a log for the selected date for accumulative binary tasks
     if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO')) {
         const logExists = item.logs?.some(log => isSameDay(parseISO(log.completion_date), selectedDate));
         setHasLogForSelectedDate(!!logExists);
@@ -75,7 +73,7 @@ export function HabitTaskListItem({
 
   const handleAddInstance = () => {
     if (onToggle) {
-      onToggle(item.id, true, selectedDate, 1); // progressValue of 1 for one instance
+      onToggle(item.id, true, selectedDate, 1);
     }
   }
 
@@ -100,43 +98,29 @@ export function HabitTaskListItem({
     }
   }
 
-  if (variant === 'calendar') {
-    return (
-        <div className="flex items-center gap-1.5 p-1 rounded-md bg-secondary/50">
-            <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <p
-                className={cn("text-xs text-secondary-foreground truncate flex-grow text-left font-normal", item.completedToday && "line-through")}
-            >
-                {item.title}
-            </p>
-        </div>
-    )
-  }
-  
-  // --- NEW VARIANT FOR ACCUMULATIVE BINARY ---
-  if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO')) {
+  // --- Type B: Quantitative / Frequency Habit ---
+  if (item.measurement_type === 'quantitative' || (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO'))) {
       const target = item.measurement_goal?.target_count ?? 1;
+      const isBinaryAccumulative = item.measurement_type === 'binary';
       const progressPercentage = target > 0 ? (currentTotal / target) * 100 : 0;
 
       return (
-        <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 p-3 rounded-lg bg-secondary/30 border border-secondary transition-colors duration-200 group">
+            <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
                         <Icon className="h-4 w-4" />
                     </div>
-                    <Label
-                        className={cn(
-                            'text-sm font-medium leading-none flex-grow',
-                            isCompleted && 'text-muted-foreground'
-                        )}
-                    >
-                        {item.title}
-                    </Label>
+                    <div>
+                      <Label className='text-sm font-medium leading-none flex-grow'>
+                          {item.title}
+                      </Label>
+                      {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                    </div>
                 </div>
-                <div className="flex items-center transition-opacity">
+                <div className="flex items-center -mr-2 -mt-1">
                     {onEdit && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(item)}>
                             <Pencil className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
@@ -147,26 +131,50 @@ export function HabitTaskListItem({
                     )}
                 </div>
             </div>
-            {item.description && <p className="pl-12 text-xs text-muted-foreground">{item.description}</p>}
             
-            <div className="pl-12 space-y-2">
+            <div className="pl-10 space-y-2">
                  <div className="flex justify-between items-end">
-                    <span className="text-sm font-semibold text-primary">{Math.floor(currentTotal)} / {target} veces</span>
+                    <span className="text-sm font-semibold text-primary">
+                        {isBinaryAccumulative 
+                            ? `${Math.floor(currentTotal)} / ${target} veces`
+                            : `${currentTotal} / ${target} ${item.measurement_goal?.unit || ''}`
+                        }
+                    </span>
                  </div>
                  <Progress value={progressPercentage} className="h-2" />
             </div>
 
             {onToggle && (
-                <div className="pl-12 flex items-center gap-2 pt-1">
-                    <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
-                      <Plus className="h-4 w-4 mr-2"/>
-                      Registrar Avance
-                    </Button>
-                     {hasLogForSelectedDate && onUndo && (
-                         <Button size="sm" variant="outline" className="h-8" onClick={handleUndoInstance}>
-                            <Undo2 className="h-4 w-4 mr-2"/>
-                            Deshacer
-                        </Button>
+                <div className="pl-10 flex items-center gap-2 pt-1">
+                    {isBinaryAccumulative ? (
+                        <>
+                            <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
+                              <Plus className="h-4 w-4 mr-2"/>
+                              Registrar Avance
+                            </Button>
+                             {hasLogForSelectedDate && onUndo && (
+                                 <Button size="sm" variant="outline" className="h-8" onClick={handleUndoInstance}>
+                                    <Undo2 className="h-4 w-4 mr-2"/>
+                                    Deshacer
+                                </Button>
+                            )}
+                        </>
+                    ) : (
+                       !isCompleted && (
+                         <>
+                            <Input
+                                type="number"
+                                value={progressValue}
+                                onChange={(e) => setProgressValue(e.target.value)}
+                                className="h-8 w-24 bg-background"
+                                placeholder="Añadir..."
+                            />
+                            <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>
+                              <Plus className="h-4 w-4 mr-2"/>
+                              Registrar Avance
+                            </Button>
+                         </>
+                       )
                     )}
                 </div>
             )}
@@ -174,75 +182,11 @@ export function HabitTaskListItem({
       )
   }
 
-
-  // Dashboard & Dialog Variants
-  if (item.measurement_type === 'quantitative') {
-    const target = item.measurement_goal?.target_count ?? 1;
-    const progressPercentage = target > 0 ? ((item.current_progress_value ?? 0) / target) * 100 : 0;
-
-    return (
-        <div className="flex flex-col gap-2 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group bg-secondary/30 border border-secondary">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
-                        <Icon className="h-4 w-4" />
-                    </div>
-                    <Label
-                        className={cn(
-                            'text-sm font-medium leading-none flex-grow',
-                            isCompleted && 'line-through text-muted-foreground'
-                        )}
-                    >
-                        {item.title}
-                    </Label>
-                </div>
-                <div className="flex items-center transition-opacity">
-                    {onEdit && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                    {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
-                            <Archive className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                </div>
-            </div>
-            {item.description && <p className="pl-12 text-xs text-muted-foreground">{item.description}</p>}
-            
-            <div className="pl-12 space-y-2">
-                 <div className="flex justify-between items-end">
-                    <span className="text-sm font-semibold text-primary">{item.current_progress_value ?? 0}</span>
-                    <span className="text-xs text-muted-foreground">/ {item.measurement_goal?.target_count} {item.measurement_goal?.unit}</span>
-                 </div>
-                 <Progress value={progressPercentage} className="h-2" />
-            </div>
-
-            {onToggle && !isCompleted && (
-                <div className="pl-12 flex items-center gap-2 pt-1">
-                    <Input
-                        type="number"
-                        value={progressValue}
-                        onChange={(e) => setProgressValue(e.target.value)}
-                        className="h-8 w-24 bg-background"
-                        placeholder="Añadir..."
-                    />
-                    <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>
-                      <Save className="h-4 w-4 mr-2"/>
-                      Guardar
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
-  }
-
-  // Default binary/task item
+  // --- Type A: Default binary/task item (Checklist) ---
   return (
     <div className={cn(
-        "flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200 group",
-        isFocus && "bg-secondary/70 border border-primary/50 shadow-md"
+        "flex items-center space-x-3 p-2 border-b transition-colors duration-200 group",
+        isFocus && "bg-secondary/70"
     )}>
         {isDraggable && (
             <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
@@ -254,43 +198,29 @@ export function HabitTaskListItem({
             disabled={!onToggle}
             className="h-5 w-5"
         />
-        <div className="flex flex-col flex-grow gap-1">
-            <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
-                    <Label
-                        htmlFor={item.id}
-                        className={cn(
-                            'text-sm font-medium leading-none flex-grow',
-                            isCompleted && 'line-through text-muted-foreground',
-                            !onToggle ? "cursor-default" : "cursor-pointer"
-                        )}
-                    >
-                        {isFocus && <Star className="h-4 w-4 inline-block mr-2 text-yellow-500 fill-yellow-400" />}
-                        {item.title}
-                    </Label>
-                    {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
-                </div>
-                <div className="flex items-center transition-opacity">
-                    {onEdit && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                    {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
-                            <Archive className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                </div>
-            </div>
-            
-            {item.type !== 'habit' && item.due_date && (
-                <div className="pl-1 flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                        Vence: {format(parseISO(item.due_date), 'd MMM yyyy', { locale: es })}
-                    </span>
-                </div>
+        <div className="flex-grow">
+            <Label
+                htmlFor={item.id}
+                className={cn(
+                    'text-sm font-medium leading-none',
+                    isCompleted && 'line-through text-muted-foreground',
+                    !onToggle ? "cursor-default" : "cursor-pointer"
+                )}
+            >
+                {isFocus && <Star className="h-4 w-4 inline-block mr-2 text-yellow-500 fill-yellow-400" />}
+                {item.title}
+            </Label>
+        </div>
+        <div className="flex items-center ml-auto">
+            {onEdit && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => onEdit && onEdit(item)}>
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            )}
+            {onArchive && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleArchive}>
+                    <Archive className="h-4 w-4 text-muted-foreground" />
+                </Button>
             )}
         </div>
     </div>
