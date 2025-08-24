@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -1011,5 +1012,64 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
         lifePrks,
         allAreaPrks: areaPrks,
         allHabitTasks,
+    };
+}
+
+
+/**
+ * Fetches all strategic data for the Panel view, ignoring date filters.
+ * Progress is calculated based on all available logs.
+ */
+export async function getPanelData() {
+    const supabase = createClient();
+    const userId = await getCurrentUserId();
+
+    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (lifePrksError) throw lifePrksError;
+
+    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    if (areaPrksError) throw areaPrksError;
+
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false).eq('user_id', userId);
+    if (habitTasksError) throw habitTasksError;
+
+    const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
+    if (progressLogsError) throw progressLogsError;
+
+    // Calculate overall progress for each area
+    const areaPrksWithProgress = areaPrks.map(areaPrk => {
+        const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
+        if (relevantTasks.length === 0) {
+            return { ...areaPrk, progress: 0 };
+        }
+        // Simplified progress for panel: ratio of completed tasks to total tasks
+        const completedTasks = relevantTasks.filter(task => {
+            if (task.type === 'task' && !task.frequency) { // One-off task
+                return !!task.completion_date;
+            }
+            // For habits, we can't easily determine "completion" without a date context.
+            // For the panel, we'll consider any logged progress as a positive indicator.
+            return allProgressLogs.some(log => log.habit_task_id === task.id);
+        }).length;
+        
+        const progress = (completedTasks / relevantTasks.length) * 100;
+        return { ...areaPrk, progress };
+    });
+
+    // Calculate overall progress for each life prk based on its areas
+    const lifePrksWithProgress = lifePrks.map(lifePrk => {
+        const relevantAreaPrks = areaPrksWithProgress.filter(ap => ap.life_prk_id === lifePrk.id);
+        if (relevantAreaPrks.length === 0) {
+            return { ...lifePrk, progress: 0 };
+        }
+        const totalProgress = relevantAreaPrks.reduce((sum, ap) => sum + (ap.progress ?? 0), 0);
+        const progress = totalProgress / relevantAreaPrks.length;
+        return { ...lifePrk, progress };
+    });
+
+    return {
+        lifePrks: lifePrksWithProgress,
+        areaPrks: areaPrksWithProgress,
+        allHabitTasks, // Return all tasks for display
     };
 }

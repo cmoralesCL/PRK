@@ -1,23 +1,19 @@
 
 import * as React from 'react';
 import { Panel } from '@/components/panel';
-import { getDashboardData } from '@/app/server/queries';
-import { format } from 'date-fns';
+import { getPanelData } from '@/app/server/queries';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PanelPage({ searchParams }: { searchParams: { date?: string } }) {
-  const selectedDate = searchParams.date || format(new Date(), 'yyyy-MM-dd');
-
-  const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDate);
+export default async function PanelPage() {
+  // Fetch data specifically for the strategic panel view, without date filtering.
+  const { lifePrks, areaPrks, allHabitTasks } = await getPanelData();
 
   return (
     <Panel
       lifePrks={lifePrks}
       areaPrks={areaPrks}
-      habitTasks={habitTasks}
-      commitments={commitments}
-      initialSelectedDate={selectedDate}
+      allHabitTasks={allHabitTasks}
     />
   );
 }

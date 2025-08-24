@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LifePrkSection } from './life-prk-section';
 import { AddAreaPrkDialog, type AreaPrkFormValues } from './add-area-prk-dialog';
 import { AddHabitTaskDialog, HabitTaskFormValues } from './add-habit-task-dialog';
-import { AiSuggestionDialog } from './ai-suggestion-dialog';
-import type { LifePrk, AreaPrk, HabitTask, HabitFrequency } from '@/lib/types';
+import type { LifePrk, AreaPrk, HabitTask } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { 
     addAreaPrk, 
@@ -19,73 +18,41 @@ import {
     archiveHabitTask,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { useDialog } from '@/hooks/use-dialog';
-import { cn } from '@/lib/utils';
-import { Home, ChevronRight } from 'lucide-react';
 
 interface PanelProps {
   lifePrks: LifePrk[];
   areaPrks: AreaPrk[];
-  habitTasks: HabitTask[];
-  commitments: HabitTask[];
-  initialSelectedDate: string;
+  allHabitTasks: HabitTask[];
 }
 
 export function Panel({
   lifePrks,
   areaPrks,
-  habitTasks,
-  commitments,
-  initialSelectedDate,
+  allHabitTasks,
 }: PanelProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
   const { setLifePrkToEdit } = useDialog();
 
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [openLifePrkIds, setOpenLifePrkIds] = useState<string[]>(lifePrks.map(lp => lp.id));
-  const [activeLifePrk, setActiveLifePrk] = useState<LifePrk | null>(null);
-  
-  const allActions = useMemo(() => [...habitTasks, ...commitments], [habitTasks, commitments]);
 
   useEffect(() => {
-    setSelectedDate(parseISO(initialSelectedDate));
-  }, [initialSelectedDate]);
-
-  useEffect(() => {
-    if (!activeLifePrk) {
-      setOpenLifePrkIds(currentOpenIds => {
-        const newLifePrkIds = lifePrks.map(lp => lp.id);
-        const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
-        return Array.from(allIds);
-      });
-    }
-  }, [lifePrks, activeLifePrk]);
-
+    setOpenLifePrkIds(currentOpenIds => {
+      const newLifePrkIds = lifePrks.map(lp => lp.id);
+      const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
+      return Array.from(allIds);
+    });
+  }, [lifePrks]);
 
   const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
-  const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
-  const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
   const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
-  const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
 
-  const handleOpenLifePrk = (lifePrkId: string) => {
-    const lifePrk = lifePrks.find(lp => lp.id === lifePrkId);
-    if (lifePrk) {
-        setActiveLifePrk(lifePrk);
-    }
-  };
-
-  const handleShowAll = () => {
-    setActiveLifePrk(null);
-  };
-  
   const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
     setLifePrkToEdit(lifePrk);
   };
@@ -120,16 +87,14 @@ export function Panel({
   };
 
   const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
-    setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
-    setDefaultHabitTaskValues(undefined);
+    setActiveAreaPrkId(areaPrkId);
     setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
   };
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
-    setDefaultHabitTaskValues(undefined);
-    setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
+    setActiveAreaPrkId(habitTask.area_prk_id);
     setHabitTaskDialogOpen(true);
   };
 
@@ -150,34 +115,11 @@ export function Panel({
     });
   };
   
-  const handleAddSuggestedTask = (areaPrkId: string, title: string) => {
-     startTransition(async () => {
-        try {
-            const startDate = new Date().toISOString().split('T')[0];
-            await addHabitTask({ 
-                area_prk_id: areaPrkId, 
-                title, 
-                type: 'task',
-                start_date: startDate,
-                weight: 1, 
-                is_critical: false,
-                measurement_type: 'binary',
-            });
-            toast({ title: "¡Agregado!", description: `"${title}" ha sido añadido a tus tareas.` });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar la tarea sugerida.' });
-        }
-    });
-  };
-  
   const handleArchiveLifePrk = (id: string) => {
     startTransition(async () => {
         try {
           await archiveLifePrk(id);
           toast({ title: 'PRK de Vida Archivado' });
-          if(activeLifePrk?.id === id) {
-            setActiveLifePrk(null);
-          }
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Vida.' });
         }
@@ -196,39 +138,23 @@ export function Panel({
   };
 
   const handleArchiveHabitTask = (id: string) => {
-    if (!selectedDate) return;
     startTransition(async () => {
         try {
-          await archiveHabitTask(id, selectedDate.toISOString());
-          toast({ title: 'Hábito/Tarea Archivado' });
+          // The date doesn't matter for a date-agnostic view, but the action requires one.
+          await archiveHabitTask(id, new Date().toISOString());
+          toast({ title: 'Acción Archivada' });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar la Acción.' });
         }
     });
   };
-
-  if (!selectedDate) {
-    return (
-        <div className="flex items-center justify-center h-screen">
-            <div className="text-2xl font-headline">Cargando...</div>
-        </div>
-    );
-  }
   
   return (
     <>
       <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
         <div className="mb-4">
-            <h1 className="text-2xl font-bold font-headline">Panel</h1>
-             <div className="flex items-center text-sm text-muted-foreground mt-1">
-                <Button variant="link" className="p-0 h-auto text-sm" onClick={handleShowAll}>Panel</Button>
-                {activeLifePrk && (
-                    <>
-                        <ChevronRight className="h-4 w-4 mx-1" />
-                        <span className="font-semibold text-foreground truncate">{activeLifePrk.title}</span>
-                    </>
-                )}
-            </div>
+            <h1 className="text-2xl font-bold font-headline">Panel Estratégico</h1>
+            <p className="text-sm text-muted-foreground">Una vista completa de todos tus objetivos y acciones.</p>
         </div>
 
         {lifePrks.length === 0 && !isPending && (
@@ -243,7 +169,7 @@ export function Panel({
                   <h2 className="text-xl font-headline font-semibold">Cargando...</h2>
             </div>
         )}
-        {!isPending && lifePrks.length > 0 && !activeLifePrk && (
+        {!isPending && lifePrks.length > 0 && (
           <>
             <div className="flex justify-end gap-2 mb-2">
                 <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
@@ -264,6 +190,7 @@ export function Panel({
                   key={lp.id}
                   lifePrk={lp}
                   areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
+                  allHabitTasks={allHabitTasks}
                   onAddAreaPrk={handleOpenAddAreaPrkDialog}
                   onEditAreaPrk={handleOpenEditAreaPrkDialog}
                   onAddHabitTask={handleOpenAddHabitTaskDialog}
@@ -272,29 +199,11 @@ export function Panel({
                   onEdit={handleOpenEditLifePrkDialog}
                   onArchiveAreaPrk={handleArchiveAreaPrk}
                   onArchiveHabitTask={handleArchiveHabitTask}
-                  selectedDate={selectedDate}
-                  onHeaderClick={() => handleOpenLifePrk(lp.id)}
                 />
               ))}
             </Accordion>
           </>
         )}
-         {!isPending && activeLifePrk && (
-            <LifePrkSection
-                isStandaloneView={true}
-                lifePrk={activeLifePrk}
-                areaPrks={areaPrks.filter(kp => kp.life_prk_id === activeLifePrk.id)}
-                onAddAreaPrk={handleOpenAddAreaPrkDialog}
-                onEditAreaPrk={handleOpenEditAreaPrkDialog}
-                onAddHabitTask={handleOpenAddHabitTaskDialog}
-                onEditHabitTask={handleOpenEditHabitTaskDialog}
-                onArchive={handleArchiveLifePrk}
-                onEdit={handleOpenEditLifePrkDialog}
-                onArchiveAreaPrk={handleArchiveAreaPrk}
-                onArchiveHabitTask={handleArchiveHabitTask}
-                selectedDate={selectedDate}
-            />
-         )}
       </main>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 
@@ -307,17 +216,10 @@ export function Panel({
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
-        defaultAreaPrkId={activeAreaPrk?.id}
-        defaultDate={selectedDate}
+        defaultAreaPrkId={activeAreaPrkId || undefined}
+        defaultDate={new Date()}
         areaPrks={areaPrks}
-        defaultValues={defaultHabitTaskValues}
         />
-      <AiSuggestionDialog 
-        isOpen={isAiSuggestOpen} 
-        onOpenChange={setAiSuggestOpen} 
-        onAddSuggestion={(title) => activeAreaPrk && handleAddSuggestedTask(activeAreaPrk.id, title)}
-        areaPrk={activeAreaPrk} 
-      />
     </>
   );
 }
