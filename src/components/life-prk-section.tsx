@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
@@ -133,60 +132,63 @@ export function LifePrkSection({
 
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
-       <div className="py-3 bg-card rounded-lg shadow-sm px-4">
-        <AccordionTrigger asChild className="p-0 hover:no-underline flex-grow cursor-pointer group w-full">
-            <div className="flex justify-between items-start gap-2 p-2">
-                <div className="flex-grow" onClick={(e) => {
-                    if (onHeaderClick) {
-                      e.preventDefault();
-                      onHeaderClick();
-                    }
-                }}>
-                    <div className="mb-2 sm:mb-0">
-                        <h2 className="text-lg font-bold font-headline flex items-center gap-3">
-                             <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
-                                <Target className="h-4 w-4" />
-                            </div>
-                            {lifePrk.title}
-                        </h2>
-                        <p className="mt-1 text-xs text-muted-foreground max-w-2xl">{lifePrk.description}</p>
-                    </div>
+       <div className="py-2 bg-card rounded-lg shadow-sm px-3">
+        <AccordionTrigger className="p-0 hover:no-underline w-full group">
+          <div className='w-full'>
+            <div className="flex justify-between items-center gap-2 p-2 w-full">
+              <div className="flex items-center gap-3 flex-grow" onClick={(e) => {
+                  if (onHeaderClick) {
+                    e.preventDefault();
+                    onHeaderClick();
+                  }
+              }}>
+                <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
+                    <Target className="h-4 w-4" />
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-center">
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">PRK de Área</span>
-                        <span className="inline sm:hidden">Área</span>
-                    </Button>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(lifePrk); }}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar PRK de Vida
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(lifePrk.id); }}>
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archivar PRK de Vida
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                     <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <div className='flex-grow'>
+                    <h2 className="text-base font-bold font-headline">
+                        {lifePrk.title}
+                    </h2>
+                    {lifePrk.description && (
+                       <p className="text-xs text-muted-foreground max-w-md">{lifePrk.description}</p>
+                    )}
                 </div>
               </div>
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button size="sm" variant="outline" className="h-8" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Área
+                  </Button>
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                              <MoreVertical className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(lifePrk); }}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar PRK de Vida
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(lifePrk.id); }}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archivar PRK de Vida
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                   <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </div>
+            </div>
+            <div className="px-2 mt-1 flex items-center gap-2 w-full">
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Progreso</span>
+                <Progress value={lifePrkProgress} className="h-1.5 w-full" />
+                <span className="text-xs font-bold text-foreground w-8 text-right">{lifePrkProgress.toFixed(0)}%</span>
+            </div>
+          </div>
         </AccordionTrigger>
         
-        <div className="px-2 mt-2 flex items-center gap-3">
-            <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Progreso</span>
-            <Progress value={lifePrkProgress} className="h-2 w-full" />
-            <span className="text-xs font-bold text-foreground">{lifePrkProgress.toFixed(0)}%</span>
-        </div>
-
-      <AccordionContent className="pt-4 px-2">
+      <AccordionContent className="pt-2 px-2">
         {areaPrkList}
       </AccordionContent>
       </div>
