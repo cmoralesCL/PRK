@@ -631,10 +631,10 @@ function FrequencyBuilder({ form }: { form: any }) {
                     {measurementType === 'quantitative' && (
                         <div className="flex gap-2">
                              <FormField control={form.control} name="measurement_goal.target_count" render={({ field }) => (
-                               <FormItem className="flex-grow"><FormLabel>Meta (valor total)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 100" {...field} /></FormControl><FormMessage /></FormItem>
+                               <FormItem className="flex-grow"><FormLabel>Meta (valor total)</FormLabel><FormControl><Input type="number" min="1" placeholder="Ej: 100" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="measurement_goal.unit" render={({ field }) => (
-                                <FormItem className="w-1/3"><FormLabel>Unidad</FormLabel><FormControl><Input placeholder="km, hrs..." {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem className="w-1/3"><FormLabel>Unidad</FormLabel><FormControl><Input placeholder="km, hrs..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
                     )}
