@@ -1,11 +1,10 @@
-
 'use client';
 
 import { Plus, Archive, ChevronDown, Pencil, Check, Square, AlertTriangle, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
-import type { AreaPrk, HabitTask } from '@/lib/types';
+import type { AreaPrk, HabitTask, ColorTheme } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +31,7 @@ interface AreaPrkCardProps {
   onArchive: (id: string) => void;
   onEdit: (areaPrk: AreaPrk) => void;
   onArchiveHabitTask: (id: string) => void;
+  colorTheme: ColorTheme;
 }
 
 export function AreaPrkCard({
@@ -42,10 +42,10 @@ export function AreaPrkCard({
   onArchive,
   onEdit,
   onArchiveHabitTask,
+  colorTheme
 }: AreaPrkCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // This logic is now purely for display, not interaction
   const completedCount = actions.filter(a => a.completedToday).length;
   const pendingCount = actions.length - completedCount;
   const criticalPending = actions.filter(a => a.is_critical && !a.completedToday).length;
@@ -72,7 +72,7 @@ export function AreaPrkCard({
                  <h3 className="font-headline text-sm font-semibold text-card-foreground">{areaPrk.title}</h3>
               </div>
               <div className="flex items-center gap-2 pt-1.5">
-                  <Progress value={areaPrk.progress} className="h-1.5 flex-grow" />
+                  <Progress value={areaPrk.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
                   <span className="text-xs font-semibold w-8 text-right">{areaPrk.progress.toFixed(0)}%</span>
               </div>
             </CollapsibleTrigger>

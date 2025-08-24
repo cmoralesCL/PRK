@@ -1,4 +1,4 @@
-
+export type ColorTheme = 'mint' | 'sapphire' | 'amethyst' | 'coral' | 'rose' | 'solar';
 
 export interface LifePrk {
   id: string;
@@ -8,6 +8,7 @@ export interface LifePrk {
   created_at?: string;
   archived: boolean;
   progress?: number; // Representa el progreso general del día, para la UI.
+  color_theme?: ColorTheme;
 }
 
 export interface AreaPrk {

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useEffect } from 'react';
+import { Check } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,13 +25,17 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import type { LifePrk } from '@/lib/types';
+import type { LifePrk, ColorTheme } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { THEMES } from '@/lib/themes';
 
 const formSchema = z.object({
   title: z.string().min(3, {
     message: 'El título debe tener al menos 3 caracteres.',
   }),
   description: z.string().optional(),
+  color_theme: z.custom<ColorTheme>().optional().default('mint'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -50,6 +55,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
     defaultValues: {
       title: '',
       description: '',
+      color_theme: 'mint',
     },
   });
 
@@ -59,11 +65,13 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
         form.reset({
           title: lifePrk.title,
           description: lifePrk.description,
+          color_theme: lifePrk.color_theme || 'mint',
         });
       } else {
         form.reset({
           title: '',
           description: '',
+          color_theme: 'mint',
         });
       }
     }
@@ -77,7 +85,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">
             {isEditing ? 'Editar PRK de Vida' : 'Definir un Nuevo PRK de Vida'}
@@ -115,12 +123,50 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
                       placeholder="Describe cómo se ve esto cuando lo hayas logrado."
                       className="resize-none"
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="color_theme"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Color del Tema</FormLabel>
+                   <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid grid-cols-3 gap-4 pt-2"
+                    >
+                      {Object.entries(THEMES).map(([themeKey, themeValue]) => (
+                         <FormItem key={themeKey}>
+                            <FormControl>
+                                <RadioGroupItem value={themeKey} id={themeKey} className="peer sr-only" />
+                            </FormControl>
+                             <FormLabel
+                              htmlFor={themeKey}
+                              className={cn(
+                                "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                              )}
+                            >
+                                <div className="flex items-center justify-center w-full gap-2">
+                                    <span className="w-5 h-5 rounded-full" style={{ background: themeValue.gradient }}></span>
+                                    <span className="text-sm font-medium">{themeValue.name}</span>
+                                </div>
+                            </FormLabel>
+                         </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar PRK'}</Button>
             </DialogFooter>

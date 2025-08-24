@@ -1,18 +1,23 @@
+'use client';
 
-"use client"
+import * as React from 'react';
+import * as ProgressPrimitive from '@radix-ui/react-progress';
 
-import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
+import { cn } from '@/lib/utils';
+import { ColorTheme } from '@/lib/types';
+import { THEMES } from '@/lib/themes';
 
-import { cn } from "@/lib/utils"
+interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  colorTheme?: ColorTheme;
+}
 
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => {
+  ProgressProps
+>(({ className, value, colorTheme = 'mint', ...props }, ref) => {
   const progressValue = value || 0;
   
-  const colorClass = 'bg-gradient-to-r from-teal-400 to-cyan-500';
+  const theme = THEMES[colorTheme] || THEMES.mint;
 
   return (
     <ProgressPrimitive.Root
@@ -24,12 +29,15 @@ const Progress = React.forwardRef<
       {...props}
     >
       <ProgressPrimitive.Indicator
-        className={cn("h-full w-full flex-1 transition-all", colorClass)}
-        style={{ transform: `translateX(-${100 - (progressValue || 0)}%)` }}
+        className={cn("h-full w-full flex-1 transition-all")}
+        style={{ 
+            transform: `translateX(-${100 - (progressValue || 0)}%)`,
+            background: theme.gradient,
+        }}
       />
     </ProgressPrimitive.Root>
-  )
-})
-Progress.displayName = ProgressPrimitive.Root.displayName
+  );
+});
+Progress.displayName = ProgressPrimitive.Root.displayName;
 
-export { Progress }
+export { Progress };

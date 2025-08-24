@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,11 +17,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { THEMES } from '@/lib/themes';
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
   areaPrks: AreaPrk[];
-  allHabitTasks: HabitTask[];
+  habitTasks: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
@@ -31,12 +31,13 @@ interface LifePrkSectionProps {
   onEdit: (lifePrk: LifePrk) => void;
   onArchiveAreaPrk: (id: string) => void;
   onArchiveHabitTask: (id: string) => void;
+  selectedDate: Date;
 }
 
 export function LifePrkSection({
   lifePrk,
   areaPrks,
-  allHabitTasks,
+  habitTasks,
   onAddAreaPrk,
   onEditAreaPrk,
   onAddHabitTask,
@@ -45,9 +46,12 @@ export function LifePrkSection({
   onEdit,
   onArchiveAreaPrk,
   onArchiveHabitTask,
+  selectedDate,
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
+  const colorTheme = lifePrk.color_theme || 'mint';
+  const theme = THEMES[colorTheme];
 
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
@@ -56,7 +60,7 @@ export function LifePrkSection({
             <div className="flex justify-between items-center gap-2">
                 <AccordionTrigger className="p-0 hover:no-underline flex-grow text-left">
                      <div className="flex items-start gap-3 flex-grow">
-                        <div className="flex-shrink-0 bg-gradient-to-br from-teal-400 to-cyan-500 text-primary-foreground p-1.5 rounded-full mt-0.5">
+                        <div className="flex-shrink-0 text-white p-1.5 rounded-full mt-0.5" style={{ background: theme.gradient }}>
                             <Target className="h-4 w-4" />
                         </div>
                         <div className='flex-grow'>
@@ -71,7 +75,7 @@ export function LifePrkSection({
                 </AccordionTrigger>
 
                  <div className="flex items-center gap-1 flex-shrink-0 pl-2" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" variant="outline" className="h-7 px-2 border-teal-500/50 text-teal-500 hover:bg-teal-50 hover:text-teal-600" onClick={() => onAddAreaPrk(lifePrk.id)}>
+                      <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => onAddAreaPrk(lifePrk.id)}>
                           <Plus className="mr-1 h-3 w-3" />
                           Área
                       </Button>
@@ -100,7 +104,7 @@ export function LifePrkSection({
                   </div>
             </div>
             <div className="pl-10 mt-2 flex items-center gap-2 w-full">
-                <Progress value={lifePrkProgress} className="h-1.5 w-full" />
+                <Progress value={lifePrkProgress} className="h-1.5 w-full" colorTheme={colorTheme} />
                 <span className="text-xs font-bold text-foreground w-8 text-right">{lifePrkProgress.toFixed(0)}%</span>
             </div>
         </div>
@@ -112,18 +116,19 @@ export function LifePrkSection({
                 <AreaPrkCard
                     key={kp.id}
                     areaPrk={kp}
-                    actions={allHabitTasks.filter(ht => ht.area_prk_id === kp.id)}
+                    actions={habitTasks.filter(ht => ht.area_prk_id === kp.id)}
                     onAddHabitTask={onAddHabitTask}
                     onEditHabitTask={onEditHabitTask}
                     onArchive={onArchiveAreaPrk}
                     onEdit={onEditAreaPrk}
                     onArchiveHabitTask={onArchiveHabitTask}
+                    colorTheme={colorTheme}
                 />
                 ))
             ) : (
                 <div className="text-center py-6 bg-muted/20 rounded-lg border border-dashed mx-2">
                     <p className="text-muted-foreground text-xs">Aún no hay PRK de Área para esta visión.</p>
-                    <Button variant="link" size="sm" className="text-teal-500" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
+                    <Button variant="link" size="sm" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
                 </div>
             )}
         </div>
