@@ -27,7 +27,7 @@ import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
   areaPrks: AreaPrk[];
-  actions: HabitTask[]; // Now receives a unified list of actions
+  actions: HabitTask[]; 
   onAddAreaPrk: (lifePrkId: string) => void;
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
@@ -38,6 +38,7 @@ interface LifePrkSectionProps {
   onArchiveAreaPrk: (id: string) => void;
   onArchiveHabitTask: (id: string) => void;
   selectedDate: Date;
+  onHeaderClick?: () => void;
 }
 
 export function LifePrkSection({
@@ -53,7 +54,8 @@ export function LifePrkSection({
   onEdit,
   onArchiveAreaPrk,
   onArchiveHabitTask,
-  selectedDate
+  selectedDate,
+  onHeaderClick,
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
@@ -100,7 +102,12 @@ export function LifePrkSection({
        <div className="py-3 bg-card rounded-lg shadow-sm px-4">
         <AccordionTrigger asChild className="p-0 hover:no-underline flex-grow cursor-pointer group w-full">
             <div className="flex justify-between items-start gap-2 p-2">
-                <div className="flex-grow">
+                <div className="flex-grow" onClick={(e) => {
+                    if (onHeaderClick) {
+                      e.preventDefault();
+                      onHeaderClick();
+                    }
+                }}>
                     <div className="mb-2 sm:mb-0">
                         <h2 className="text-xl md:text-2xl font-bold font-headline flex items-center gap-3">
                              <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">

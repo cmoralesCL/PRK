@@ -23,6 +23,7 @@ import { parseISO, format } from 'date-fns';
 import { Accordion } from '@/components/ui/accordion';
 import { useDialog } from '@/hooks/use-dialog';
 import { cn } from '@/lib/utils';
+import { Home, ChevronRight } from 'lucide-react';
 
 interface PanelProps {
   lifePrks: LifePrk[];
@@ -46,8 +47,8 @@ export function Panel({
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [openLifePrkIds, setOpenLifePrkIds] = useState<string[]>(lifePrks.map(lp => lp.id));
+  const [activeLifePrk, setActiveLifePrk] = useState<LifePrk | null>(null);
   
-  // Unify all actions into a single list
   const allActions = useMemo(() => [...habitTasks, ...commitments], [habitTasks, commitments]);
 
   useEffect(() => {
@@ -63,19 +64,27 @@ export function Panel({
   }, [lifePrks]);
 
 
-  // State for dialogs
   const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
   const [isHabitTaskDialogOpen, setHabitTaskDialogOpen] = useState(false);
   const [isAiSuggestOpen, setAiSuggestOpen] = useState(false);
   const [defaultHabitTaskValues, setDefaultHabitTaskValues] = useState<Partial<HabitTaskFormValues> | undefined>(undefined);
-
-  // State for editing items
   const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
-  
-  // State for context when adding new items
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
   const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+
+  const handleOpenLifePrk = (lifePrkId: string) => {
+    const lifePrk = lifePrks.find(lp => lp.id === lifePrkId);
+    if (lifePrk) {
+        setActiveLifePrk(lifePrk);
+        setOpenLifePrkIds([lifePrkId]);
+    }
+  };
+
+  const handleShowAll = () => {
+    setActiveLifePrk(null);
+    setOpenLifePrkIds(lifePrks.map(lp => lp.id));
+  };
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -86,12 +95,10 @@ export function Panel({
     });
   }
 
-  // --- Life PRK Handlers ---
   const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
     setLifePrkToEdit(lifePrk);
   };
 
-  // --- Area PRK Handlers ---
   const handleOpenAddAreaPrkDialog = (lifePrkId: string) => {
     setActiveLifePrkId(lifePrkId);
     setEditingAreaPrk(null);
@@ -121,7 +128,6 @@ export function Panel({
     });
   };
 
-  // --- Habit/Task Handlers ---
   const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
     setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
     setDefaultHabitTaskValues(undefined);
@@ -162,7 +168,7 @@ export function Panel({
                 title, 
                 type: 'task',
                 start_date: startDate,
-                weight: 1, // Default weight for suggestions
+                weight: 1, 
                 is_critical: false,
                 measurement_type: 'binary',
             });
@@ -173,7 +179,6 @@ export function Panel({
     });
   };
   
-  // --- Archive Handlers ---
   const handleArchiveLifePrk = (id: string) => {
     startTransition(async () => {
         try {
@@ -215,25 +220,40 @@ export function Panel({
         </div>
     );
   }
+  
+  const displayedLifePrks = activeLifePrk ? [activeLifePrk] : lifePrks;
 
   return (
     <>
-      <div className="flex flex-1 overflow-hidden">
-          <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
-            {lifePrks.length === 0 && !isPending && (
-                <div className="text-center py-24">
-                    <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
-                    <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
-                    <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
-                </div>
-            )}
-            {isPending && (
-                <div className="text-center py-24">
-                      <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
-                </div>
-            )}
-            {!isPending && lifePrks.length > 0 && (
-              <>
+      <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
+        <div className="mb-6">
+            <h1 className="text-3xl font-bold font-headline">Panel de Control</h1>
+             <div className="flex items-center text-sm text-muted-foreground mt-2">
+                <Button variant="link" className="p-0 h-auto" onClick={handleShowAll}>Panel</Button>
+                {activeLifePrk && (
+                    <>
+                        <ChevronRight className="h-4 w-4 mx-1" />
+                        <span className="font-semibold text-foreground">{activeLifePrk.title}</span>
+                    </>
+                )}
+            </div>
+        </div>
+
+        {lifePrks.length === 0 && !isPending && (
+            <div className="text-center py-24">
+                <h2 className="text-2xl font-headline font-semibold">Bienvenido a tu Brújula</h2>
+                <p className="mt-2 text-muted-foreground">Define tu primer PRK de Vida para empezar tu viaje.</p>
+                <Button className="mt-6" onClick={() => setLifePrkToEdit(null)}>Crear un PRK de Vida</Button>
+            </div>
+        )}
+        {isPending && (
+            <div className="text-center py-24">
+                  <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
+            </div>
+        )}
+        {!isPending && lifePrks.length > 0 && (
+          <>
+            {!activeLifePrk && (
                 <div className="flex justify-end gap-2 my-2">
                     <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
                         Expandir Todo
@@ -242,35 +262,36 @@ export function Panel({
                         Contraer Todo
                     </Button>
                 </div>
-                <Accordion 
-                  type="multiple" 
-                  className="w-full space-y-3" 
-                  value={openLifePrkIds}
-                  onValueChange={setOpenLifePrkIds}
-                >
-                  {lifePrks.map((lp) => (
-                    <LifePrkSection
-                      key={lp.id}
-                      lifePrk={lp}
-                      areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
-                      actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === action.area_prk_id))}
-                      onAddAreaPrk={handleOpenAddAreaPrkDialog}
-                      onEditAreaPrk={handleOpenEditAreaPrkDialog}
-                      onAddHabitTask={handleOpenAddHabitTaskDialog}
-                      onEditHabitTask={handleOpenEditHabitTaskDialog}
-                      onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
-                      onArchive={handleArchiveLifePrk}
-                      onEdit={handleOpenEditLifePrkDialog}
-                      onArchiveAreaPrk={handleArchiveAreaPrk}
-                      onArchiveHabitTask={handleArchiveHabitTask}
-                      selectedDate={selectedDate}
-                    />
-                  ))}
-                </Accordion>
-              </>
             )}
-          </main>
-      </div>
+            <Accordion 
+              type="multiple" 
+              className="w-full space-y-3" 
+              value={openLifePrkIds}
+              onValueChange={setOpenLifePrkIds}
+            >
+              {displayedLifePrks.map((lp) => (
+                <LifePrkSection
+                  key={lp.id}
+                  lifePrk={lp}
+                  areaPrks={areaPrks.filter(kp => kp.life_prk_id === lp.id)}
+                  actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === lp.id && ap.id === action.area_prk_id))}
+                  onAddAreaPrk={handleOpenAddAreaPrkDialog}
+                  onEditAreaPrk={handleOpenEditAreaPrkDialog}
+                  onAddHabitTask={handleOpenAddHabitTaskDialog}
+                  onEditHabitTask={handleOpenEditHabitTaskDialog}
+                  onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                  onArchive={handleArchiveLifePrk}
+                  onEdit={handleOpenEditLifePrkDialog}
+                  onArchiveAreaPrk={handleArchiveAreaPrk}
+                  onArchiveHabitTask={handleArchiveHabitTask}
+                  selectedDate={selectedDate}
+                  onHeaderClick={() => handleOpenLifePrk(lp.id)}
+                />
+              ))}
+            </Accordion>
+          </>
+        )}
+      </main>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 
         onOpenChange={setAreaPrkDialogOpen} 
