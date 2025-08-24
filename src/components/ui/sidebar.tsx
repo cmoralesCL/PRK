@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import Link from "next/link"
+import Image from "next/image"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Calendar } from "./calendar"
 import { format } from "date-fns"
@@ -215,11 +216,9 @@ const Sidebar = React.forwardRef<
                         <PanelLeftClose className="h-6 w-6"/>
                     </Button>
                     <Link href="/" className="flex items-center space-x-2 group-data-[state=collapsed]:hidden">
-                        <div className="p-1.5 bg-gradient-to-br from-primary to-warm rounded-lg text-primary-foreground">
-                          <Compass className="h-5 w-5" />
-                        </div>
+                        <Image src="/logo.png" alt="Cenit Logo" width={32} height={32} />
                         <h1 className="text-lg font-bold font-headline text-foreground">
-                          Brújula
+                          Cenit
                         </h1>
                     </Link>
                  </div>
@@ -232,7 +231,7 @@ const Sidebar = React.forwardRef<
             <SidebarFooter>
                 <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground w-full">
                     <Plus className="h-5 w-5" />
-                    <span className="group-data-[state=collapsed]:hidden ml-2">PRK de Vida</span>
+                    <span className="group-data-[state=collapsed]:hidden ml-2">Nueva Órbita</span>
                 </Button>
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
                     <LogOut className="h-5 w-5" />
@@ -768,3 +767,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
