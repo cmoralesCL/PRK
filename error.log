@@ -384,3 +384,34 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-08-24T05:37:13.030Z] - DETAILED ERROR LOG
+Error occurred at: updateHabitTask
+Error Type: Database/API Error
+Message: Could not find the 'area_prk_id' column of 'habit_tasks' in the schema cache
+Code: PGRST204
+Details: null
+Hint: null
+
+CONTEXT DATA:
+{
+  "id": "7522ad30-a5e5-4a54-be8e-eaa3d5de3cfb",
+  "values": {
+    "title": "Cepillar mis dientes cada mañana",
+    "description": "",
+    "area_prk_id": "f6488057-333c-49ff-85a8-aaea67d6918b",
+    "type": "habit",
+    "start_date": "2025-08-17",
+    "weight": 1,
+    "is_critical": false,
+    "frequency": "DIARIA",
+    "measurement_type": "binary",
+    "frequency_interval": null,
+    "frequency_days": null,
+    "frequency_day_of_month": null,
+    "measurement_goal": {
+      "unit": ""
+    }
+  }
+}
+--------------------------------------------------
+

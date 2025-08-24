@@ -242,12 +242,14 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
 
         if (error) throw error;
         
-        if (area_prk_ids) {
+        // This now checks if area_prk_ids is provided in the update.
+        // If it's not, we don't touch the links.
+        if (area_prk_ids && Array.isArray(area_prk_ids)) {
             // Delete existing links
             const { error: deleteError } = await supabase.from('habit_task_area_prk_links').delete().eq('habit_task_id', id);
             if (deleteError) throw deleteError;
             
-            // Insert new links
+            // Insert new links if the array is not empty
             if (area_prk_ids.length > 0) {
                  const links = area_prk_ids.map(area_prk_id => ({
                     habit_task_id: id,
@@ -641,3 +643,5 @@ export async function assignSimpleTask(taskId: string, assignedToUserId: string 
     }
     revalidatePath('/tasks');
 }
+
+    
