@@ -220,7 +220,7 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  */
 function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = habitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
+        const relevantTasks = habitTasks.filter(ht => ht.area_prk_ids.includes(areaPrk.id));
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null };
@@ -362,6 +362,33 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
     });
 }
 
+async function fetchAndMapHabitTasks(userId: string): Promise<HabitTask[]> {
+    const supabase = createClient();
+    const { data: tasks, error: tasksError } = await supabase
+        .from('habit_tasks')
+        .select('*')
+        .eq('user_id', userId);
+    if (tasksError) throw tasksError;
+
+    const { data: links, error: linksError } = await supabase
+        .from('habit_task_area_prk_links')
+        .select('habit_task_id, area_prk_id');
+    if (linksError) throw linksError;
+
+    const linksByTaskId = links.reduce((acc, link) => {
+        if (!acc[link.habit_task_id]) {
+            acc[link.habit_task_id] = [];
+        }
+        acc[link.habit_task_id].push(link.area_prk_id);
+        return acc;
+    }, {} as Record<string, string[]>);
+
+    return tasks.map(task => ({
+        ...task,
+        area_prk_ids: linksByTaskId[task.id] || [],
+    }));
+}
+
 
 export async function getDashboardData(selectedDateString: string) {
     const supabase = createClient();
@@ -380,11 +407,7 @@ export async function getDashboardData(selectedDateString: string) {
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
-    if (habitTasksError) {
-        await logError(habitTasksError, {at: 'getDashboardData - allHabitTasks'});
-        throw habitTasksError;
-    }
+    const allHabitTasks = await fetchAndMapHabitTasks(userId);
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) {
@@ -492,11 +515,7 @@ export async function getCalendarData(monthDate: Date) {
         throw areaPrksError;
     }
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
-    if (habitTasksError) {
-        await logError(habitTasksError, {at: 'getCalendarData - allHabitTasks'});
-        throw habitTasksError;
-    }
+    const allHabitTasks = await fetchAndMapHabitTasks(userId);
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId).gte('completion_date', format(calendarStart, 'yyyy-MM-dd')).lte('completion_date', format(calendarEnd, 'yyyy-MM-dd'));
     if (progressLogsError) {
@@ -816,8 +835,7 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
     const userId = await getCurrentUserId();
     const today = new Date();
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
-    if (habitTasksError) throw habitTasksError;
+    const allHabitTasks = await fetchAndMapHabitTasks(userId);
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
@@ -842,7 +860,7 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
 
     // Area PRK breakdown
     const areaPrksWithProgress = areaPrks.map(ap => {
-        const areaTasks = allHabitTasks.filter(t => t.area_prk_id === ap.id);
+        const areaTasks = allHabitTasks.filter(t => t.area_prk_ids.includes(ap.id));
         const areaLogs = allProgressLogs.filter(l => areaTasks.some(t => t.id === l.habit_task_id));
 
         const overall = calculatePeriodProgress(areaTasks, areaLogs, startOfYear(new Date(2020,0,1)), endOfYear(today));
@@ -924,16 +942,14 @@ export async function getPanelData() {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
 
-    // Fetch all tasks, not just unarchived, to include in progress calculation up to their archive date if applicable.
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
-    if (habitTasksError) throw habitTasksError;
+    const allHabitTasks = await fetchAndMapHabitTasks(userId);
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
 
     // Calculate overall progress for each area up to today
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
+        const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_ids.includes(areaPrk.id));
         const progress = calculatePeriodProgress(relevantTasks, allProgressLogs, historicalStartDate, today);
         
         return { ...areaPrk, progress };
@@ -959,3 +975,5 @@ export async function getPanelData() {
         allHabitTasks: unarchivedHabitTasks,
     };
 }
+
+    
