@@ -51,7 +51,8 @@ export function Panel({
   const [editingAreaPrk, setEditingAreaPrk] = useState<AreaPrk | null>(null);
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   const [activeLifePrkId, setActiveLifePrkId] = useState<string | null>(null);
-  const [activeAreaPrkId, setActiveAreaPrkId] = useState<string | null>(null);
+  const [activeAreaPrkIds, setActiveAreaPrkIds] = useState<string[]>([]);
+
 
   const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
     setLifePrkToEdit(lifePrk);
@@ -87,14 +88,14 @@ export function Panel({
   };
 
   const handleOpenAddHabitTaskDialog = (areaPrkId: string) => {
-    setActiveAreaPrkId(areaPrkId);
+    setActiveAreaPrkIds([areaPrkId]);
     setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
   };
 
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
-    setActiveAreaPrkId(habitTask.area_prk_id);
+    setActiveAreaPrkIds(habitTask.area_prk_ids);
     setHabitTaskDialogOpen(true);
   };
 
@@ -216,7 +217,7 @@ export function Panel({
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
-        defaultAreaPrkId={activeAreaPrkId || undefined}
+        defaultAreaPrkIds={activeAreaPrkIds}
         defaultDate={new Date()}
         areaPrks={areaPrks}
         />

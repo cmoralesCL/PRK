@@ -62,7 +62,7 @@ export function DayView({
   const [editingHabitTask, setEditingHabitTask] = useState<HabitTask | null>(null);
   
   // State for context when adding new items
-  const [activeAreaPrk, setActiveAreaPrk] = useState<AreaPrk | null>(null);
+  const [activeAreaPrkIds, setActiveAreaPrkIds] = useState<string[]>([]);
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -74,7 +74,7 @@ export function DayView({
   }
 
   const handleOpenAddHabitTaskDialog = (areaPrkId?: string) => {
-    setActiveAreaPrk(areaPrks.find(ap => ap.id === areaPrkId) || null);
+    setActiveAreaPrkIds(areaPrkId ? [areaPrkId] : []);
     setDefaultHabitTaskValues(undefined);
     setEditingHabitTask(null);
     setHabitTaskDialogOpen(true);
@@ -83,7 +83,7 @@ export function DayView({
   const handleOpenEditHabitTaskDialog = (habitTask: HabitTask) => {
     setEditingHabitTask(habitTask);
     setDefaultHabitTaskValues(undefined);
-    setActiveAreaPrk(areaPrks.find(ap => ap.id === habitTask.area_prk_id) || null);
+    setActiveAreaPrkIds(habitTask.area_prk_ids);
     setHabitTaskDialogOpen(true);
   };
 
@@ -229,7 +229,6 @@ export function DayView({
                           onToggle={handleToggleHabitTask}
                           onUndo={handleUndoHabitTask}
                           onArchive={handleArchiveHabitTask}
-                          isFocus={index === 0}
                           isDraggable
                         />
                       </div>
@@ -271,7 +270,7 @@ export function DayView({
         onOpenChange={setHabitTaskDialogOpen} 
         onSave={handleSaveHabitTask}
         habitTask={editingHabitTask}
-        defaultAreaPrkId={activeAreaPrk?.id}
+        defaultAreaPrkIds={activeAreaPrkIds}
         defaultDate={selectedDate}
         areaPrks={areaPrks}
         defaultValues={defaultHabitTaskValues}

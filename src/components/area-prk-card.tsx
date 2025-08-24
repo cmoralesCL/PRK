@@ -67,14 +67,16 @@ export function AreaPrkCard({
     <Card className="flex flex-col bg-muted/30">
        <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
          <div className="flex w-full items-center gap-2 p-3 group">
-            <CollapsibleTrigger className="flex-grow text-left">
-              <div className="flex items-center gap-3">
-                 <h3 className="font-headline text-sm font-semibold text-card-foreground">{areaPrk.title}</h3>
-              </div>
-              <div className="flex items-center gap-2 pt-1.5">
-                  <Progress value={areaPrk.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
-                  <span className="text-xs font-semibold w-8 text-right">{areaPrk.progress.toFixed(0)}%</span>
-              </div>
+            <CollapsibleTrigger asChild>
+                <div className="flex-grow text-left cursor-pointer">
+                  <div className="flex items-center gap-3">
+                     <h3 className="font-headline text-sm font-semibold text-card-foreground">{areaPrk.title}</h3>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1.5">
+                      <Progress value={areaPrk.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
+                      <span className="text-xs font-semibold w-8 text-right">{areaPrk.progress.toFixed(0)}%</span>
+                  </div>
+                </div>
             </CollapsibleTrigger>
             <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
@@ -94,7 +96,11 @@ export function AreaPrkCard({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <ChevronDown className={`h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180`} />
+                 <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </Button>
+                </CollapsibleTrigger>
             </div>
           </div>
 

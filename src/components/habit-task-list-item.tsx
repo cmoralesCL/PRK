@@ -20,7 +20,6 @@ interface HabitTaskListItemProps {
   onEdit?: (habitTask: HabitTask) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog' | 'read-only';
-  isFocus?: boolean;
   isDraggable?: boolean;
 }
 
@@ -32,7 +31,6 @@ export function HabitTaskListItem({
     onEdit, 
     selectedDate, 
     variant = 'dashboard',
-    isFocus = false,
     isDraggable = false,
 }: HabitTaskListItemProps) {
   const getIcon = () => {
@@ -209,8 +207,7 @@ export function HabitTaskListItem({
   // --- Type A: Default binary/task item (Checklist) ---
   return (
     <div className={cn(
-        "flex items-center space-x-3 p-2 border-b transition-colors duration-200 group",
-        isFocus && "bg-secondary/70"
+        "flex items-center space-x-3 p-2 border-b transition-colors duration-200 group bg-card"
     )}>
         {isDraggable && (
             <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />

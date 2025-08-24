@@ -50,7 +50,7 @@ export type HabitFrequency =
 export interface HabitTask {
   id: string;
   user_id: string;
-  area_prk_id: string; // Corresponds to area_prk_id in Supabase
+  area_prk_ids: string[]; // Replaces area_prk_id
   title: string;
   description?: string | null;
   type: 'habit' | 'task';
