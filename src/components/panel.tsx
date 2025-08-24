@@ -56,12 +56,14 @@ export function Panel({
   }, [initialSelectedDate]);
 
   useEffect(() => {
-    setOpenLifePrkIds(currentOpenIds => {
-      const newLifePrkIds = lifePrks.map(lp => lp.id);
-      const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
-      return Array.from(allIds);
-    });
-  }, [lifePrks]);
+    if (!activeLifePrk) {
+      setOpenLifePrkIds(currentOpenIds => {
+        const newLifePrkIds = lifePrks.map(lp => lp.id);
+        const allIds = new Set([...currentOpenIds, ...newLifePrkIds]);
+        return Array.from(allIds);
+      });
+    }
+  }, [lifePrks, activeLifePrk]);
 
 
   const [isAreaPrkDialogOpen, setAreaPrkDialogOpen] = useState(false);
@@ -77,24 +79,13 @@ export function Panel({
     const lifePrk = lifePrks.find(lp => lp.id === lifePrkId);
     if (lifePrk) {
         setActiveLifePrk(lifePrk);
-        setOpenLifePrkIds([lifePrkId]);
     }
   };
 
   const handleShowAll = () => {
     setActiveLifePrk(null);
-    setOpenLifePrkIds(lifePrks.map(lp => lp.id));
   };
   
-  const handleDateChange = (date: Date | undefined) => {
-    if (!date) return;
-    const dateString = format(date, 'yyyy-MM-dd');
-    setSelectedDate(date);
-    startTransition(() => {
-      router.push(`/panel?date=${dateString}`);
-    });
-  }
-
   const handleOpenEditLifePrkDialog = (lifePrk: LifePrk) => {
     setLifePrkToEdit(lifePrk);
   };
@@ -184,6 +175,9 @@ export function Panel({
         try {
           await archiveLifePrk(id);
           toast({ title: 'PRK de Vida Archivado' });
+          if(activeLifePrk?.id === id) {
+            setActiveLifePrk(null);
+          }
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el PRK de Vida.' });
         }
@@ -221,13 +215,11 @@ export function Panel({
     );
   }
   
-  const displayedLifePrks = activeLifePrk ? [activeLifePrk] : lifePrks;
-
   return (
     <>
       <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
         <div className="mb-6">
-            <h1 className="text-3xl font-bold font-headline">Panel de Control</h1>
+            <h1 className="text-3xl font-bold font-headline">Panel</h1>
              <div className="flex items-center text-sm text-muted-foreground mt-2">
                 <Button variant="link" className="p-0 h-auto" onClick={handleShowAll}>Panel</Button>
                 {activeLifePrk && (
@@ -251,25 +243,23 @@ export function Panel({
                   <h2 className="text-2xl font-headline font-semibold">Cargando...</h2>
             </div>
         )}
-        {!isPending && lifePrks.length > 0 && (
+        {!isPending && lifePrks.length > 0 && !activeLifePrk && (
           <>
-            {!activeLifePrk && (
-                <div className="flex justify-end gap-2 my-2">
-                    <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
-                        Expandir Todo
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
-                        Contraer Todo
-                    </Button>
-                </div>
-            )}
+            <div className="flex justify-end gap-2 my-2">
+                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds(lifePrks.map(lp => lp.id))}>
+                    Expandir Todo
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setOpenLifePrkIds([])}>
+                    Contraer Todo
+                </Button>
+            </div>
             <Accordion 
               type="multiple" 
               className="w-full space-y-3" 
               value={openLifePrkIds}
               onValueChange={setOpenLifePrkIds}
             >
-              {displayedLifePrks.map((lp) => (
+              {lifePrks.map((lp) => (
                 <LifePrkSection
                   key={lp.id}
                   lifePrk={lp}
@@ -291,6 +281,24 @@ export function Panel({
             </Accordion>
           </>
         )}
+         {!isPending && activeLifePrk && (
+            <LifePrkSection
+                isStandaloneView={true}
+                lifePrk={activeLifePrk}
+                areaPrks={areaPrks.filter(kp => kp.life_prk_id === activeLifePrk.id)}
+                actions={allActions.filter(action => areaPrks.some(ap => ap.life_prk_id === activeLifePrk.id && ap.id === action.area_prk_id))}
+                onAddAreaPrk={handleOpenAddAreaPrkDialog}
+                onEditAreaPrk={handleOpenEditAreaPrkDialog}
+                onAddHabitTask={handleOpenAddHabitTaskDialog}
+                onEditHabitTask={handleOpenEditHabitTaskDialog}
+                onGetAiSuggestions={(kp) => { setActiveAreaPrk(kp); setAiSuggestOpen(true); }}
+                onArchive={handleArchiveLifePrk}
+                onEdit={handleOpenEditLifePrkDialog}
+                onArchiveAreaPrk={handleArchiveAreaPrk}
+                onArchiveHabitTask={handleArchiveHabitTask}
+                selectedDate={selectedDate}
+            />
+         )}
       </main>
       <AddAreaPrkDialog 
         isOpen={isAreaPrkDialogOpen} 

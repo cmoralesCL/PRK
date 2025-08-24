@@ -18,6 +18,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTransition } from 'react';
@@ -39,6 +40,7 @@ interface LifePrkSectionProps {
   onArchiveHabitTask: (id: string) => void;
   selectedDate: Date;
   onHeaderClick?: () => void;
+  isStandaloneView?: boolean;
 }
 
 export function LifePrkSection({
@@ -56,6 +58,7 @@ export function LifePrkSection({
   onArchiveHabitTask,
   selectedDate,
   onHeaderClick,
+  isStandaloneView = false,
 }: LifePrkSectionProps) {
 
   const lifePrkProgress = lifePrk.progress ?? 0;
@@ -95,6 +98,87 @@ export function LifePrkSection({
         }
     });
   };
+
+  const areaPrkGrid = (
+    <div className="pt-4 px-0 md:px-2">
+        {areaPrks.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {areaPrks.map((kp) => (
+              <AreaPrkCard
+                  key={kp.id}
+                  areaPrk={kp}
+                  actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
+                  onAddHabitTask={onAddHabitTask}
+                  onEditHabitTask={onEditHabitTask}
+                  onToggleHabitTask={handleToggleHabitTask}
+                  onUndoHabitTask={handleUndoHabitTask}
+                  onGetAiSuggestions={onGetAiSuggestions}
+                  onArchive={onArchiveAreaPrk}
+                  onEdit={onEditAreaPrk}
+                  onArchiveHabitTask={onArchiveHabitTask}
+                  selectedDate={selectedDate}
+              />
+              ))}
+          </div>
+          ) : (
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>
+                  <Button variant="link" size="sm" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
+              </div>
+          )}
+    </div>
+  );
+
+  if (isStandaloneView) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex-grow">
+                    <h2 className="text-2xl md:text-3xl font-bold font-headline flex items-center gap-3">
+                        <div className="flex-shrink-0 bg-primary/10 text-primary p-2 rounded-full">
+                            <Target className="h-5 w-5" />
+                        </div>
+                        {lifePrk.title}
+                    </h2>
+                    <p className="mt-2 text-base text-muted-foreground max-w-2xl">{lifePrk.description}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                    <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); onAddAreaPrk(lifePrk.id); }}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Añadir PRK de Área
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(lifePrk); }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar PRK de Vida
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(lifePrk.id); }}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archivar
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+            <div className="mt-4 space-y-1">
+                <div className="flex justify-between text-sm font-medium text-muted-foreground">
+                    <span>Progreso General</span>
+                    <span>{lifePrkProgress.toFixed(0)}%</span>
+                </div>
+                <Progress value={lifePrkProgress} className="h-2.5" />
+            </div>
+        </Card>
+        {areaPrkGrid}
+      </div>
+    );
+  }
 
 
   return (
@@ -157,31 +241,7 @@ export function LifePrkSection({
         </div>
 
       <AccordionContent className="pt-4 px-2">
-        {areaPrks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {areaPrks.map((kp) => (
-              <AreaPrkCard
-                  key={kp.id}
-                  areaPrk={kp}
-                  actions={actions.filter((ht) => ht.area_prk_id === kp.id)}
-                  onAddHabitTask={onAddHabitTask}
-                  onEditHabitTask={onEditHabitTask}
-                  onToggleHabitTask={handleToggleHabitTask}
-                  onUndoHabitTask={handleUndoHabitTask}
-                  onGetAiSuggestions={onGetAiSuggestions}
-                  onArchive={onArchiveAreaPrk}
-                  onEdit={onEditAreaPrk}
-                  onArchiveHabitTask={onArchiveHabitTask}
-                  selectedDate={selectedDate}
-              />
-              ))}
-          </div>
-          ) : (
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8 bg-muted/50 rounded-lg border border-dashed">
-                  <p className="text-muted-foreground text-sm">Aún no hay PRK de Área para esta visión.</p>
-                  <Button variant="link" size="sm" onClick={() => onAddAreaPrk(lifePrk.id)}>¡Agrega el primero!</Button>
-              </div>
-          )}
+        {areaPrkGrid}
       </AccordionContent>
       </div>
     </AccordionItem>
