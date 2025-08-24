@@ -101,7 +101,6 @@ export function HabitTaskListItem({
   if (variant === 'read-only') {
       return (
         <div className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30">
-             <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
              <div className="flex-grow">
                  <p className={cn('text-xs font-medium leading-none', item.completedToday && 'line-through text-muted-foreground')}>
                      {item.title}
@@ -232,7 +231,6 @@ export function HabitTaskListItem({
                     !onToggle ? "cursor-default" : "cursor-pointer"
                 )}
             >
-                {isFocus && <Star className="h-4 w-4 inline-block mr-2 text-yellow-500 fill-yellow-400" />}
                 {item.title}
             </Label>
         </div>
