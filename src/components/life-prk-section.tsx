@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Target, Plus, Archive, MoreVertical, ChevronDown, Pencil } from 'lucide-react';
+import { Target, Plus, Archive, MoreVertical, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AreaPrkCard } from './area-prk-card';
@@ -19,6 +19,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { THEMES } from '@/lib/themes';
+import { cn } from '@/lib/utils';
 
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
@@ -55,10 +56,10 @@ export function LifePrkSection({
   return (
     <AccordionItem value={lifePrk.id} className="border-b-0">
       <div className="bg-card rounded-lg shadow-sm border">
-        <div className="flex items-start gap-2 p-3 w-full">
-            <AccordionTrigger className="p-0 hover:no-underline flex-grow">
-                <div className="w-full space-y-2 text-left">
-                    <div className="flex items-start gap-3 flex-grow">
+        <AccordionTrigger className="p-3 hover:no-underline w-full">
+            <div className="w-full space-y-2 text-left">
+                <div className="flex justify-between items-start gap-2 w-full">
+                    <div className='flex items-start gap-3 flex-grow'>
                         <div className="flex-shrink-0 text-white p-1.5 rounded-full mt-0.5" style={{ background: theme.gradient }}>
                             <Target className="h-4 w-4" />
                         </div>
@@ -71,38 +72,37 @@ export function LifePrkSection({
                             )}
                         </div>
                     </div>
-                    <div className="pl-10 flex items-center gap-2 w-full">
-                        <Progress value={lifePrkProgress} className="h-1.5 w-full" colorTheme={colorTheme} />
-                        <span className="text-xs font-bold text-foreground w-8 text-right">{lifePrkProgress.toFixed(0)}%</span>
+
+                    <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => onAddAreaPrk(lifePrk.id)}>
+                            <Plus className="mr-1 h-3 w-3" />
+                            Área
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEdit(lifePrk)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar PRK de Vida
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onArchive(lifePrk.id)}>
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    Archivar PRK de Vida
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
-            </AccordionTrigger>
-
-            <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => onAddAreaPrk(lifePrk.id)}>
-                    <Plus className="mr-1 h-3 w-3" />
-                    Área
-                </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(lifePrk)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar PRK de Vida
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(lifePrk.id)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archivar PRK de Vida
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground data-[state=open]:rotate-180" />
+                <div className="flex items-center gap-2 w-full">
+                    <Progress value={lifePrkProgress} className="h-1.5 w-full" colorTheme={colorTheme} />
+                    <span className="text-xs font-bold text-foreground w-8 text-right">{lifePrkProgress.toFixed(0)}%</span>
+                </div>
             </div>
-        </div>
+        </AccordionTrigger>
         
       <AccordionContent className="pb-2 px-2">
         <div className="pt-2 space-y-2 border-t mt-2">

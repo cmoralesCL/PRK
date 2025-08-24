@@ -1018,11 +1018,14 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
 
 /**
  * Fetches all strategic data for the Panel view, ignoring date filters.
- * Progress is calculated based on all available logs.
+ * Progress is calculated based on all available logs up to the current date.
  */
 export async function getPanelData() {
     const supabase = createClient();
     const userId = await getCurrentUserId();
+    const today = new Date();
+    // A very early date to consider all historical data.
+    const historicalStartDate = new Date(2020, 0, 1);
 
     const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) throw lifePrksError;
@@ -1030,29 +1033,18 @@ export async function getPanelData() {
     const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
 
-    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('archived', false).eq('user_id', userId);
+    // Fetch all tasks, not just unarchived, to include in progress calculation up to their archive date if applicable.
+    const { data: allHabitTasks, error: habitTasksError } = await supabase.from('habit_tasks').select('*').eq('user_id', userId);
     if (habitTasksError) throw habitTasksError;
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
 
-    // Calculate overall progress for each area
+    // Calculate overall progress for each area up to today
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
         const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_id === areaPrk.id);
-        if (relevantTasks.length === 0) {
-            return { ...areaPrk, progress: 0 };
-        }
-        // Simplified progress for panel: ratio of completed tasks to total tasks
-        const completedTasks = relevantTasks.filter(task => {
-            if (task.type === 'task' && !task.frequency) { // One-off task
-                return !!task.completion_date;
-            }
-            // For habits, we can't easily determine "completion" without a date context.
-            // For the panel, we'll consider any logged progress as a positive indicator.
-            return allProgressLogs.some(log => log.habit_task_id === task.id);
-        }).length;
+        const progress = calculatePeriodProgress(relevantTasks, allProgressLogs, historicalStartDate, today);
         
-        const progress = (completedTasks / relevantTasks.length) * 100;
         return { ...areaPrk, progress };
     });
 
@@ -1067,9 +1059,12 @@ export async function getPanelData() {
         return { ...lifePrk, progress };
     });
 
+    // Filter out archived tasks for display purposes after calculations are done.
+    const unarchivedHabitTasks = allHabitTasks.filter(t => !t.archived);
+
     return {
         lifePrks: lifePrksWithProgress,
         areaPrks: areaPrksWithProgress,
-        allHabitTasks, // Return all tasks for display
+        allHabitTasks: unarchivedHabitTasks,
     };
 }
