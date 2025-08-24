@@ -22,13 +22,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -41,13 +34,14 @@ import { useEffect, useState } from 'react';
 import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
+import { MultiSelect } from './ui/multi-select';
 
 const numberPreprocess = (val: any) => (val === '' || val === null ? undefined : val);
 
 const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
     description: z.string().optional(),
-    area_prk_id: z.string({ required_error: "Debes seleccionar un PRK de Área."}),
+    area_prk_ids: z.array(z.string()).min(1, { message: "Debes seleccionar al menos un PRK de Área."}),
     type: z.enum(['task', 'habit']),
     start_date: z.date().optional(),
     due_date: z.date().optional(),
@@ -132,7 +126,7 @@ interface AddHabitTaskDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (values: Partial<HabitTask>) => void;
   habitTask: HabitTask | null;
-  defaultAreaPrkId?: string;
+  defaultAreaPrkIds?: string[];
   defaultDate?: Date;
   areaPrks: AreaPrk[];
   defaultValues?: Partial<HabitTaskFormValues>;
@@ -141,7 +135,7 @@ interface AddHabitTaskDialogProps {
 // Main Dialog Component
 export function AddHabitTaskDialog({ 
     isOpen, onOpenChange, onSave, habitTask, 
-    defaultAreaPrkId, defaultDate, areaPrks, defaultValues
+    defaultAreaPrkIds, defaultDate, areaPrks, defaultValues
 }: AddHabitTaskDialogProps) {
   const isEditing = !!habitTask;
 
@@ -149,12 +143,13 @@ export function AddHabitTaskDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '', description: '', type: 'task', start_date: defaultDate || new Date(),
-      area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
+      area_prk_ids: defaultAreaPrkIds || [], 
+      weight: 1, is_critical: false,
       frequency: 'UNICA',
-      frequency_interval: '',
-      frequency_day_of_month: '',
+      frequency_interval: undefined,
+      frequency_day_of_month: undefined,
       frequency_days: [],
-      measurement_goal: { target_count: '', unit: '' },
+      measurement_goal: { target_count: undefined, unit: '' },
       ...defaultValues
     },
   });
@@ -175,13 +170,14 @@ export function AddHabitTaskDialog({
         // --- Populate Form ---
         form.reset({
           ...habitTask,
+          area_prk_ids: habitTask.area_prk_ids || [],
           frequency: habitTask.frequency ?? 'UNICA',
           start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
           due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
-          frequency_interval: habitTask.frequency_interval ?? '',
-          frequency_day_of_month: habitTask.frequency_day_of_month ?? '',
+          frequency_interval: habitTask.frequency_interval ?? undefined,
+          frequency_day_of_month: habitTask.frequency_day_of_month ?? undefined,
           measurement_goal: {
-            target_count: habitTask.measurement_goal?.target_count ?? '',
+            target_count: habitTask.measurement_goal?.target_count ?? undefined,
             unit: habitTask.measurement_goal?.unit ?? '',
           },
           frequency_days: habitTask.frequency_days ?? [],
@@ -189,24 +185,25 @@ export function AddHabitTaskDialog({
       } else { // Reset for new task
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
-          area_prk_id: defaultAreaPrkId, weight: 1, is_critical: false,
+          area_prk_ids: defaultAreaPrkIds || [], 
+          weight: 1, is_critical: false,
           frequency: 'UNICA',
           frequency_days: [],
-          frequency_interval: '',
-          frequency_day_of_month: '',
+          frequency_interval: undefined,
+          frequency_day_of_month: undefined,
           measurement_type: 'binary',
-          measurement_goal: { target_count: '', unit: '' },
+          measurement_goal: { target_count: undefined, unit: '' },
           ...defaultValues,
         });
       }
     }
-  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkId, defaultDate, defaultValues]);
+  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkIds, defaultDate, defaultValues]);
 
   const onSubmit = (values: HabitTaskFormValues) => {
     const dataToSave: Partial<HabitTask> = {
         title: values.title,
         description: values.description,
-        area_prk_id: values.area_prk_id,
+        area_prk_ids: values.area_prk_ids,
         type: values.type,
         start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
         due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
@@ -334,12 +331,26 @@ export function AddHabitTaskDialog({
               )}
             />
 
-             <FormField control={form.control} name="area_prk_id" render={({ field }) => (
-                <FormItem><FormLabel>PRK de Área Asociado</FormLabel><Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un PRK de Área" /></SelectTrigger></FormControl>
-                  <SelectContent>{areaPrks.map(ap => <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>)}</SelectContent>
-                </Select><FormMessage /></FormItem>
-              )}/>
+            <FormField
+              control={form.control}
+              name="area_prk_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PRK de Área Asociado</FormLabel>
+                  <FormControl>
+                     <MultiSelect
+                        options={areaPrks.map(ap => ({ label: ap.title, value: ap.id }))}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        placeholder="Selecciona uno o más PRKs..."
+                        className="w-full"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             
             <FormField control={form.control} name="start_date" render={({ field }) => (
               <FormItem className="flex flex-col"><FormLabel>Fecha de Inicio</FormLabel><Popover>
@@ -398,7 +409,7 @@ export function AddHabitTaskDialog({
             <FrequencyBuilder form={form} />
             
             <FormField control={form.control} name="weight" render={({ field }) => (
-              <FormItem><FormLabel>Nivel de Impacto (1-5)</FormLabel><Input type="number" min="1" max="5" placeholder="1" {...field} /><FormMessage /></FormItem>
+              <FormItem><FormLabel>Nivel de Impacto (1-5)</FormLabel><FormControl><Input type="number" min="1" max="5" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
 
             <FormField control={form.control} name="is_critical" render={({ field }) => (
@@ -625,3 +636,5 @@ function FrequencyBuilder({ form }: { form: any }) {
         </div>
     );
 }
+
+    
