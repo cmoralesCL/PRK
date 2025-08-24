@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import { LifePrk, AreaPrk, HabitTask, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot, KpiData, AnalyticsData } from "@/lib/types";
+import { Orbit, Phase, Pulse, ProgressLog, DailyProgressSnapshot, WeeklyProgressSnapshot, KpiData, AnalyticsData } from "@/lib/types";
 import { 
     format, 
     startOfDay, 
@@ -61,7 +61,7 @@ async function getCurrentUserId(): Promise<string> {
  * @param date La fecha a verificar.
  * @returns `true` si la tarea está activa, `false` en caso contrario.
  */
-function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
+function isTaskActiveOnDate(task: Pulse, date: Date): boolean {
     const targetDate = startOfDay(date);
 
     // Common checks for all types
@@ -179,7 +179,7 @@ function isTaskActiveOnDate(task: HabitTask, date: Date): boolean {
  * @param allProgressLogs Una lista de todos los registros de progreso.
  * @returns Una lista de tareas y hábitos activos para esa fecha.
  */
-async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[]): Promise<HabitTask[]> {
+async function getHabitTasksForDate(date: Date, allHabitTasks: Pulse[], allProgressLogs: ProgressLog[]): Promise<Pulse[]> {
     const dateString = format(date, 'yyyy-MM-dd');
     
     const activeTasks = allHabitTasks.filter(task => isTaskActiveOnDate(task, date));
@@ -218,9 +218,9 @@ async function getHabitTasksForDate(date: Date, allHabitTasks: HabitTask[], allP
  * @param habitTasks Las tareas y hábitos activos para esa fecha (obtenidos de `getHabitTasksForDate`).
  * @returns Un objeto con los PRK de vida y área, cada uno con su progreso calculado para ese día.
  */
-function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: AreaPrk[], habitTasks: HabitTask[]) {
+function calculateProgressForDate(date: Date, lifePrks: Orbit[], areaPrks: Phase[], habitTasks: Pulse[]) {
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = habitTasks.filter(ht => ht.area_prk_ids.includes(areaPrk.id));
+        const relevantTasks = habitTasks.filter(ht => ht.phase_ids.includes(areaPrk.id));
         
         if (relevantTasks.length === 0) {
             return { ...areaPrk, progress: null };
@@ -266,7 +266,7 @@ function calculateProgressForDate(date: Date, lifePrks: LifePrk[], areaPrks: Are
     return { lifePrksWithProgress, areaPrksWithProgress };
 }
 
-function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: ProgressLog[], referenceDate: Date) {
+function getActiveCommitments(allHabitTasks: Pulse[], allProgressLogs: ProgressLog[], referenceDate: Date) {
     const periodStart = startOfWeek(referenceDate, { weekStartsOn: 1 });
     const periodEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
     const monthStart = startOfMonth(referenceDate);
@@ -362,7 +362,7 @@ function getActiveCommitments(allHabitTasks: HabitTask[], allProgressLogs: Progr
     });
 }
 
-async function fetchAndMapHabitTasks(userId: string): Promise<HabitTask[]> {
+async function fetchAndMapHabitTasks(userId: string): Promise<Pulse[]> {
     const supabase = createClient();
     const { data: tasks, error: tasksError } = await supabase
         .from('habit_tasks')
@@ -385,7 +385,7 @@ async function fetchAndMapHabitTasks(userId: string): Promise<HabitTask[]> {
 
     return tasks.map(task => ({
         ...task,
-        area_prk_ids: linksByTaskId[task.id] || [],
+        phase_ids: linksByTaskId[task.id] || [],
     }));
 }
 
@@ -422,9 +422,9 @@ export async function getDashboardData(selectedDateString: string) {
     const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, selectedDate);
 
     return {
-        lifePrks: lifePrksWithProgress,
-        areaPrks: areaPrksWithProgress,
-        habitTasks: habitTasksForDay,
+        orbits: lifePrksWithProgress,
+        phases: areaPrksWithProgress,
+        pulses: habitTasksForDay,
         commitments: commitments,
     };
 }
@@ -432,9 +432,9 @@ export async function getDashboardData(selectedDateString: string) {
 
 async function calculateWeeklyProgress(
     weekStart: Date,
-    allHabitTasks: HabitTask[],
+    allHabitTasks: Pulse[],
     allProgressLogs: ProgressLog[],
-    habitTasksByDay: Record<string, HabitTask[]>
+    habitTasksByDay: Record<string, Pulse[]>
 ): Promise<number> {
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
@@ -524,7 +524,7 @@ export async function getCalendarData(monthDate: Date) {
     }
 
     const dailyProgress: DailyProgressSnapshot[] = [];
-    const habitTasksByDay: Record<string, HabitTask[]> = {};
+    const habitTasksByDay: Record<string, Pulse[]> = {};
 
     for (const day of daysInView) {
         const habitTasksForDay = await getHabitTasksForDate(day, allHabitTasks, allProgressLogs);
@@ -731,7 +731,7 @@ export async function endOfSemester(date: Date): Promise<Date> {
  * @param endDate The end date of the period.
  * @returns The calculated progress percentage, capped at 100.
  */
-function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startDate: Date, endDate: Date): number {
+function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate: Date, endDate: Date): number {
     let totalWeightedProgress = 0;
     let totalPossibleWeight = 0;
 
@@ -830,25 +830,25 @@ function calculatePeriodProgress(tasks: HabitTask[], logs: ProgressLog[], startD
     return progress > 100 ? 100 : progress;
 }
 
-export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId?: string; habitTaskId?: string; }): Promise<AnalyticsData> {
+export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: string; pulseId?: string; }): Promise<AnalyticsData> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     const today = new Date();
 
-    const allHabitTasks = await fetchAndMapHabitTasks(userId);
+    const allPulses = await fetchAndMapHabitTasks(userId);
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
     
-    const { data: lifePrks, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+    const { data: orbits, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) throw lifePrksError;
 
-    const { data: areaPrks, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    const { data: phases, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
 
     const calculateAndRound = (startDate: Date, endDate: Date) => {
         const periodLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
-        const progress = calculatePeriodProgress(allHabitTasks, periodLogs, startDate, endDate);
+        const progress = calculatePeriodProgress(allPulses, periodLogs, startDate, endDate);
         return Math.round(progress > 100 ? 100 : progress);
     };
 
@@ -859,8 +859,8 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
     const overallProgress = calculateAndRound(startOfYear(new Date(2020,0,1)), endOfYear(today)); // A wide range for "all time"
 
     // Area PRK breakdown
-    const areaPrksWithProgress = areaPrks.map(ap => {
-        const areaTasks = allHabitTasks.filter(t => t.area_prk_ids.includes(ap.id));
+    const phasesWithProgress = phases.map(ap => {
+        const areaTasks = allPulses.filter(t => t.phase_ids.includes(ap.id));
         const areaLogs = allProgressLogs.filter(l => areaTasks.some(t => t.id === l.habit_task_id));
 
         const overall = calculatePeriodProgress(areaTasks, areaLogs, startOfYear(new Date(2020,0,1)), endOfYear(today));
@@ -906,11 +906,11 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
             weeklyProgress,
             monthlyProgress,
             quarterlyProgress,
-            lifePrksCount: lifePrks.length,
-            areaPrksCount: areaPrks.length,
-            tasksCompleted: allProgressLogs.length,
+            orbitsCount: orbits.length,
+            phasesCount: phases.length,
+            pulsesCompleted: allProgressLogs.length,
         },
-        areaPrks: areaPrksWithProgress,
+        phases: phasesWithProgress,
         progressOverTime: { 
             weekly: weeklyChartData,
             monthly: monthlyChartData,
@@ -918,9 +918,9 @@ export async function getAnalyticsData(filters?: { lifePrkId?: string; areaPrkId
             yearly: yearlyChartData,
         },
         // Data for filters
-        lifePrks,
-        allAreaPrks: areaPrks,
-        allHabitTasks,
+        orbits,
+        allPhases: phases,
+        allPulses,
     };
 }
 
@@ -949,7 +949,7 @@ export async function getPanelData() {
 
     // Calculate overall progress for each area up to today
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = allHabitTasks.filter(ht => ht.area_prk_ids.includes(areaPrk.id));
+        const relevantTasks = allHabitTasks.filter(ht => ht.phase_ids.includes(areaPrk.id));
         const progress = calculatePeriodProgress(relevantTasks, allProgressLogs, historicalStartDate, today);
         
         return { ...areaPrk, progress };
@@ -970,9 +970,9 @@ export async function getPanelData() {
     const unarchivedHabitTasks = allHabitTasks.filter(t => !t.archived);
 
     return {
-        lifePrks: lifePrksWithProgress,
-        areaPrks: areaPrksWithProgress,
-        allHabitTasks: unarchivedHabitTasks,
+        orbits: lifePrksWithProgress,
+        phases: areaPrksWithProgress,
+        allPulses: unarchivedHabitTasks,
     };
 }
 
