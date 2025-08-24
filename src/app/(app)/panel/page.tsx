@@ -7,13 +7,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function PanelPage() {
   // Fetch data specifically for the strategic panel view, without date filtering.
-  const { lifePrks, areaPrks, allHabitTasks } = await getPanelData();
+  const { orbits, phases, allPulses } = await getPanelData();
 
   return (
     <Panel
-      lifePrks={lifePrks}
-      areaPrks={areaPrks}
-      allHabitTasks={allHabitTasks}
+      orbits={orbits}
+      phases={phases}
+      allPulses={allPulses}
     />
   );
 }

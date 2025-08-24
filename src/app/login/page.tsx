@@ -23,9 +23,9 @@ export default function LoginPage() {
                 <div className="flex justify-center mb-4">
                     <Compass className="h-12 w-12 text-primary" />
                 </div>
-                <CardTitle className="text-2xl font-headline">Brújula de Resultados</CardTitle>
+                <CardTitle className="text-2xl font-headline">Cenit</CardTitle>
                 <CardDescription>
-                    Inicia sesión o regístrate para empezar a trazar tu camino.
+                    Inicia sesión o regístrate para empezar a construir tu ecosistema.
                 </CardDescription>
             </CardHeader>
             <CardContent>

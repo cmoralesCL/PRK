@@ -1,29 +1,30 @@
 export type ColorTheme = 'mint' | 'sapphire' | 'amethyst' | 'coral' | 'rose' | 'solar';
 
-export interface LifePrk {
+// Replaces LifePrk
+export interface Orbit {
   id: string;
   user_id: string;
   title: string;
   description: string;
   created_at?: string;
   archived: boolean;
-  progress?: number; // Representa el progreso general del día, para la UI.
+  progress?: number; 
   color_theme?: ColorTheme;
 }
 
-export interface AreaPrk {
+// Replaces AreaPrk
+export interface Phase {
   id: string;
   user_id: string;
   life_prk_id: string; // Corresponds to life_prk_id in Supabase
   title: string;
   description?: string | null;
-  // targetValue y currentValue ya no son la fuente principal de progreso
   target_value: number; 
   current_value: number;
   unit: string;
   created_at?: string;
   archived: boolean;
-  progress: number; // El progreso ahora se calcula a nivel de LifePrk/Día.
+  progress: number; 
   monthlyProgress: number;
 }
 
@@ -47,10 +48,11 @@ export type HabitFrequency =
   | 'TRIMESTRAL_ACUMULATIVO_RECURRENTE';
 
 
-export interface HabitTask {
+// Replaces HabitTask
+export interface Pulse {
   id: string;
   user_id: string;
-  area_prk_ids: string[]; // Replaces area_prk_id
+  phase_ids: string[]; // Replaces area_prk_ids
   title: string;
   description?: string | null;
   type: 'habit' | 'task';
@@ -58,30 +60,28 @@ export interface HabitTask {
   archived: boolean;
   archived_at?: string | null;
   
-  start_date?: string; // Corresponds to start_date
+  start_date?: string;
   
   frequency?: HabitFrequency | null;
   
-  frequency_unit?: 'days' | 'weeks' | 'months' | null; // For 'INTERVALO'
-  frequency_interval?: number | null; // For 'INTERVALO' and '*_RECURRENTE'
-  frequency_days?: string[] | null; // For 'SEMANAL_ESPECIFICO'
-  frequency_day_of_month?: number | null; // For 'MENSUAL_DIA_FIJO'
+  frequency_unit?: 'days' | 'weeks' | 'months' | null;
+  frequency_interval?: number | null;
+  frequency_days?: string[] | null;
+  frequency_day_of_month?: number | null;
   
   weight: number;
 
-  due_date?: string | null; // Corresponds to due_date
-  completion_date?: string | null; // Corresponds to completion_date
+  due_date?: string | null;
+  completion_date?: string | null;
 
   completedToday?: boolean;
   current_progress_value?: number | null;
 
-  is_critical: boolean; // Corresponds to is_critical
+  is_critical: boolean;
   
-  // Campos para la medición de hábitos
   measurement_type?: 'binary' | 'quantitative' | null;
-  measurement_goal?: { target_count?: number; unit?: string; } | null; // Corresponds to measurement_goal
+  measurement_goal?: { target_count?: number; unit?: string; } | null;
   
-  // UI-specific fields, not in DB
   logs?: ProgressLog[];
 }
 
@@ -90,13 +90,13 @@ export interface ProgressLog {
   user_id: string;
   habit_task_id: string; // Corresponds to habit_task_id in Supabase
   completion_date: string;
-  progress_value?: number | null; // Corresponds to progress_value
+  progress_value?: number | null;
   completion_percentage: number | null;
 }
 
 export interface DailyProgressSnapshot {
   snapshot_date: string;
-  progress: number; // Almacenado como decimal (e.g., 0.75 para 75%)
+  progress: number; 
   user_id?: string;
   id?: string;
 }
@@ -125,11 +125,11 @@ export type AnalyticsData = {
     weeklyProgress: number;
     monthlyProgress: number;
     quarterlyProgress: number;
-    lifePrksCount: number;
-    areaPrksCount: number;
-    tasksCompleted: number;
+    orbitsCount: number;
+    phasesCount: number;
+    pulsesCompleted: number;
   };
-  areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
+  phases: (Phase & { progress: number; monthlyProgress: number })[];
   progressOverTime: {
     weekly: { date: string; Progreso: number }[];
     monthly: { date: string; Progreso: number }[];
@@ -137,7 +137,7 @@ export type AnalyticsData = {
     yearly: { date: string; Progreso: number }[];
   };
   // Data for filters
-  lifePrks: LifePrk[];
-  allAreaPrks: AreaPrk[];
-  allHabitTasks: HabitTask[];
+  orbits: Orbit[];
+  allPhases: Phase[];
+  allPulses: Pulse[];
 }

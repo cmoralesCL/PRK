@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { AreaPrk } from '@/lib/types';
+import type { Phase } from '@/lib/types';
 import { Textarea } from './ui/textarea';
 
 const formSchema = z.object({
@@ -33,19 +33,19 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export type AreaPrkFormValues = z.infer<typeof formSchema>;
+export type PhaseFormValues = z.infer<typeof formSchema>;
 
-interface AddAreaPrkDialogProps {
+interface AddPhaseDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: AreaPrkFormValues) => void;
-  areaPrk: AreaPrk | null;
+  onSave: (values: PhaseFormValues) => void;
+  phase: Phase | null;
 }
 
-export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddAreaPrkDialogProps) {
-  const isEditing = !!areaPrk;
+export function AddPhaseDialog({ isOpen, onOpenChange, onSave, phase }: AddPhaseDialogProps) {
+  const isEditing = !!phase;
 
-  const form = useForm<AreaPrkFormValues>({
+  const form = useForm<PhaseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
@@ -55,10 +55,10 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
 
   useEffect(() => {
     if (isOpen) {
-        if (isEditing && areaPrk) {
+        if (isEditing && phase) {
             form.reset({
-                title: areaPrk.title,
-                description: areaPrk.description || '',
+                title: phase.title,
+                description: phase.description || '',
             });
         } else {
             form.reset({
@@ -67,10 +67,10 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
             });
         }
     }
-  }, [isOpen, isEditing, areaPrk, form]);
+  }, [isOpen, isEditing, phase, form]);
 
 
-  const onSubmit = (values: AreaPrkFormValues) => {
+  const onSubmit = (values: PhaseFormValues) => {
     onSave(values);
     form.reset();
     onOpenChange(false);
@@ -81,12 +81,12 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            {isEditing ? 'Editar PRK de Área' : 'Establecer un PRK de Área'}
+            {isEditing ? 'Editar Fase' : 'Crear una Fase'}
           </DialogTitle>
           <DialogDescription>
             {isEditing 
-                ? 'Actualiza los detalles de este resultado medible.'
-                : 'Este es un resultado medible que contribuye a tu PRK de Vida.'
+                ? 'Actualiza los detalles de este proyecto o meta.'
+                : 'Una Fase es un proyecto o meta medible que contribuye a una de tus Órbitas.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -113,7 +113,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Define cómo se ve el éxito para este PRK."
+                      placeholder="Define cómo se ve el éxito para esta Fase."
                       className="resize-none"
                       {...field}
                       value={field.value ?? ''}
@@ -124,7 +124,7 @@ export function AddAreaPrkDialog({ isOpen, onOpenChange, onSave, areaPrk }: AddA
               )}
             />
             <DialogFooter>
-              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar PRK de Área'}</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Fase'}</Button>
             </DialogFooter>
           </form>
         </Form>

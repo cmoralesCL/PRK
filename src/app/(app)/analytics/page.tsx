@@ -17,9 +17,9 @@ export default function AnalyticsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const lifePrkId = searchParams.get('lifePrkId');
-    const areaPrkId = searchParams.get('areaPrkId');
-    const habitTaskId = searchParams.get('habitTaskId');
+    const orbitId = searchParams.get('orbitId');
+    const phaseId = searchParams.get('phaseId');
+    const pulseId = searchParams.get('pulseId');
 
     useEffect(() => {
         setIsLoading(true);
@@ -27,9 +27,9 @@ export default function AnalyticsPage() {
             try {
                 // For now, we still fetch all data, but this sets up for future filtering
                 const analyticsData = await getAnalyticsData({
-                    lifePrkId: lifePrkId || undefined,
-                    areaPrkId: areaPrkId || undefined,
-                    habitTaskId: habitTaskId || undefined,
+                    orbitId: orbitId || undefined,
+                    phaseId: phaseId || undefined,
+                    pulseId: pulseId || undefined,
                 });
                 setData(analyticsData);
             } catch (error) {
@@ -39,18 +39,18 @@ export default function AnalyticsPage() {
                 setIsLoading(false);
             }
         });
-    }, [lifePrkId, areaPrkId, habitTaskId]);
+    }, [orbitId, phaseId, pulseId]);
 
-    const handleFilterChange = (filters: { lifePrkId?: string | null; areaPrkId?: string | null; habitTaskId?: string | null; }) => {
+    const handleFilterChange = (filters: { orbitId?: string | null; phaseId?: string | null; pulseId?: string | null; }) => {
         const params = new URLSearchParams();
-        if (filters.lifePrkId) {
-            params.set('lifePrkId', filters.lifePrkId);
+        if (filters.orbitId) {
+            params.set('orbitId', filters.orbitId);
         }
-        if (filters.areaPrkId) {
-            params.set('areaPrkId', filters.areaPrkId);
+        if (filters.phaseId) {
+            params.set('phaseId', filters.phaseId);
         }
-        if (filters.habitTaskId) {
-            params.set('habitTaskId', filters.habitTaskId);
+        if (filters.pulseId) {
+            params.set('pulseId', filters.pulseId);
         }
         router.push(`/analytics?${params.toString()}`);
     };
@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
                     <AnalyticsDashboard 
                         data={data} 
                         onFilterChange={handleFilterChange}
-                        filters={{ lifePrkId, areaPrkId, habitTaskId }}
+                        filters={{ orbitId, phaseId, pulseId }}
                     />
                  )}
             </div>

@@ -2,48 +2,48 @@
 'use client';
 
 import { useState, useTransition, ReactNode } from 'react';
-import { AddLifePrkDialog } from './add-life-prk-dialog';
+import { AddOrbitDialog } from './add-life-prk-dialog';
 import { DialogContext, DialogProvider } from '@/hooks/use-dialog';
-import type { LifePrk } from '@/lib/types';
+import type { Orbit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { addLifePrk, updateLifePrk } from '@/app/actions';
+import { addOrbit, updateOrbit } from '@/app/actions';
 
 export function PageWrapper({ children }: { children: ReactNode }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
-    const [isLifePrkDialogOpen, setLifePrkDialogOpen] = useState(false);
-    const [editingLifePrk, setEditingLifePrk] = useState<LifePrk | null>(null);
+    const [isOrbitDialogOpen, setOrbitDialogOpen] = useState(false);
+    const [editingOrbit, setEditingOrbit] = useState<Orbit | null>(null);
 
-    const handleOpen = (lifePrk?: LifePrk | null) => {
-        setEditingLifePrk(lifePrk || null);
-        setLifePrkDialogOpen(true);
+    const handleOpen = (orbit?: Orbit | null) => {
+        setEditingOrbit(orbit || null);
+        setOrbitDialogOpen(true);
     };
 
-    const handleSaveLifePrk = (values: { title: string; description?: string }) => {
+    const handleSaveOrbit = (values: { title: string; description?: string }) => {
         startTransition(async () => {
             try {
-                if (editingLifePrk) {
-                    await updateLifePrk(editingLifePrk.id, values);
-                    toast({ title: '¡PRK de Vida Actualizado!', description: `Se ha actualizado "${values.title}".` });
+                if (editingOrbit) {
+                    await updateOrbit(editingOrbit.id, values);
+                    toast({ title: '¡Órbita Actualizada!', description: `Se ha actualizado "${values.title}".` });
                 } else {
-                    await addLifePrk(values);
-                    toast({ title: '¡PRK de Vida Agregado!', description: `"${values.title}" es ahora tu estrella guía.` });
+                    await addOrbit(values);
+                    toast({ title: '¡Órbita Agregada!', description: `"${values.title}" es ahora uno de tus pilares de vida.` });
                 }
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el PRK de Vida.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la Órbita.' });
             }
         });
     };
 
     return (
-        <DialogProvider value={{ onOpen: handleOpen, setLifePrkToEdit: handleOpen }}>
+        <DialogProvider value={{ onOpen: handleOpen, setOrbitToEdit: handleOpen }}>
             {children}
-            <AddLifePrkDialog
-                isOpen={isLifePrkDialogOpen}
-                onOpenChange={setLifePrkDialogOpen}
-                onSave={handleSaveLifePrk}
-                lifePrk={editingLifePrk}
+            <AddOrbitDialog
+                isOpen={isOrbitDialogOpen}
+                onOpenChange={setOrbitDialogOpen}
+                onSave={handleSaveOrbit}
+                orbit={editingOrbit}
             />
         </DialogProvider>
     );

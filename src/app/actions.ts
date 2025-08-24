@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { suggestRelatedHabitsTasks, type SuggestRelatedHabitsTasksInput } from "@/ai/flows/suggest-related-habits-tasks";
-import { HabitTask, ProgressLog } from "@/lib/types";
+import { Pulse, ProgressLog } from "@/lib/types";
 import { SimpleTask } from "@/lib/simple-tasks-types";
 import { logError } from "@/lib/logger";
 import { redirect } from "next/navigation";
@@ -97,7 +97,7 @@ export async function getAiSuggestions(input: SuggestRelatedHabitsTasksInput): P
   }
 }
 
-export async function addLifePrk(values: { title: string; description?: string, color_theme?: string }) {
+export async function addOrbit(values: { title: string; description?: string, color_theme?: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -110,15 +110,15 @@ export async function addLifePrk(values: { title: string; description?: string, 
 
         if(error) throw error;
     } catch(error) {
-        await logError(error, { at: 'addLifePrk', values });
-        console.error("Error adding Life PRK:", error);
+        await logError(error, { at: 'addOrbit', values });
+        console.error("Error adding Orbit:", error);
         throw error;
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function updateLifePrk(id: string, values: { title: string; description?: string, color_theme?: string }) {
+export async function updateOrbit(id: string, values: { title: string; description?: string, color_theme?: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -134,15 +134,15 @@ export async function updateLifePrk(id: string, values: { title: string; descrip
 
         if (error) throw error;
     } catch (error) {
-        await logError(error, { at: 'updateLifePrk', id, values });
-        console.error("Error updating Life PRK:", error);
+        await logError(error, { at: 'updateOrbit', id, values });
+        console.error("Error updating Orbit:", error);
         throw error;
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function addAreaPrk(values: { title: string; description?: string, life_prk_id: string }) {
+export async function addPhase(values: { title: string; description?: string, life_prk_id: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -158,15 +158,15 @@ export async function addAreaPrk(values: { title: string; description?: string, 
 
         if(error) throw error;
     } catch(error) {
-        await logError(error, { at: 'addAreaPrk', values });
-        console.error('Supabase error adding Area PRK:', error);
+        await logError(error, { at: 'addPhase', values });
+        console.error('Supabase error adding Phase:', error);
         throw error;
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function updateAreaPrk(id: string, values: { title: string; description?: string }) {
+export async function updatePhase(id: string, values: { title: string; description?: string }) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -181,19 +181,19 @@ export async function updateAreaPrk(id: string, values: { title: string; descrip
 
         if (error) throw error;
     } catch (error) {
-        await logError(error, { at: 'updateAreaPrk', id, values });
-        console.error('Supabase error updating Area PRK:', error);
+        await logError(error, { at: 'updatePhase', id, values });
+        console.error('Supabase error updating Phase:', error);
         throw error;
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
+export async function addPulse(values: Partial<Omit<Pulse, 'id' | 'created_at' | 'archived_at' | 'archived'>>) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     
-    const { area_prk_ids, ...taskData } = values;
+    const { phase_ids, ...taskData } = values;
     const dataToInsert: any = { ...taskData, user_id: userId };
 
     if (dataToInsert.frequency === 'UNICA') {
@@ -204,18 +204,18 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
         const { data: newTask, error } = await supabase.from('habit_tasks').insert([dataToInsert]).select().single();
         if (error) throw error;
 
-        if (area_prk_ids && area_prk_ids.length > 0) {
-            const links = area_prk_ids.map(area_prk_id => ({
+        if (phase_ids && phase_ids.length > 0) {
+            const links = phase_ids.map(phase_id => ({
                 habit_task_id: newTask.id,
-                area_prk_id: area_prk_id,
+                area_prk_id: phase_id,
             }));
             const { error: linkError } = await supabase.from('habit_task_area_prk_links').insert(links);
             if (linkError) throw linkError;
         }
 
     } catch (error) {
-        await logError(error, { at: 'addHabitTask', values: dataToInsert, area_prk_ids });
-        console.error("Error adding Habit/Task:", error);
+        await logError(error, { at: 'addPulse', values: dataToInsert, phase_ids });
+        console.error("Error adding Pulse:", error);
         throw error;
     }
     revalidatePath('/panel');
@@ -223,11 +223,11 @@ export async function addHabitTask(values: Partial<Omit<HabitTask, 'id' | 'creat
     revalidatePath('/day');
 }
 
-export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask, 'id' | 'created_at' | 'archived' | 'archived_at' | 'user_id'>>): Promise<void> {
+export async function updatePulse(id: string, values: Partial<Omit<Pulse, 'id' | 'created_at' | 'archived' | 'archived_at' | 'user_id'>>): Promise<void> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     
-    const { area_prk_ids, ...updateData } = values;
+    const { phase_ids, ...updateData } = values;
 
     if ('frequency' in updateData && updateData.frequency === 'UNICA') {
         (updateData as any).frequency = null;
@@ -242,26 +242,26 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
 
         if (error) throw error;
         
-        // This now checks if area_prk_ids is provided in the update.
+        // This now checks if phase_ids is provided in the update.
         // If it's not, we don't touch the links.
-        if (area_prk_ids && Array.isArray(area_prk_ids)) {
+        if (phase_ids && Array.isArray(phase_ids)) {
             // Delete existing links
             const { error: deleteError } = await supabase.from('habit_task_area_prk_links').delete().eq('habit_task_id', id);
             if (deleteError) throw deleteError;
             
             // Insert new links if the array is not empty
-            if (area_prk_ids.length > 0) {
-                 const links = area_prk_ids.map(area_prk_id => ({
+            if (phase_ids.length > 0) {
+                 const links = phase_ids.map(phase_id => ({
                     habit_task_id: id,
-                    area_prk_id: area_prk_id,
+                    area_prk_id: phase_id,
                 }));
                 const { error: linkError } = await supabase.from('habit_task_area_prk_links').insert(links);
                 if (linkError) throw linkError;
             }
         }
     } catch (error) {
-        await logError(error, { at: 'updateHabitTask', id, values });
-        console.error("Error updating Habit/Task:", error);
+        await logError(error, { at: 'updatePulse', id, values });
+        console.error("Error updating Pulse:", error);
         throw error;
     }
 
@@ -270,19 +270,19 @@ export async function updateHabitTask(id: string, values: Partial<Omit<HabitTask
     revalidatePath('/day');
 }
 
-export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
+export async function logPulseCompletion(pulseId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
         if (type === 'task' && !progressValue) {
             // Only mark one-off tasks as completed if no progress value is given
-            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).eq('user_id', userId).single();
+            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', pulseId).eq('user_id', userId).single();
             if (taskError) throw taskError;
             if (!taskDetails.frequency) {
                  const { error: updateError } = await supabase
                     .from('habit_tasks')
                     .update({ completion_date: completionDate })
-                    .eq('id', habitTaskId)
+                    .eq('id', pulseId)
                     .eq('user_id', userId);
                 if (updateError) throw updateError;
             }
@@ -294,13 +294,13 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
             const { data: task, error: taskError } = await supabase
                 .from('habit_tasks')
                 .select('measurement_goal, measurement_type, frequency')
-                .eq('id', habitTaskId)
+                .eq('id', pulseId)
                 .eq('user_id', userId)
                 .single();
 
             if (taskError || !task) {
-                await logError(taskError, { at: 'logHabitTaskCompletion - get task for percentage' });
-                throw new Error(`Could not find task with id ${habitTaskId} to calculate progress percentage.`);
+                await logError(taskError, { at: 'logPulseCompletion - get task for percentage' });
+                throw new Error(`Could not find task with id ${pulseId} to calculate progress percentage.`);
             }
             
             if (task.measurement_type === 'quantitative') {
@@ -317,7 +317,7 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         }
 
         const upsertData: Omit<ProgressLog, 'id' | 'created_at'> = {
-            habit_task_id: habitTaskId,
+            habit_task_id: pulseId,
             completion_date: completionDate,
             // For binary accumulative habits, the progress value is always 1 for each log entry
             progress_value: progressValue ?? 1,
@@ -336,24 +336,24 @@ export async function logHabitTaskCompletion(habitTaskId: string, type: 'habit' 
         revalidatePath('/calendar');
         revalidatePath('/day');
     } catch (error) {
-        await logError(error, { at: 'logHabitTaskCompletion', habitTaskId, completionDate, progressValue });
-        console.error('Error in logHabitTaskCompletion:', error);
+        await logError(error, { at: 'logPulseCompletion', pulseId, completionDate, progressValue });
+        console.error('Error in logPulseCompletion:', error);
         throw new Error('Failed to log task completion.');
     }
 }
 
-export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habit' | 'task', completionDate: string) {
+export async function removePulseCompletion(pulseId: string, type: 'habit' | 'task', completionDate: string) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
         if (type === 'task') {
-             const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', habitTaskId).eq('user_id', userId).single();
+             const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', pulseId).eq('user_id', userId).single();
             if (taskError) throw taskError;
             if (!taskDetails.frequency) {
                  const { error } = await supabase
                     .from('habit_tasks')
                     .update({ completion_date: null })
-                    .eq('id', habitTaskId)
+                    .eq('id', pulseId)
                     .eq('user_id', userId);
                 if (error) throw error;
             }
@@ -362,55 +362,55 @@ export async function removeHabitTaskCompletion(habitTaskId: string, type: 'habi
         const { error } = await supabase
             .from('progress_logs')
             .delete()
-            .eq('habit_task_id', habitTaskId)
+            .eq('habit_task_id', pulseId)
             .eq('completion_date', completionDate)
             .eq('user_id', userId);
 
         if (error) {
-            console.warn(`Could not find a log to delete for habit ${habitTaskId} on ${completionDate}:`, error.message);
+            console.warn(`Could not find a log to delete for habit ${pulseId} on ${completionDate}:`, error.message);
         }
         
         revalidatePath('/panel');
         revalidatePath('/calendar');
         revalidatePath('/day');
     } catch (error) {
-        await logError(error, { at: 'removeHabitTaskCompletion', habitTaskId, completionDate });
-        console.error('Error in removeHabitTaskCompletion:', error);
+        await logError(error, { at: 'removePulseCompletion', pulseId, completionDate });
+        console.error('Error in removePulseCompletion:', error);
         throw new Error('Failed to remove task completion log.');
     }
 }
 
-export async function archiveLifePrk(id: string) {
+export async function archiveOrbit(id: string) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
         const { error } = await supabase.from('life_prks').update({ archived: true }).eq('id', id).eq('user_id', userId);
         if(error) throw error;
     } catch (error) {
-        await logError(error, { at: 'archiveLifePrk', id });
-        console.error("Error archiving life prk:", error);
-        throw new Error("Failed to archive life prk.");
+        await logError(error, { at: 'archiveOrbit', id });
+        console.error("Error archiving orbit:", error);
+        throw new Error("Failed to archive orbit.");
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function archiveAreaPrk(id: string) {
+export async function archivePhase(id: string) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
         const { error } = await supabase.from('area_prks').update({ archived: true }).eq('id', id).eq('user_id', userId);
         if(error) throw error;
     } catch(error) {
-        await logError(error, { at: 'archiveAreaPrk', id });
-        console.error("Error archiving area prk:", error);
-        throw new Error("Failed to archive area prk.");
+        await logError(error, { at: 'archivePhase', id });
+        console.error("Error archiving phase:", error);
+        throw new Error("Failed to archive phase.");
     }
     revalidatePath('/panel');
     revalidatePath('/day');
 }
 
-export async function archiveHabitTask(id: string, archiveDate: string) {
+export async function archivePulse(id: string, archiveDate: string) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     try {
@@ -422,12 +422,12 @@ export async function archiveHabitTask(id: string, archiveDate: string) {
 
         if (error) throw error;
     } catch (error) {
-        await logError(error, { at: 'archiveHabitTask', id, archiveDate });
-        console.error("Error archiving habit/task:", error);
+        await logError(error, { at: 'archivePulse', id, archiveDate });
+        console.error("Error archiving pulse:", error);
         if (error instanceof Error) {
             throw error; // Re-throw the specific error message
         }
-        throw new Error("Failed to archive habit/task.");
+        throw new Error("Failed to archive pulse.");
     }
 
     revalidatePath('/panel');

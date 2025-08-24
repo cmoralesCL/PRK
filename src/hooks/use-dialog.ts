@@ -1,11 +1,11 @@
 
 'use client';
 import { createContext, useContext } from 'react';
-import type { LifePrk } from '@/lib/types';
+import type { Orbit } from '@/lib/types';
 
 interface DialogContextType {
     onOpen: () => void;
-    setLifePrkToEdit: (lifePrk: LifePrk | null) => void;
+    setOrbitToEdit: (orbit: Orbit | null) => void;
 }
 
 export const DialogContext = createContext<DialogContextType | undefined>(undefined);

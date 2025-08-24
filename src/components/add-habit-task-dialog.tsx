@@ -29,7 +29,7 @@ import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { AreaPrk, HabitTask, HabitFrequency } from '@/lib/types';
+import type { Phase, Pulse, HabitFrequency } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -48,7 +48,7 @@ const numberPreprocess = (val: any) => (val === '' || val === null ? undefined :
 const formSchema = z.object({
     title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }),
     description: z.string().optional(),
-    area_prk_ids: z.array(z.string()).min(1, { message: "Debes seleccionar al menos un PRK de Área."}),
+    phase_ids: z.array(z.string()).min(1, { message: "Debes seleccionar al menos una Fase."}),
     type: z.enum(['task', 'habit']),
     start_date: z.date().optional(),
     due_date: z.date().optional(),
@@ -126,31 +126,31 @@ const formSchema = z.object({
 });
 
 
-export type HabitTaskFormValues = z.infer<typeof formSchema>;
+export type PulseFormValues = z.infer<typeof formSchema>;
 
-interface AddHabitTaskDialogProps {
+interface AddPulseDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (values: Partial<HabitTask>) => void;
-  habitTask: HabitTask | null;
-  defaultAreaPrkIds?: string[];
+  onSave: (values: Partial<Pulse>) => void;
+  pulse: Pulse | null;
+  defaultPhaseIds?: string[];
   defaultDate?: Date;
-  areaPrks: AreaPrk[];
-  defaultValues?: Partial<HabitTaskFormValues>;
+  phases: Phase[];
+  defaultValues?: Partial<PulseFormValues>;
 }
 
 // Main Dialog Component
-export function AddHabitTaskDialog({ 
-    isOpen, onOpenChange, onSave, habitTask, 
-    defaultAreaPrkIds, defaultDate, areaPrks, defaultValues
-}: AddHabitTaskDialogProps) {
-  const isEditing = !!habitTask;
+export function AddPulseDialog({ 
+    isOpen, onOpenChange, onSave, pulse, 
+    defaultPhaseIds, defaultDate, phases, defaultValues
+}: AddPulseDialogProps) {
+  const isEditing = !!pulse;
 
-  const form = useForm<HabitTaskFormValues>({
+  const form = useForm<PulseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '', description: '', type: 'task', start_date: defaultDate || new Date(),
-      area_prk_ids: defaultAreaPrkIds || [], 
+      phase_ids: defaultPhaseIds || [], 
       weight: 1, is_critical: false,
       frequency: 'UNICA',
       frequency_interval: undefined,
@@ -173,26 +173,26 @@ export function AddHabitTaskDialog({
   
   useEffect(() => {
     if (isOpen) {
-      if (isEditing && habitTask) {
+      if (isEditing && pulse) {
         // --- Populate Form ---
         form.reset({
-          ...habitTask,
-          area_prk_ids: habitTask.area_prk_ids || [],
-          frequency: habitTask.frequency ?? 'UNICA',
-          start_date: habitTask.start_date ? parseISO(habitTask.start_date) : (defaultDate || new Date()),
-          due_date: habitTask.due_date ? parseISO(habitTask.due_date) : undefined,
-          frequency_interval: habitTask.frequency_interval ?? undefined,
-          frequency_day_of_month: habitTask.frequency_day_of_month ?? undefined,
+          ...pulse,
+          phase_ids: pulse.phase_ids || [],
+          frequency: pulse.frequency ?? 'UNICA',
+          start_date: pulse.start_date ? parseISO(pulse.start_date) : (defaultDate || new Date()),
+          due_date: pulse.due_date ? parseISO(pulse.due_date) : undefined,
+          frequency_interval: pulse.frequency_interval ?? undefined,
+          frequency_day_of_month: pulse.frequency_day_of_month ?? undefined,
           measurement_goal: {
-            target_count: habitTask.measurement_goal?.target_count ?? undefined,
-            unit: habitTask.measurement_goal?.unit ?? '',
+            target_count: pulse.measurement_goal?.target_count ?? undefined,
+            unit: pulse.measurement_goal?.unit ?? '',
           },
-          frequency_days: habitTask.frequency_days ?? [],
+          frequency_days: pulse.frequency_days ?? [],
         });
       } else { // Reset for new task
         form.reset({
           title: '', description: '', type: 'task', start_date: defaultDate || new Date(), due_date: undefined,
-          area_prk_ids: defaultAreaPrkIds || [], 
+          phase_ids: defaultPhaseIds || [], 
           weight: 1, is_critical: false,
           frequency: 'UNICA',
           frequency_days: [],
@@ -204,13 +204,13 @@ export function AddHabitTaskDialog({
         });
       }
     }
-  }, [isOpen, isEditing, habitTask, form, defaultAreaPrkIds, defaultDate, defaultValues]);
+  }, [isOpen, isEditing, pulse, form, defaultPhaseIds, defaultDate, defaultValues]);
 
-  const onSubmit = (values: HabitTaskFormValues) => {
-    const dataToSave: Partial<HabitTask> = {
+  const onSubmit = (values: PulseFormValues) => {
+    const dataToSave: Partial<Pulse> = {
         title: values.title,
         description: values.description,
-        area_prk_ids: values.area_prk_ids,
+        phase_ids: values.phase_ids,
         type: values.type,
         start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
         due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
@@ -267,8 +267,8 @@ export function AddHabitTaskDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">{isEditing ? 'Editar Acción' : 'Crear Acción'}</DialogTitle>
-          <DialogDescription>Define una acción concreta para apoyar tu PRK de Área.</DialogDescription>
+          <DialogTitle className="font-headline">{isEditing ? 'Editar Pulso' : 'Crear Pulso'}</DialogTitle>
+          <DialogDescription>Define una acción o hábito concreto para impulsar una Fase.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -300,7 +300,7 @@ export function AddHabitTaskDialog({
               name="type"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>Tipo de Acción</FormLabel>
+                  <FormLabel>Tipo de Pulso</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -340,16 +340,16 @@ export function AddHabitTaskDialog({
 
             <FormField
               control={form.control}
-              name="area_prk_ids"
+              name="phase_ids"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>PRK de Área Asociado</FormLabel>
+                  <FormLabel>Fase(s) Asociada(s)</FormLabel>
                   <FormControl>
                      <MultiSelect
-                        options={areaPrks.map(ap => ({ label: ap.title, value: ap.id }))}
+                        options={phases.map(ap => ({ label: ap.title, value: ap.id }))}
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        placeholder="Selecciona uno o más PRKs..."
+                        placeholder="Selecciona una o más Fases..."
                         className="w-full"
                     />
                   </FormControl>
@@ -426,7 +426,7 @@ export function AddHabitTaskDialog({
               </FormItem>
             )}/>
 
-            <DialogFooter className="pt-4"><Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Acción'}</Button></DialogFooter>
+            <DialogFooter className="pt-4"><Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Pulso'}</Button></DialogFooter>
           </form>
         </Form>
       </DialogContent>
@@ -483,7 +483,7 @@ function FrequencyBuilder({ form }: { form: any }) {
             <RadioGroup value={behavior} onValueChange={handleBehaviorChange} className="flex gap-4">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="date" id="date" />
-                    <Label htmlFor="date">Acción con Fecha Específica</Label>
+                    <Label htmlFor="date">Pulso con Fecha Específica</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="period" id="period" />
@@ -643,5 +643,3 @@ function FrequencyBuilder({ form }: { form: any }) {
         </div>
     );
 }
-
-    

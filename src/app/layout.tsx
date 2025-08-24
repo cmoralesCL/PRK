@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Brújula de Resultados Personales',
-  description: 'Define tu visión, sigue tu progreso.',
+  title: 'Cenit - Tu Ecosistema de Potencial',
+  description: 'Define tus Órbitas, sigue tu progreso.',
 };
 
 export default function RootLayout({

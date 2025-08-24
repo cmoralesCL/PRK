@@ -26,7 +26,7 @@ async function getUserIdAndDate(searchParams: { date?: string }) {
 export default async function DayPage({ searchParams }: { searchParams: { date?: string } }) {
   const { userId, selectedDate, selectedDateString } = await getUserIdAndDate(searchParams);
   
-  const { lifePrks, areaPrks, habitTasks, commitments } = await getDashboardData(selectedDateString);
+  const { orbits, phases, pulses, commitments } = await getDashboardData(selectedDateString);
 
   // Fetch the progress for the entire week to display in the WeekNav component.
   const calendarDataForWeek = await getCalendarData(selectedDate);
@@ -34,9 +34,9 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
 
   return (
     <DayView
-        lifePrks={lifePrks}
-        areaPrks={areaPrks}
-        habitTasks={habitTasks}
+        orbits={orbits}
+        phases={phases}
+        pulses={pulses}
         commitments={commitments}
         initialSelectedDate={selectedDateString}
         dailyProgressDataForWeek={dailyProgressDataForWeek}

@@ -5,7 +5,7 @@ import { Plus, Archive, ChevronDown, Pencil, Check, Square, AlertTriangle, Flame
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { HabitTaskListItem } from './habit-task-list-item';
-import type { AreaPrk, HabitTask, ColorTheme } from '@/lib/types';
+import type { Phase, Pulse, ColorTheme } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,27 +24,27 @@ import {
 } from "@/components/ui/collapsible"
 
 
-interface AreaPrkCardProps {
-  areaPrk: AreaPrk;
-  actions: HabitTask[];
-  onAddHabitTask: (areaPrkId: string) => void;
-  onEditHabitTask: (habitTask: HabitTask) => void;
+interface PhaseCardProps {
+  phase: Phase;
+  actions: Pulse[];
+  onAddPulse: (phaseId: string) => void;
+  onEditPulse: (pulse: Pulse) => void;
   onArchive: (id: string) => void;
-  onEdit: (areaPrk: AreaPrk) => void;
-  onArchiveHabitTask: (id: string) => void;
+  onEdit: (phase: Phase) => void;
+  onArchivePulse: (id: string) => void;
   colorTheme: ColorTheme;
 }
 
-export function AreaPrkCard({
-  areaPrk,
+export function PhaseCard({
+  phase,
   actions,
-  onAddHabitTask,
-  onEditHabitTask,
+  onAddPulse,
+  onEditPulse,
   onArchive,
   onEdit,
-  onArchiveHabitTask,
+  onArchivePulse,
   colorTheme
-}: AreaPrkCardProps) {
+}: PhaseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const completedCount = actions.filter(a => a.completedToday).length;
@@ -71,11 +71,11 @@ export function AreaPrkCard({
             <CollapsibleTrigger asChild>
                 <div className="flex-grow text-left cursor-pointer">
                   <div className="flex items-center gap-3">
-                     <h3 className="font-headline text-sm font-semibold text-card-foreground">{areaPrk.title}</h3>
+                     <h3 className="font-headline text-sm font-semibold text-card-foreground">{phase.title}</h3>
                   </div>
                   <div className="flex items-center gap-2 pt-1.5">
-                      <Progress value={areaPrk.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
-                      <span className="text-xs font-semibold w-8 text-right">{areaPrk.progress.toFixed(0)}%</span>
+                      <Progress value={phase.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
+                      <span className="text-xs font-semibold w-8 text-right">{phase.progress.toFixed(0)}%</span>
                   </div>
                 </div>
             </CollapsibleTrigger>
@@ -87,13 +87,13 @@ export function AreaPrkCard({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onEdit(areaPrk)}>
+                        <DropdownMenuItem onClick={() => onEdit(phase)}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            Editar Área
+                            Editar Fase
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(areaPrk.id)}>
+                        <DropdownMenuItem onClick={() => onArchive(phase.id)}>
                             <Archive className="mr-2 h-4 w-4" />
-                            Archivar Área
+                            Archivar Fase
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -111,14 +111,14 @@ export function AreaPrkCard({
                     <HabitTaskListItem 
                         key={action.id}
                         item={action}
-                        onEdit={onEditHabitTask}
-                        onArchive={() => onArchiveHabitTask(action.id)}
+                        onEdit={onEditPulse}
+                        onArchive={() => onArchivePulse(action.id)}
                         variant="read-only"
                     />
                  ))}
-                 <Button variant="outline" size="sm" onClick={() => onAddHabitTask(areaPrk.id)} className="w-full h-8 mt-2">
+                 <Button variant="outline" size="sm" onClick={() => onAddPulse(phase.id)} className="w-full h-8 mt-2">
                     <Plus className="mr-2 h-4 w-4" />
-                    Agregar Acción
+                    Agregar Pulso
                 </Button>
             </div>
          </CollapsibleContent>

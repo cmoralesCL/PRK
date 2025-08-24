@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import type { LifePrk, ColorTheme } from '@/lib/types';
+import type { Orbit, ColorTheme } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { THEMES } from '@/lib/themes';
@@ -40,15 +40,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface LifePrkDialogProps {
+interface OrbitDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (values: FormValues) => void;
-  lifePrk: LifePrk | null;
+  orbit: Orbit | null;
 }
 
-export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: LifePrkDialogProps) {
-  const isEditing = !!lifePrk;
+export function AddOrbitDialog({ isOpen, onOpenChange, onSave, orbit }: OrbitDialogProps) {
+  const isEditing = !!orbit;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -61,11 +61,11 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
 
   useEffect(() => {
     if(isOpen) {
-      if (isEditing && lifePrk) {
+      if (isEditing && orbit) {
         form.reset({
-          title: lifePrk.title,
-          description: lifePrk.description,
-          color_theme: lifePrk.color_theme || 'mint',
+          title: orbit.title,
+          description: orbit.description,
+          color_theme: orbit.color_theme || 'mint',
         });
       } else {
         form.reset({
@@ -75,7 +75,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
         });
       }
     }
-  }, [isOpen, isEditing, lifePrk, form]);
+  }, [isOpen, isEditing, orbit, form]);
 
   const onSubmit = (values: FormValues) => {
     onSave(values);
@@ -88,12 +88,12 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            {isEditing ? 'Editar PRK de Vida' : 'Definir un Nuevo PRK de Vida'}
+            {isEditing ? 'Editar Órbita' : 'Definir una Nueva Órbita'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Actualiza los detalles de tu visión a largo plazo.'
-              : 'Esta es una visión de vida a largo plazo, tu estrella guía. ¿Qué quieres lograr?'
+              ? 'Actualiza los detalles de tu pilar de vida.'
+              : 'Una Órbita es un pilar de vida, una gran área perpetua. ¿En qué quieres enfocarte?'
             }
           </DialogDescription>
         </DialogHeader>
@@ -106,7 +106,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Alcanzar la Independencia Financiera" {...field} />
+                    <Input placeholder="Ej: Salud y Bienestar" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -120,7 +120,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe cómo se ve esto cuando lo hayas logrado."
+                      placeholder="Describe tu visión ideal para esta área de tu vida."
                       className="resize-none"
                       {...field}
                       value={field.value ?? ''}
@@ -168,7 +168,7 @@ export function AddLifePrkDialog({ isOpen, onOpenChange, onSave, lifePrk }: Life
             />
 
             <DialogFooter>
-              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar PRK'}</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Órbita'}</Button>
             </DialogFooter>
           </form>
         </Form>
