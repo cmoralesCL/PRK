@@ -23,7 +23,7 @@ import { THEMES } from '@/lib/themes';
 interface LifePrkSectionProps {
   lifePrk: LifePrk;
   areaPrks: AreaPrk[];
-  allHabitTasks: HabitTask[];
+  allHabitTasks?: HabitTask[];
   onAddAreaPrk: (lifePrkId: string) => void;
   onEditAreaPrk: (areaPrk: AreaPrk) => void;
   onAddHabitTask: (areaPrkId: string) => void;
@@ -110,7 +110,7 @@ export function LifePrkSection({
                 <AreaPrkCard
                     key={kp.id}
                     areaPrk={kp}
-                    actions={allHabitTasks.filter(ht => ht.area_prk_id === kp.id)}
+                    actions={allHabitTasks.filter(ht => ht.area_prk_ids.includes(kp.id))}
                     onAddHabitTask={onAddHabitTask}
                     onEditHabitTask={onEditHabitTask}
                     onArchive={onArchiveAreaPrk}
