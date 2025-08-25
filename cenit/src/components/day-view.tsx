@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -16,18 +14,15 @@ import {
     updatePulseOrder,
 } from '@/app/actions';
 import { Button } from './ui/button';
-import { parseISO, format, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { CommitmentsCard } from './commitments-card';
 import { WeekNav } from './week-nav';
-import { Plus, GripVertical, LogOut } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { HabitTaskListItem } from './habit-task-list-item';
-import { getDashboardData } from '@/app/server/queries';
-import { LifePrkSection } from './life-prk-section';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import Link from 'next/link';
 import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
-import { createClient } from '@/lib/supabase/client';
 
 interface QuoteCardProps {
     quote: QuoteOfTheDayOutput;
@@ -47,7 +42,6 @@ function QuoteCard({ quote }: QuoteCardProps) {
 
 
 interface DayViewProps {
-  userEmail?: string;
   orbits: Orbit[];
   phases: Phase[];
   pulses: Pulse[];
@@ -60,7 +54,6 @@ interface DayViewProps {
 }
 
 export function DayView({
-  userEmail,
   orbits,
   phases,
   pulses: initialPulses,
@@ -82,7 +75,9 @@ export function DayView({
   const [draggedItem, setDraggedItem] = useState<Pulse | null>(null);
 
   useEffect(() => {
-    setSelectedDate(parseISO(initialSelectedDate));
+    if (initialSelectedDate) {
+      setSelectedDate(parseISO(initialSelectedDate));
+    }
     setPulses(initialPulses);
   }, [initialSelectedDate, initialPulses]);
 
@@ -95,12 +90,6 @@ export function DayView({
   
   // State for context when adding new items
   const [activePhaseIds, setActivePhaseIds] = useState<string[]>([]);
-  
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
   
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return;
@@ -262,17 +251,6 @@ export function DayView({
 
   return (
     <>
-      <header className="container mx-auto px-2 sm:px-4 lg:px-6 pt-4">
-          <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                  Conectado como <span className="font-semibold text-foreground">{userEmail}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar Sesión
-              </Button>
-          </div>
-      </header>
       <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
         
         <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
@@ -318,7 +296,7 @@ export function DayView({
             </div>
             <div className="mt-4 space-y-2">
                 {pulses && pulses.length > 0 ? (
-                    pulses.map((task, index) => {
+                    pulses.map((task) => {
                         const taskPhases = task.phase_ids.map(id => phasesMap.get(id)).filter(Boolean) as Phase[];
                         const taskOrbits = Array.from(new Set(taskPhases.map(p => orbitsMap.get(p.life_prk_id)))).filter(Boolean) as Orbit[];
                         
@@ -332,15 +310,15 @@ export function DayView({
                                 className={`transition-all duration-300 ${draggedItem?.id === task.id ? "opacity-50" : ""}`}
                             >
                                 <HabitTaskListItem 
-                                item={task}
-                                phases={taskPhases}
-                                orbits={taskOrbits}
-                                selectedDate={selectedDate}
-                                onEdit={handleOpenEditPulseDialog}
-                                onToggle={handleTogglePulse}
-                                onUndo={handleUndoPulse}
-                                onArchive={handleArchivePulse}
-                                isDraggable
+                                    item={task}
+                                    phases={taskPhases}
+                                    orbits={taskOrbits}
+                                    selectedDate={selectedDate}
+                                    onEdit={handleOpenEditPulseDialog}
+                                    onToggle={handleTogglePulse}
+                                    onUndo={handleUndoPulse}
+                                    onArchive={handleArchivePulse}
+                                    isDraggable
                                 />
                             </div>
                         )
@@ -360,6 +338,8 @@ export function DayView({
             <div className="mt-4">
                 <CommitmentsCard 
                     commitments={commitments}
+                    phases={phases}
+                    orbits={orbits}
                     selectedDate={selectedDate}
                     onToggle={handleTogglePulse}
                     onUndo={handleUndoPulse}
