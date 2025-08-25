@@ -13,6 +13,7 @@ import {
     logPulseCompletion,
     removePulseCompletion,
     archivePulse,
+    updatePulseOrder,
 } from '@/app/actions';
 import { Button } from './ui/button';
 import { parseISO, format, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
@@ -209,7 +210,22 @@ export function DayView({
       const newPulses = [...pulses];
       const [removed] = newPulses.splice(currentIndex, 1);
       newPulses.splice(targetIndex, 0, removed);
+      
+      // Update local state immediately for snappy UI
       setPulses(newPulses);
+
+      // Persist the new order to the backend
+      const orderedIds = newPulses.map(p => p.id);
+      startTransition(async () => {
+          try {
+              await updatePulseOrder(orderedIds);
+          } catch(error) {
+              console.error("Failed to save new order", error);
+              toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el nuevo orden.' });
+              // Revert to original order on failure
+              setPulses(pulses);
+          }
+      });
     }
     setDraggedItem(null);
   };

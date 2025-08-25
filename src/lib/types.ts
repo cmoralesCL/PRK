@@ -89,6 +89,7 @@ export interface Pulse {
   
   logs?: ProgressLog[];
   progress?: number;
+  display_order?: number | null;
 }
 
 export interface ProgressLog {

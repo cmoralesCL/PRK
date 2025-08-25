@@ -270,6 +270,28 @@ export async function updatePulse(id: string, values: Partial<Omit<Pulse, 'id' |
     revalidatePath('/day');
 }
 
+
+export async function updatePulseOrder(orderedIds: string[]): Promise<void> {
+    const supabase = createClient();
+    const userId = await getCurrentUserId();
+
+    const updates = orderedIds.map((id, index) => ({
+        id: id,
+        display_order: index,
+    }));
+
+    try {
+        const { error } = await supabase.from('habit_tasks').upsert(updates);
+        if (error) throw error;
+    } catch (error) {
+        await logError(error, { at: 'updatePulseOrder', orderedIds });
+        console.error("Error updating pulse order:", error);
+        throw new Error("Failed to update pulse order.");
+    }
+    revalidatePath('/day');
+}
+
+
 export async function logPulseCompletion(pulseId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     const userId = await getCurrentUserId();

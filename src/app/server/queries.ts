@@ -366,7 +366,8 @@ async function fetchAndMapHabitTasks(userId: string): Promise<Pulse[]> {
     const { data: tasks, error: tasksError } = await supabase
         .from('habit_tasks')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('display_order', { nullsFirst: true }); // Sort by display_order
     if (tasksError) throw tasksError;
 
     const { data: links, error: linksError } = await supabase
