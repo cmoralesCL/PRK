@@ -195,10 +195,10 @@ const Sidebar = React.forwardRef<
     const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
      React.useEffect(() => {
+        setCurrentTime(new Date());
         const timer = setInterval(() => {
             setCurrentTime(new Date());
         }, 1000);
-        setCurrentTime(new Date());
         return () => clearInterval(timer);
     }, []);
 
