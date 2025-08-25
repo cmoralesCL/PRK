@@ -236,9 +236,9 @@ function calculateProgressForDate(date: Date, lifePrks: Orbit[], areaPrks: Phase
         
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-                // Allow overachievement by not capping the progress.
                 const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
-                return sum + (progressPercentage * task.weight);
+                // Cap progress at 100% for calculation to avoid over-inflation
+                return sum + (Math.min(progressPercentage, 1) * task.weight);
             }
             if (task.completedToday) {
                  // For binary tasks, progress is 1 (100%)
