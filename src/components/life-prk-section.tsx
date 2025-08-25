@@ -2,10 +2,10 @@
 'use client';
 
 import * as React from 'react';
-import { Target, Plus, Archive, MoreVertical, Pencil, CheckSquare, Repeat } from 'lucide-react';
+import { Target, Plus, Archive, MoreVertical, Pencil, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { PhaseCard } from './area-prk-card';
+import { AreaPrkCard } from './area-prk-card';
 import type { Orbit, Phase, Pulse } from '@/lib/types';
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ import { THEMES } from '@/lib/themes';
 interface OrbitSectionProps {
   orbit: Orbit;
   phases: Phase[];
-  allPulses?: Pulse[];
+  allPulses: Pulse[];
   onAddPhase: (orbitId: string) => void;
   onEditPhase: (phase: Phase) => void;
   onAddPulse: (phaseId: string) => void;
@@ -55,59 +55,34 @@ export function LifePrkSection({
   return (
     <AccordionItem value={orbit.id} className="border-b-0">
       <div className="bg-card rounded-lg shadow-sm border">
-        <div className="p-3">
-            <div className="flex items-start justify-between gap-2 w-full">
-                <AccordionTrigger className="p-0 hover:no-underline flex-grow">
-                    <div className="flex items-start gap-3 flex-grow text-left">
-                        <div className="flex-shrink-0 text-white p-1.5 rounded-full mt-0.5" style={{ background: theme.gradient }}>
-                            <Target className="h-4 w-4" />
-                        </div>
-                        <div className='flex-grow'>
-                            <h2 className="text-sm font-semibold leading-tight text-foreground">
-                                {orbit.title}
-                            </h2>
-                            {orbit.description && (
-                                <p className="text-xs text-muted-foreground font-normal max-w-md">{orbit.description}</p>
-                            )}
-                        </div>
+        <AccordionTrigger className="p-3 hover:no-underline w-full">
+            <div className="flex items-center justify-between gap-4 w-full">
+                <div className="flex items-start gap-3 flex-grow text-left">
+                    <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180 flex-shrink-0 mt-1" />
+                    <div className="flex-shrink-0 text-white p-2 rounded-full mt-0.5" style={{ background: theme.gradient }}>
+                        <Target className="h-5 w-5" />
                     </div>
-                </AccordionTrigger>
-
-                <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => onAddPhase(orbit.id)}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Fase
-                    </Button>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(orbit)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar Órbita
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onArchive(orbit.id)}>
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archivar Órbita
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className='flex-grow'>
+                        <h2 className="text-md font-semibold leading-tight text-foreground">
+                            {orbit.title}
+                        </h2>
+                        {orbit.description && (
+                            <p className="text-sm text-muted-foreground font-normal max-w-md">{orbit.description}</p>
+                        )}
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <span className="text-lg font-bold text-foreground w-12 text-right">{orbitProgress.toFixed(0)}%</span>
+                    <Progress value={orbitProgress} className="h-2 w-full" colorTheme={colorTheme} />
                 </div>
             </div>
-             <div className="flex items-center gap-2 w-full mt-2">
-                <Progress value={orbitProgress} className="h-1.5 w-full" colorTheme={colorTheme} />
-                <span className="text-xs font-bold text-foreground w-8 text-right">{orbitProgress.toFixed(0)}%</span>
-            </div>
-        </div>
+        </AccordionTrigger>
         
-      <AccordionContent className="pb-2 px-2">
+      <AccordionContent className="pb-2 px-3">
         <div className="pt-2 space-y-2 border-t mt-2">
             {phases.length > 0 ? (
             phases.map((kp) => (
-                <PhaseCard
+                <AreaPrkCard
                     key={kp.id}
                     phase={kp}
                     pulses={allPulses.filter(ht => Array.isArray(ht.phase_ids) && ht.phase_ids.includes(kp.id))}
@@ -121,10 +96,16 @@ export function LifePrkSection({
                 ))
             ) : (
                 <div className="text-center py-6 bg-muted/20 rounded-lg border border-dashed mx-2">
-                    <p className="text-muted-foreground text-xs">Aún no hay Fases para esta Órbita.</p>
+                    <p className="text-muted-foreground text-sm">Aún no hay Fases para esta Órbita.</p>
                     <Button variant="link" size="sm" onClick={() => onAddPhase(orbit.id)}>¡Agrega la primera!</Button>
                 </div>
             )}
+             <div className="px-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => onAddPhase(orbit.id)} className="w-full h-8 mt-2">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar Fase
+                </Button>
+            </div>
         </div>
       </AccordionContent>
       </div>

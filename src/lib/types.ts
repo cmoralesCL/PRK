@@ -1,3 +1,4 @@
+
 export type ColorTheme = 'mint' | 'sapphire' | 'amethyst' | 'coral' | 'rose' | 'solar';
 
 // Replaces LifePrk
@@ -26,6 +27,7 @@ export interface Phase {
   archived: boolean;
   progress: number; 
   monthlyProgress: number;
+  due_date?: string | null;
 }
 
 export type CommitmentPeriod = 'weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
@@ -83,6 +85,7 @@ export interface Pulse {
   measurement_goal?: { target_count?: number; unit?: string; } | null;
   
   logs?: ProgressLog[];
+  progress?: number;
 }
 
 export interface ProgressLog {

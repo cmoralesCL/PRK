@@ -235,15 +235,15 @@ function calculateProgressForDate(date: Date, lifePrks: Orbit[], areaPrks: Phase
         const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
         
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
-            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
-                // For quantitative, even if not completed, its partial progress counts.
+            if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count && task.measurement_goal.target_count > 0) {
                 const progressValue = task.current_progress_value ?? 0;
-                // Cap progress at 100% for calculation to avoid over-inflation
                 const progressPercentage = Math.min(progressValue / task.measurement_goal.target_count, 1);
                 return sum + (progressPercentage * task.weight);
             }
-            // For binary tasks, progress is 1 (100%) if completedToday is true.
-            return sum + ((task.completedToday ? 1 : 0) * task.weight);
+            if (task.completedToday) {
+                return sum + (1 * task.weight);
+            }
+            return sum;
         }, 0);
         
         const progress = totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
@@ -953,10 +953,18 @@ export async function getPanelData() {
 
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
+    
+    // Calculate overall progress for each pulse up to today
+    const pulsesWithProgress = allHabitTasks
+        .filter(t => !t.archived)
+        .map(pulse => {
+            const progress = calculatePeriodProgress([pulse], allProgressLogs, historicalStartDate, today);
+            return { ...pulse, progress };
+        });
 
     // Calculate overall progress for each area up to today
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
-        const relevantTasks = allHabitTasks.filter(ht => ht.phase_ids.includes(areaPrk.id));
+        const relevantTasks = pulsesWithProgress.filter(ht => ht.phase_ids.includes(areaPrk.id));
         const progress = calculatePeriodProgress(relevantTasks, allProgressLogs, historicalStartDate, today);
         
         return { ...areaPrk, progress };
@@ -973,13 +981,10 @@ export async function getPanelData() {
         return { ...lifePrk, progress };
     });
 
-    // Filter out archived tasks for display purposes after calculations are done.
-    const unarchivedHabitTasks = allHabitTasks.filter(t => !t.archived);
-
     return {
         orbits: lifePrksWithProgress,
         phases: areaPrksWithProgress,
-        allPulses: unarchivedHabitTasks,
+        allPulses: pulsesWithProgress,
     };
 }
 

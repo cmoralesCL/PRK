@@ -1,10 +1,9 @@
 
 'use client';
 
-import { Plus, Archive, ChevronDown, Pencil, CheckSquare, Repeat } from 'lucide-react';
+import { Plus, Archive, ChevronDown, Pencil, CheckSquare, Repeat, Target, CheckCircle, Circle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { HabitTaskListItem } from './habit-task-list-item';
 import type { Phase, Pulse, ColorTheme } from '@/lib/types';
 import {
   DropdownMenu,
@@ -20,7 +19,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-
+import { THEMES } from '@/lib/themes';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Badge } from './ui/badge';
+import { PulseListItem } from './pulse-list-item';
 
 interface PhaseCardProps {
   phase: Phase;
@@ -33,7 +36,7 @@ interface PhaseCardProps {
   colorTheme: ColorTheme;
 }
 
-export function PhaseCard({
+export function AreaPrkCard({
   phase,
   pulses,
   onAddPulse,
@@ -44,66 +47,52 @@ export function PhaseCard({
   colorTheme
 }: PhaseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const theme = THEMES[colorTheme];
 
   return (
-    <Card className="flex flex-col bg-muted/30">
-       <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
-         <div className="flex w-full items-center gap-2 p-3 group">
-            <CollapsibleTrigger asChild>
-                <div className="flex-grow text-left cursor-pointer">
-                  <div className="flex items-center gap-3">
-                     <h3 className="font-headline text-sm font-semibold text-card-foreground">{phase.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1.5">
-                      <Progress value={phase.progress} className="h-1.5 flex-grow" colorTheme={colorTheme} />
-                      <span className="text-xs font-semibold w-8 text-right">{phase.progress.toFixed(0)}%</span>
-                  </div>
+    <div className="pl-4">
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
+        <CollapsibleTrigger asChild>
+          <div className="flex w-full items-center gap-2 py-2 group cursor-pointer border-b last:border-b-0">
+            <div className="flex items-start gap-3 flex-grow text-left">
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180 flex-shrink-0 mt-1" />
+                <div className="p-1.5 rounded-full mt-0.5" style={{ background: theme.gradient, color: 'white' }}>
+                    <Target className="h-4 w-4" />
                 </div>
-            </CollapsibleTrigger>
-            <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onEdit(phase)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar Fase
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(phase.id)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archivar Fase
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                 <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                    </Button>
-                </CollapsibleTrigger>
+                <div className='flex-grow'>
+                    <h3 className="font-semibold text-sm text-card-foreground leading-tight">{phase.title}</h3>
+                    {phase.due_date && (
+                        <Badge variant="outline" className="mt-1 text-xs">
+                            {format(parseISO(phase.due_date), "d 'de' LLL, yyyy", { locale: es })}
+                        </Badge>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                <span className="text-md font-bold text-foreground w-12 text-right">{phase.progress.toFixed(0)}%</span>
+                <Progress value={phase.progress} className="h-2 w-full" colorTheme={colorTheme} />
             </div>
           </div>
+        </CollapsibleTrigger>
 
-         <CollapsibleContent className="px-3 pb-3">
-            <div className="space-y-2 border-t pt-3">
-                 {pulses.map(pulse => {
-                    const Icon = pulse.type === 'habit' ? Repeat : CheckSquare;
-                    return (
-                        <div key={pulse.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{pulse.title}</span>
-                        </div>
-                    );
-                 })}
-                 <Button variant="outline" size="sm" onClick={() => onAddPulse(phase.id)} className="w-full h-8 mt-2">
+        <CollapsibleContent className="pl-12 py-2">
+            <div className="space-y-2">
+                {pulses.map(pulse => (
+                    <PulseListItem 
+                        key={pulse.id}
+                        pulse={pulse}
+                        colorTheme={colorTheme}
+                        onEdit={() => onEditPulse(pulse)}
+                        onArchive={() => onArchivePulse(pulse.id)}
+                    />
+                ))}
+                <Button variant="ghost" size="sm" onClick={() => onAddPulse(phase.id)} className="w-full h-8 mt-2 text-muted-foreground">
                     <Plus className="mr-2 h-4 w-4" />
                     Agregar Pulso
                 </Button>
             </div>
-         </CollapsibleContent>
-       </Collapsible>
-    </Card>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }
