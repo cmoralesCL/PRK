@@ -231,15 +231,15 @@ const Sidebar = React.forwardRef<
             <SidebarFooter>
                 <Button onClick={() => onOpen()} variant="default" size="sm" className="shadow-md h-9 bg-gradient-to-r from-primary to-warm text-primary-foreground w-full">
                     <Plus className="h-5 w-5" />
-                    <span className="group-data-[state=collapsed]:hidden ml-2">Nueva Órbita</span>
+                    <span className="group-data-[state=collapsed]:hidden ml-2">Órbita</span>
                 </Button>
                  <Button onClick={handleSignOut} variant="ghost" size="sm" title="Cerrar sesión" className="h-9 w-full justify-start">
                     <LogOut className="h-5 w-5" />
-                    <span className="group-data-[state=collapsed]:hidden ml-2">Cerrar Sesión</span>
+                    <span className="group-data-[state=collapsed]:hidden ml-2">Salir</span>
                 </Button>
                  {currentTime && (
                     <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md text-center group-data-[state=collapsed]:hidden">
-                        {format(currentTime, 'Pp', { locale: es })}
+                        {format(currentTime, 'p', { locale: es })}
                     </div>
                 )}
             </SidebarFooter>
