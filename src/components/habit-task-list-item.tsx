@@ -184,7 +184,6 @@ export function HabitTaskListItem({
                     <div className="flex flex-wrap items-center gap-2">
                         {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                         {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
-                        {item.frequency && <Badge variant="default" className="bg-cyan-100 text-cyan-800 hover:bg-cyan-200/80">FRECUENCIA</Badge>}
                     </div>
 
                     {onToggle && (
