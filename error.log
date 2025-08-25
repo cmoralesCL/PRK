@@ -446,3 +446,39 @@ CONTEXT DATA:
 }
 --------------------------------------------------
 
+[2025-08-25T22:52:09.592Z] - DETAILED ERROR LOG
+Error occurred at: updatePulseOrder
+Error Type: Database/API Error
+Message: null value in column "title" of relation "habit_tasks" violates not-null constraint
+Code: 23502
+Details: Failing row contains (dbf73ed9-e861-4813-a29d-dea3b9598811, null, null, 2025-08-25, null, null, null, null, 1, f, null, null, 2025-08-25 22:52:09.495411+00, f, null, null, null, null, null, null, 0).
+Hint: null
+
+CONTEXT DATA:
+{
+  "orderedIds": [
+    "dbf73ed9-e861-4813-a29d-dea3b9598811",
+    "6d348ff4-c54d-496e-bb22-195f5048918a",
+    "7522ad30-a5e5-4a54-be8e-eaa3d5de3cfb"
+  ]
+}
+--------------------------------------------------
+
+[2025-08-25T22:52:13.012Z] - DETAILED ERROR LOG
+Error occurred at: updatePulseOrder
+Error Type: Database/API Error
+Message: null value in column "title" of relation "habit_tasks" violates not-null constraint
+Code: 23502
+Details: Failing row contains (dbf73ed9-e861-4813-a29d-dea3b9598811, null, null, 2025-08-25, null, null, null, null, 1, f, null, null, 2025-08-25 22:52:12.931414+00, f, null, null, null, null, null, null, 0).
+Hint: null
+
+CONTEXT DATA:
+{
+  "orderedIds": [
+    "dbf73ed9-e861-4813-a29d-dea3b9598811",
+    "7522ad30-a5e5-4a54-be8e-eaa3d5de3cfb",
+    "6d348ff4-c54d-496e-bb22-195f5048918a"
+  ]
+}
+--------------------------------------------------
+

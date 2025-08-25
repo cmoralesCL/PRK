@@ -275,13 +275,12 @@ export async function updatePulseOrder(orderedIds: string[]): Promise<void> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
 
-    const updates = orderedIds.map((id, index) => ({
-        id: id,
-        display_order: index,
-    }));
-
     try {
-        const { error } = await supabase.from('habit_tasks').upsert(updates);
+        const { error } = await supabase.rpc('update_pulse_order', {
+            p_ordered_ids: orderedIds,
+            p_user_id: userId
+        });
+
         if (error) throw error;
     } catch (error) {
         await logError(error, { at: 'updatePulseOrder', orderedIds });
