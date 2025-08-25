@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus } from 'lucide-react';
@@ -108,9 +107,10 @@ export function HabitTaskListItem({
                 <p className={cn('text-sm font-medium leading-none', isCompleted && "line-through text-muted-foreground")}>
                   {item.title}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Meta: {target} {item.measurement_goal?.unit || 'veces'}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                    {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
+                    {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
+                </div>
               </div>
                <div className="flex items-center -mr-2 -mt-1">
                   {onEdit && (
@@ -127,7 +127,7 @@ export function HabitTaskListItem({
                     <Minus className="h-4 w-4" />
                   </Button>
                 )}
-                <span className="font-bold text-lg w-12 text-center">{Math.floor(currentTotal)}</span>
+                <span className="font-bold text-lg w-12 text-center">{Math.floor(currentTotal)}/{target}</span>
                 {onToggle && (
                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleAddInstance} disabled={isCompleted}>
                     <Plus className="h-4 w-4" />

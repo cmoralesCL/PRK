@@ -5,18 +5,20 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ListTodo } from 'lucide-react';
-import type { HabitTask } from '@/lib/types';
+import type { Orbit, Phase, Pulse } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Separator } from './ui/separator';
 
 interface CommitmentsCardProps {
   title?: string;
   description?: string;
-  commitments: HabitTask[];
+  commitments: Pulse[];
+  phases: Phase[];
+  orbits: Orbit[];
   selectedDate: Date;
   onToggle: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onUndo?: (id: string, date: Date) => void;
-  onEdit: (task: HabitTask) => void;
+  onEdit: (task: Pulse) => void;
   onArchive: (id: string) => void;
 }
 
@@ -25,6 +27,8 @@ export function CommitmentsCard({
     title = "Compromisos",
     description = "Tareas importantes sin día fijo. ¡No las olvides!",
     commitments, 
+    phases,
+    orbits,
     selectedDate, 
     onToggle, 
     onUndo, 
@@ -36,6 +40,9 @@ export function CommitmentsCard({
   const weeklyCommitments = commitments.filter(c => c.frequency?.startsWith('SEMANAL'));
   const monthlyCommitments = commitments.filter(c => c.frequency?.startsWith('MENSUAL'));
   // Add other periods as needed
+  
+  const phasesMap = new Map(phases.map(p => [p.id, p]));
+  const orbitsMap = new Map(orbits.map(o => [o.id, o]));
 
   if (commitments.length === 0) {
     return (
@@ -54,16 +61,22 @@ export function CommitmentsCard({
     );
   }
   
-  const renderCommitmentList = (tasks: HabitTask[]) => {
+  const renderCommitmentList = (tasks: Pulse[]) => {
     if (tasks.length === 0) {
         return null;
     }
     return (
          <div className="space-y-2">
-            {tasks.map((commitment) => (
+            {tasks.map((commitment) => {
+              const taskPhases = commitment.phase_ids.map(id => phasesMap.get(id)).filter(Boolean) as Phase[];
+              const taskOrbits = Array.from(new Set(taskPhases.map(p => orbitsMap.get(p.life_prk_id)))).filter(Boolean) as Orbit[];
+              
+              return (
               <HabitTaskListItem
                 key={commitment.id}
                 item={commitment}
+                phases={taskPhases}
+                orbits={taskOrbits}
                 onToggle={onToggle}
                 onUndo={onUndo}
                 onEdit={onEdit}
@@ -71,7 +84,7 @@ export function CommitmentsCard({
                 selectedDate={selectedDate}
                 variant="dashboard"
               />
-            ))}
+            )})}
           </div>
     )
   }

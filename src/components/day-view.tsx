@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -366,6 +365,8 @@ export function DayView({
             <div className="mt-4">
                 <CommitmentsCard 
                     commitments={commitments}
+                    phases={phases}
+                    orbits={orbits}
                     selectedDate={selectedDate}
                     onToggle={handleTogglePulse}
                     onUndo={handleUndoPulse}
