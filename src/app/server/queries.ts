@@ -240,11 +240,8 @@ function calculateProgressForDate(date: Date, lifePrks: Orbit[], areaPrks: Phase
                 // Cap progress at 100% for calculation to avoid over-inflation
                 return sum + (Math.min(progressPercentage, 1) * task.weight);
             }
-            if (task.completedToday) {
-                 // For binary tasks, progress is 1 (100%)
-                return sum + (1 * task.weight);
-            }
-            return sum;
+            // For binary tasks, progress is 1 (100%) if completedToday is true.
+            return sum + ((task.completedToday ? 1 : 0) * task.weight);
         }, 0);
         
         const progress = totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
@@ -542,6 +539,14 @@ export async function getCalendarData(monthDate: Date) {
                 id: format(day, 'yyyy-MM-dd'),
                 snapshot_date: format(day, 'yyyy-MM-dd'),
                 progress: isNaN(overallProgress) ? 0 : overallProgress,
+                user_id: userId,
+            });
+        } else {
+            // Ensure days with no tasks still appear in the map for the calendar view
+             dailyProgress.push({
+                id: format(day, 'yyyy-MM-dd'),
+                snapshot_date: format(day, 'yyyy-MM-dd'),
+                progress: 0,
                 user_id: userId,
             });
         }
