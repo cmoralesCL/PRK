@@ -205,6 +205,9 @@ export function DayView({
     return totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
   }, [pulses]);
 
+  const phasesMap = useMemo(() => new Map(phases.map(p => [p.id, p])), [phases]);
+  const orbitsMap = useMemo(() => new Map(orbits.map(o => [o.id, o])), [orbits]);
+
   if (!selectedDate) {
     return (
         <div className="flex items-center justify-center h-screen">
@@ -260,26 +263,33 @@ export function DayView({
             </div>
             <div className="mt-4 space-y-2">
                 {pulses && pulses.length > 0 ? (
-                    pulses.map((task, index) => (
-                      <div
-                        key={task.id}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, task)}
-                        onDragOver={onDragOver}
-                        onDrop={(e) => onDrop(e, task)}
-                        className={`transition-all duration-300 ${draggedItem?.id === task.id ? "opacity-50" : ""}`}
-                      >
-                        <HabitTaskListItem 
-                          item={task}
-                          selectedDate={selectedDate}
-                          onEdit={handleOpenEditPulseDialog}
-                          onToggle={handleTogglePulse}
-                          onUndo={handleUndoPulse}
-                          onArchive={handleArchivePulse}
-                          isDraggable
-                        />
-                      </div>
-                    ))
+                    pulses.map((task, index) => {
+                        const taskPhases = task.phase_ids.map(id => phasesMap.get(id)).filter(Boolean) as Phase[];
+                        const taskOrbits = Array.from(new Set(taskPhases.map(p => orbitsMap.get(p.life_prk_id)))).filter(Boolean) as Orbit[];
+                        
+                        return (
+                            <div
+                                key={task.id}
+                                draggable
+                                onDragStart={(e) => onDragStart(e, task)}
+                                onDragOver={onDragOver}
+                                onDrop={(e) => onDrop(e, task)}
+                                className={`transition-all duration-300 ${draggedItem?.id === task.id ? "opacity-50" : ""}`}
+                            >
+                                <HabitTaskListItem 
+                                item={task}
+                                phases={taskPhases}
+                                orbits={taskOrbits}
+                                selectedDate={selectedDate}
+                                onEdit={handleOpenEditPulseDialog}
+                                onToggle={handleTogglePulse}
+                                onUndo={handleUndoPulse}
+                                onArchive={handleArchivePulse}
+                                isDraggable
+                                />
+                            </div>
+                        )
+                    })
                 ) : (
                     <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed">
                         <p className="text-muted-foreground font-semibold text-lg">¡Día despejado!</p>

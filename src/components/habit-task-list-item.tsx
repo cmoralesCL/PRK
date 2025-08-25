@@ -1,30 +1,36 @@
 
+
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import type { HabitTask } from '@/lib/types';
+import type { Orbit, Phase, Pulse } from '@/lib/types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { isSameDay, parseISO } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { Progress } from './ui/progress';
+import { Badge } from './ui/badge';
 
 interface HabitTaskListItemProps {
-  item: HabitTask;
+  item: Pulse;
+  phases: Phase[];
+  orbits: Orbit[];
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onUndo?: (id: string, date: Date) => void;
   onArchive?: (id: string) => void;
-  onEdit?: (habitTask: HabitTask) => void;
+  onEdit?: (habitTask: Pulse) => void;
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog' | 'read-only';
   isDraggable?: boolean;
 }
 
 export function HabitTaskListItem({ 
-    item, 
+    item,
+    phases,
+    orbits, 
     onToggle, 
     onUndo,
     onArchive, 
@@ -33,16 +39,7 @@ export function HabitTaskListItem({
     variant = 'dashboard',
     isDraggable = false,
 }: HabitTaskListItemProps) {
-  const getIcon = () => {
-    switch (item.type) {
-      case 'habit':
-        return Repeat;
-      case 'task':
-      default:
-        return CheckSquare;
-    }
-  };
-  const Icon = getIcon();
+
   const [isCompleted, setIsCompleted] = useState(item.completedToday ?? false);
   const [progressValue, setProgressValue] = useState('');
   const [currentTotal, setCurrentTotal] = useState(item.current_progress_value ?? 0);
@@ -67,24 +64,11 @@ export function HabitTaskListItem({
         onToggle(item.id, checked, selectedDate);
     }
   }
-
-  const handleAddInstance = () => {
-    if (onToggle) {
-      onToggle(item.id, true, selectedDate, 1);
-    }
-  }
-
-  const handleUndoInstance = () => {
-    if (onUndo) {
-        onUndo(item.id, selectedDate);
-    }
-  }
   
-  const handleSaveQuantitative = () => {
+  const handleSaveQuantitative = (valueToAdd: number) => {
     if (onToggle) {
-      const numericValue = Number(progressValue);
-      if (!isNaN(numericValue) && numericValue > 0) {
-        onToggle(item.id, true, selectedDate, numericValue);
+      if (!isNaN(valueToAdd) && valueToAdd !== 0) {
+        onToggle(item.id, true, selectedDate, valueToAdd);
       }
     }
   };
@@ -95,111 +79,69 @@ export function HabitTaskListItem({
     }
   }
 
-  // --- Read-Only Variant ---
-  if (variant === 'read-only') {
-      return (
-        <div className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30">
-             <div className="flex-grow">
-                 <p className={cn('text-xs font-medium leading-none', item.completedToday && 'line-through text-muted-foreground')}>
-                     {item.title}
-                 </p>
-             </div>
-             <div className="flex items-center ml-auto">
-                {onEdit && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit && onEdit(item)}>
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                )}
-                {onArchive && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleArchive}>
-                        <Archive className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                )}
-            </div>
-        </div>
-      );
+  const handleEdit = () => {
+    if(onEdit) {
+      onEdit(item);
+    }
   }
 
   // --- Type B: Quantitative / Frequency Habit ---
-  if (item.measurement_type === 'quantitative' || (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO'))) {
+  if (item.measurement_type === 'quantitative') {
       const target = item.measurement_goal?.target_count ?? 1;
-      const isBinaryAccumulative = item.measurement_type === 'binary';
-      const progressPercentage = target > 0 ? (currentTotal / target) * 100 : 0;
 
       return (
-        <div className="flex flex-col gap-2 p-3 rounded-lg bg-secondary/30 border border-secondary transition-colors duration-200 group">
+        <div className="flex flex-col gap-3 p-3 rounded-lg border bg-card transition-colors duration-200 group">
             <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 bg-primary/10 text-primary p-1.5 rounded-full">
-                        <Icon className="h-4 w-4" />
-                    </div>
+                <div className="flex items-start gap-4">
+                    <Checkbox
+                        id={`check-${item.id}`}
+                        checked={isCompleted}
+                        onCheckedChange={handleToggle}
+                        disabled={!onToggle}
+                        className="h-5 w-5 mt-0.5"
+                    />
                     <div>
-                      <Label className='text-sm font-medium leading-none flex-grow'>
+                      <Label htmlFor={`check-${item.id}`} className={cn('text-sm font-medium leading-none flex-grow cursor-pointer', isCompleted && "line-through text-muted-foreground")}>
                           {item.title}
                       </Label>
-                      {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                      <p className="text-xs text-muted-foreground mt-1">
+                          {Math.floor(currentTotal)} / {target} {item.measurement_goal?.unit || ''}
+                      </p>
                     </div>
                 </div>
                 <div className="flex items-center -mr-2 -mt-1">
                     {onEdit && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(item)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
                             <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                    {onArchive && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
-                            <Archive className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
                 </div>
             </div>
             
-            <div className="pl-10 space-y-2">
-                 <div className="flex justify-between items-end">
-                    <span className="text-sm font-semibold text-primary">
-                        {isBinaryAccumulative 
-                            ? `${Math.floor(currentTotal)} / ${target} veces`
-                            : `${currentTotal} / ${target} ${item.measurement_goal?.unit || ''}`
-                        }
-                    </span>
-                 </div>
-                 <Progress value={progressPercentage} className="h-2" />
-            </div>
+            <div className="pl-9 space-y-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                      {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
+                      {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
+                      {item.frequency && <Badge variant="default" className="bg-cyan-100 text-cyan-800 hover:bg-cyan-200/80">FRECUENCIA</Badge>}
+                  </div>
 
-            {onToggle && (
-                <div className="pl-10 flex items-center gap-2 pt-1">
-                    {isBinaryAccumulative ? (
-                        <>
-                            <Button size="sm" className="h-8" onClick={handleAddInstance} disabled={hasLogForSelectedDate}>
-                              <Plus className="h-4 w-4 mr-1"/>
-                              Registrar Avance
-                            </Button>
-                             {hasLogForSelectedDate && onUndo && (
-                                 <Button size="sm" variant="outline" className="h-8" onClick={handleUndoInstance}>
-                                    <Undo2 className="h-4 w-4 mr-2"/>
-                                    Deshacer
-                                </Button>
-                            )}
-                        </>
-                    ) : (
-                       !isCompleted && (
-                         <>
-                            <Input
-                                type="number"
-                                value={progressValue}
-                                onChange={(e) => setProgressValue(e.target.value)}
-                                className="h-8 w-24 bg-background"
-                                placeholder="Añadir..."
-                            />
-                            <Button size="sm" className="h-8" onClick={handleSaveQuantitative}>
-                              <Plus className="h-4 w-4 mr-1"/>
-                              Registrar Avance
-                            </Button>
-                         </>
-                       )
-                    )}
+                  {onToggle && (
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        <Input
+                            type="number"
+                            value={progressValue}
+                            onChange={(e) => setProgressValue(e.target.value)}
+                            className="h-8 w-20 bg-background"
+                            placeholder="Valor"
+                        />
+                        <Button size="sm" className="h-8" onClick={() => handleSaveQuantitative(Number(progressValue))}>
+                          Agregar
+                        </Button>
+                    </div>
+                  )}
                 </div>
-            )}
+            </div>
         </div>
       )
   }
@@ -207,7 +149,7 @@ export function HabitTaskListItem({
   // --- Type A: Default binary/task item (Checklist) ---
   return (
     <div className={cn(
-        "flex items-center space-x-3 p-2 border-b transition-colors duration-200 group bg-card"
+        "flex items-center space-x-3 p-2 border rounded-lg transition-colors duration-200 group bg-card"
     )}>
         {isDraggable && (
             <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
@@ -233,7 +175,7 @@ export function HabitTaskListItem({
         </div>
         <div className="flex items-center ml-auto">
             {onEdit && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => onEdit && onEdit(item)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleEdit}>
                     <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
             )}
