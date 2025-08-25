@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -22,6 +23,9 @@ import { HabitTaskListItem } from './habit-task-list-item';
 import { getDashboardData } from '@/app/server/queries';
 import { ProgressCircle } from './ui/progress-circle';
 import { LifePrkSection } from './life-prk-section';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Progress } from './ui/progress';
+import Link from 'next/link';
 
 interface DayViewProps {
   orbits: Orbit[];
@@ -30,6 +34,8 @@ interface DayViewProps {
   commitments: Pulse[];
   initialSelectedDate: string;
   dailyProgressDataForWeek: DailyProgressSnapshot[];
+  weeklyProgress: number;
+  monthlyProgress: number;
 }
 
 export function DayView({
@@ -39,6 +45,8 @@ export function DayView({
   commitments,
   initialSelectedDate,
   dailyProgressDataForWeek,
+  weeklyProgress,
+  monthlyProgress,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -206,6 +214,34 @@ export function DayView({
     <>
       <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
+        
+        <div className="mt-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="font-headline">Progreso</CardTitle>
+                    <Button variant="link" asChild>
+                        <Link href="/analytics">Ver progreso</Link>
+                    </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-muted-foreground">Progreso Semanal</span>
+                            <span className="text-sm font-bold text-foreground">{Math.round(weeklyProgress)}%</span>
+                        </div>
+                        <Progress value={weeklyProgress} />
+                    </div>
+                     <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-muted-foreground">Progreso Mensual</span>
+                            <span className="text-sm font-bold text-foreground">{Math.round(monthlyProgress)}%</span>
+                        </div>
+                        <Progress value={monthlyProgress} />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
 
         <div className="mt-6">
             <div className="flex items-center gap-4 mb-4">

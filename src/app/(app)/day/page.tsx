@@ -27,8 +27,8 @@ async function getUserIdAndDate(searchParams: { date?: string }) {
 export default async function DayPage({ searchParams }: { searchParams: { date?: string } }) {
   const { userId, selectedDate, selectedDateString } = await getUserIdAndDate(searchParams);
   
-  // Fetch all dashboard data for the selected date. This is now the single source of truth.
-  const { orbits, phases, pulses, commitments } = await getDashboardData(selectedDateString);
+  // Fetch all dashboard data for the selected date. This now includes weekly and monthly progress.
+  const { orbits, phases, pulses, commitments, weeklyProgress, monthlyProgress } = await getDashboardData(selectedDateString);
 
   // Derive the daily progress for the week from the main dashboard data for consistency.
   const totalWeight = pulses.reduce((sum, task) => sum + task.weight, 0);
@@ -61,6 +61,8 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
         commitments={commitments}
         initialSelectedDate={selectedDateString}
         dailyProgressDataForWeek={dailyProgressDataForWeek}
+        weeklyProgress={weeklyProgress}
+        monthlyProgress={monthlyProgress}
     />
   );
 }

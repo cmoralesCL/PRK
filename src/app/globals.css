@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 240 10% 98.5%; /* #FBFBFC - Lavanda muy claro */
+    --background: 240 10% 98.5%;
     --foreground: 240 10% 3.9%;
 
     --card: 0 0% 100%;

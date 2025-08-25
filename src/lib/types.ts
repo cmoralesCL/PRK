@@ -1,4 +1,5 @@
 
+
 export type ColorTheme = 'mint' | 'sapphire' | 'amethyst' | 'coral' | 'rose' | 'solar';
 
 // Replaces LifePrk
@@ -99,9 +100,7 @@ export interface ProgressLog {
 
 export interface DailyProgressSnapshot {
   snapshot_date: string;
-  progress: number; 
-  user_id?: string;
-  id?: string;
+  progress: number;
 }
 
 export interface WeeklyProgressSnapshot {
