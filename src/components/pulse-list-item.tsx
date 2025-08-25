@@ -14,6 +14,7 @@ import {
 import { MoreVertical, Pencil, Archive } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import { Progress } from './ui/progress';
 
 interface PulseListItemProps {
   pulse: Pulse;
@@ -44,12 +45,15 @@ export function PulseListItem({
             <div className="flex items-center gap-2 mt-1">
                 <Badge variant="secondary" className="capitalize">{pulse.type}</Badge>
                 <Badge variant="outline">Impacto: {pulse.weight}/5</Badge>
-                 {pulse.progress !== undefined && (
-                     <Badge variant="outline" className="font-semibold">{Math.round(pulse.progress)}%</Badge>
-                 )}
             </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+            {pulse.progress !== undefined && (
+                <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <span className="text-md font-bold text-foreground w-12 text-right">{Math.round(pulse.progress)}%</span>
+                    <Progress value={pulse.progress} className="h-2 w-full" colorTheme={colorTheme} />
+                </div>
+            )}
             {pulse.is_critical && <Zap className="h-4 w-4 text-yellow-500" />}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
