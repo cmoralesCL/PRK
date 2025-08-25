@@ -210,17 +210,17 @@ export function HabitTaskListItem({
   // --- Type A: Default binary/task item (Checklist) ---
   return (
     <div className={cn(
-        "flex items-center space-x-3 p-2 border rounded-lg transition-colors duration-200 group bg-card"
+        "flex items-start gap-3 p-3 border rounded-lg transition-colors duration-200 group bg-card"
     )}>
         {isDraggable && (
-            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab mt-1" />
         )}
         <Checkbox
             id={item.id}
             checked={isCompleted}
             onCheckedChange={handleToggle}
             disabled={!onToggle}
-            className="h-5 w-5"
+            className="h-5 w-5 mt-1"
         />
         <div className="flex-grow">
             <Label
@@ -233,6 +233,10 @@ export function HabitTaskListItem({
             >
                 {item.title}
             </Label>
+             <div className="flex flex-wrap items-center gap-2 mt-2">
+                {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
+                {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
+            </div>
         </div>
         <div className="flex items-center ml-auto">
             {onEdit && (

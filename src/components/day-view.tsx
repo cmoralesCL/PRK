@@ -324,7 +324,7 @@ export function DayView({
             </div>
             <div className="mt-4 space-y-2">
                 {pulses && pulses.length > 0 ? (
-                    pulses.map((task, index) => {
+                    pulses.map((task) => {
                         const taskPhases = task.phase_ids.map(id => phasesMap.get(id)).filter(Boolean) as Phase[];
                         const taskOrbits = Array.from(new Set(taskPhases.map(p => orbitsMap.get(p.life_prk_id)))).filter(Boolean) as Orbit[];
                         
@@ -338,15 +338,15 @@ export function DayView({
                                 className={`transition-all duration-300 ${draggedItem?.id === task.id ? "opacity-50" : ""}`}
                             >
                                 <HabitTaskListItem 
-                                item={task}
-                                phases={taskPhases}
-                                orbits={taskOrbits}
-                                selectedDate={selectedDate}
-                                onEdit={handleOpenEditPulseDialog}
-                                onToggle={handleTogglePulse}
-                                onUndo={handleUndoPulse}
-                                onArchive={handleArchivePulse}
-                                isDraggable
+                                    item={task}
+                                    phases={taskPhases}
+                                    orbits={taskOrbits}
+                                    selectedDate={selectedDate}
+                                    onEdit={handleOpenEditPulseDialog}
+                                    onToggle={handleTogglePulse}
+                                    onUndo={handleUndoPulse}
+                                    onArchive={handleArchivePulse}
+                                    isDraggable
                                 />
                             </div>
                         )
