@@ -150,7 +150,7 @@ export function AddPulseDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '', description: '', type: 'task',
-      start_date: defaultDate || new Date(),
+      start_date: defaultDate,
       phase_ids: defaultPhaseIds || [], 
       weight: 1, is_critical: false,
       frequency: 'UNICA',
@@ -193,7 +193,7 @@ export function AddPulseDialog({
       } else { // Reset for new task
         form.reset({
           title: '', description: '', type: 'task', 
-          start_date: defaultDate || new Date(), 
+          start_date: defaultDate, 
           due_date: undefined,
           phase_ids: defaultPhaseIds || [], 
           weight: 1, is_critical: false,
