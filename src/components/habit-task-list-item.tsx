@@ -84,6 +84,63 @@ export function HabitTaskListItem({
       onEdit(item);
     }
   }
+  
+  const handleAddInstance = () => {
+    if (onToggle) {
+      onToggle(item.id, true, selectedDate, 1);
+    }
+  };
+
+  const handleRemoveInstance = () => {
+    if (onUndo) {
+      onUndo(item.id, selectedDate);
+    }
+  };
+
+  // --- Type C: Binary Accumulative (Commitments) ---
+  if (item.measurement_type === 'binary' && item.frequency?.includes('ACUMULATIVO')) {
+    const target = item.measurement_goal?.target_count ?? 1;
+    return (
+       <div className="flex items-center gap-3 p-3 rounded-lg border bg-card transition-colors duration-200 group">
+          <div className="flex flex-col gap-3 flex-grow">
+            <div className="flex items-center justify-between">
+              <div className="flex-grow">
+                <p className={cn('text-sm font-medium leading-none', isCompleted && "line-through text-muted-foreground")}>
+                  {item.title}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Meta: {target} {item.measurement_goal?.unit || 'veces'}
+                </p>
+              </div>
+               <div className="flex items-center -mr-2 -mt-1">
+                  {onEdit && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                  )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                 {onUndo && (
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRemoveInstance} disabled={currentTotal === 0}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                )}
+                <span className="font-bold text-lg w-12 text-center">{Math.floor(currentTotal)}</span>
+                {onToggle && (
+                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleAddInstance} disabled={isCompleted}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Progress value={(currentTotal / target) * 100} className="w-full flex-grow h-2" />
+            </div>
+          </div>
+       </div>
+    );
+  }
+
 
   // --- Type B: Quantitative / Frequency Habit ---
   if (item.measurement_type === 'quantitative') {
