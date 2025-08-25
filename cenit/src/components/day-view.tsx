@@ -218,7 +218,7 @@ export function DayView({
       const orderedIds = newPulses.map(p => p.id);
       startTransition(async () => {
           try {
-              // await updatePulseOrder(orderedIds);
+              await updatePulseOrder(orderedIds);
           } catch(error) {
               console.error("Failed to save new order", error);
               toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el nuevo orden.' });
