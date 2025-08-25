@@ -3,10 +3,9 @@
 
 import { Sidebar, SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Compass, Calendar as CalendarIcon, BarChart2, LineChart, CheckSquare, Sun, PanelLeft } from "lucide-react";
+import { Compass, Calendar as CalendarIcon, LineChart, CheckSquare, Sun, Target } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 
 export default function AppLayout({
     children,
@@ -18,6 +17,7 @@ export default function AppLayout({
     const navLinks = [
         { href: "/day", label: "Mi Día", icon: Sun },
         { href: "/panel", label: "Panel", icon: Compass },
+        { href: "/objetivos", label: "Objetivos", icon: Target },
         { href: "/calendar", label: "Calendario", icon: CalendarIcon },
         { href: "/analytics", label: "Analíticas", icon: LineChart },
         { href: "/tasks", label: "Tareas", icon: CheckSquare },
