@@ -1,5 +1,7 @@
 
 
+import { QuoteOfTheDayOutput } from "@/ai/flows/get-quote-of-the-day";
+
 export type ColorTheme = 'mint' | 'sapphire' | 'amethyst' | 'coral' | 'rose' | 'solar';
 
 // Replaces LifePrk

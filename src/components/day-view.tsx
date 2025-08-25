@@ -21,11 +21,28 @@ import { WeekNav } from './week-nav';
 import { Plus, GripVertical } from 'lucide-react';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { getDashboardData } from '@/app/server/queries';
-import { ProgressCircle } from './ui/progress-circle';
 import { LifePrkSection } from './life-prk-section';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import Link from 'next/link';
+import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
+
+interface QuoteCardProps {
+    quote: QuoteOfTheDayOutput;
+}
+
+function QuoteCard({ quote }: QuoteCardProps) {
+    return (
+        <div className="p-4 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-primary-foreground shadow-lg">
+            <p className="text-sm font-medium">Frase del Día</p>
+            <blockquote className="mt-1 text-lg font-semibold italic">
+                "{quote.quote}"
+            </blockquote>
+             <p className="text-right text-sm opacity-80 mt-2">- {quote.author}</p>
+        </div>
+    )
+}
+
 
 interface DayViewProps {
   orbits: Orbit[];
@@ -36,6 +53,7 @@ interface DayViewProps {
   dailyProgressDataForWeek: DailyProgressSnapshot[];
   weeklyProgress: number;
   monthlyProgress: number;
+  quote: QuoteOfTheDayOutput;
 }
 
 export function DayView({
@@ -47,6 +65,7 @@ export function DayView({
   dailyProgressDataForWeek,
   weeklyProgress,
   monthlyProgress,
+  quote,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -218,10 +237,12 @@ export function DayView({
 
   return (
     <>
-      <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4">
+      <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
+        <QuoteCard quote={quote} />
+        
         <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
         
-        <div className="mt-6">
+        <div>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="font-headline">Progreso</CardTitle>
@@ -230,7 +251,7 @@ export function DayView({
                     </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div>
+                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
                             <span className="text-sm font-bold text-foreground">{Math.round(dailyProgress)}%</span>
@@ -256,7 +277,7 @@ export function DayView({
         </div>
 
 
-        <div className="mt-6">
+        <div>
             <div className="flex items-center gap-4 mb-4">
               <h2 className="text-2xl font-headline font-bold">Pulsos del Día</h2>
             </div>
@@ -314,12 +335,8 @@ export function DayView({
         </div>
       </main>
 
-      <div className="fixed bottom-6 right-6 z-20">
-        <Button onClick={() => handleOpenAddPulseDialog()} size="lg" className="rounded-full shadow-lg h-12 w-12 p-0 sm:w-auto sm:px-6 sm:h-11">
-            <Plus className="h-6 w-6 sm:h-5 sm:w-5 sm:mr-2" />
-            <span className="hidden sm:inline">Nuevo Pulso</span>
-        </Button>
-      </div>
+      {/* Hidden button to be triggered by the global FAB */}
+      <button id="day-view-fab-trigger" onClick={() => handleOpenAddPulseDialog()} className="hidden" aria-hidden="true"></button>
 
       <AddPulseDialog 
         isOpen={isPulseDialogOpen} 
