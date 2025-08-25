@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,12 +9,13 @@ import { THEMES } from '@/lib/themes';
 
 interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
   colorTheme?: ColorTheme;
+  indicatorClassName?: string;
 }
 
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   ProgressProps
->(({ className, value, colorTheme = 'mint', ...props }, ref) => {
+>(({ className, value, colorTheme = 'mint', indicatorClassName, ...props }, ref) => {
   const progressValue = value || 0;
   
   const theme = THEMES[colorTheme] || THEMES.mint;
@@ -30,10 +30,10 @@ const Progress = React.forwardRef<
       {...props}
     >
       <ProgressPrimitive.Indicator
-        className={cn("h-full w-full flex-1 transition-all duration-500 ease-in-out")}
+        className={cn("h-full w-full flex-1 bg-primary transition-all duration-300 ease-in-out", indicatorClassName)}
         style={{ 
             transform: `translateX(-${100 - (progressValue || 0)}%)`,
-            background: theme.gradient,
+            background: colorTheme ? theme.gradient : undefined,
         }}
       />
     </ProgressPrimitive.Root>

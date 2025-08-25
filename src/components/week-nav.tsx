@@ -1,13 +1,13 @@
 
-
 'use client';
 
-import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay } from 'date-fns';
+import { format, addDays, subDays, startOfWeek, isToday, isSameDay, getDay, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { DailyProgressSnapshot } from '@/lib/types';
+import { Progress } from './ui/progress';
 
 interface WeekNavProps {
   selectedDate: Date;
@@ -17,6 +17,7 @@ interface WeekNavProps {
 
 export function WeekNav({ selectedDate, onDateChange, dailyProgressData = [] }: WeekNavProps) {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Lunes
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
   const handlePrevWeek = () => {
@@ -26,45 +27,20 @@ export function WeekNav({ selectedDate, onDateChange, dailyProgressData = [] }: 
   const handleNextWeek = () => {
     onDateChange(addDays(selectedDate, 7));
   };
-
-  const dayColors = [
-    'bg-blue-100 text-blue-900',       // Lunes
-    'bg-red-100 text-red-900',         // Martes
-    'bg-purple-100 text-purple-900',   // Miércoles
-    'bg-green-100 text-green-900',     // Jueves
-    'bg-pink-100 text-pink-900',       // Viernes
-    'bg-cyan-100 text-cyan-900',       // Sábado
-    'bg-orange-100 text-orange-900'    // Domingo
-  ];
-  const dayHoverColors = [
-    'hover:bg-blue-200/70',
-    'hover:bg-red-200/70',
-    'hover:bg-purple-200/70',
-    'hover:bg-green-200/70',
-    'hover:bg-pink-200/70',
-    'hover:bg-cyan-200/70',
-    'hover:bg-orange-200/70',
-  ];
-  const daySelectedColors = [
-      'bg-blue-500 text-white',
-      'bg-red-500 text-white',
-      'bg-purple-500 text-white',
-      'bg-green-500 text-white',
-      'bg-pink-500 text-white',
-      'bg-cyan-500 text-white',
-      'bg-orange-500 text-white'
-  ]
+  
+  const weekRangeLabel = `${format(weekStart, 'd')}–${format(weekEnd, 'd MMM', { locale: es })}`;
 
   const progressMap = new Map(dailyProgressData.map(p => [p.snapshot_date, p.progress]));
 
   return (
-    <div className="bg-card p-2 rounded-xl shadow-sm border">
-      <div className="flex items-center justify-between mb-2 px-2">
-        <h3 className="text-lg font-headline font-semibold capitalize">
-          {format(selectedDate, 'LLLL yyyy', { locale: es })}
+    <div className="bg-card p-2 rounded-xl">
+      <div className="flex items-center justify-between mb-4 px-2">
+        <h3 className="text-xl font-headline font-bold">
+          Mi Día
         </h3>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="h-8 w-8">
+        <div className="flex items-center gap-2">
+           <span className="text-sm font-semibold text-primary">{weekRangeLabel}</span>
+           <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="h-8 w-8">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" onClick={handleNextWeek} className="h-8 w-8">
@@ -74,47 +50,33 @@ export function WeekNav({ selectedDate, onDateChange, dailyProgressData = [] }: 
       </div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {
-          const dayIndex = getDay(day);
-          const colorIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Domingo es 0, lo mapeamos al final del array
           const dayProgress = progressMap.get(format(day, 'yyyy-MM-dd'));
+          const isSelected = isSameDay(day, selectedDate);
 
           return (
-            <button
-              key={day.toString()}
-              onClick={() => onDateChange(day)}
-              className={cn(
-                "relative flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
-                isSameDay(day, selectedDate)
-                  ? `${daySelectedColors[colorIndex]} shadow-md scale-105`
-                  : cn(
-                      dayColors[colorIndex],
-                      dayHoverColors[colorIndex],
-                      "hover:scale-105 hover:shadow-md"
-                  ),
-                 isToday(day) && !isSameDay(day, selectedDate) && "ring-2 ring-primary ring-offset-2 ring-offset-background"
-              )}
-            >
-              {isToday(day) && (
-                <Star className="absolute top-1.5 right-1.5 h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-              )}
-              <span className={cn(
-                "text-xs uppercase font-medium", 
-                isSameDay(day, selectedDate) ? "text-white/80" : "opacity-70 group-hover:opacity-100"
-              )}>
-                {format(day, 'eee', { locale: es })}
-              </span>
-              <span className="text-lg font-bold mt-1">
-                {format(day, 'd')}
-              </span>
-              {dayProgress !== undefined && (
-                 <span className={cn(
-                    "text-xs font-bold mt-1 px-1.5 py-0.5 rounded-full",
-                    isSameDay(day, selectedDate) ? 'bg-white/20' : 'bg-black/10'
-                 )}>
-                    {Math.round(dayProgress)}%
+            <div key={day.toString()} className="text-center">
+                <span className="text-xs font-bold text-muted-foreground uppercase">
+                    {format(day, 'eee', { locale: es })}
                 </span>
-              )}
-            </button>
+                <button
+                    onClick={() => onDateChange(day)}
+                    className={cn(
+                        "mt-2 w-full flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background h-20",
+                        isSelected
+                        ? "bg-gradient-to-br from-primary to-cyan-400 text-primary-foreground shadow-lg"
+                        : "bg-muted/50 hover:bg-muted"
+                    )}
+                    >
+                    <span className="text-2xl font-bold">
+                        {format(day, 'd')}
+                    </span>
+                    <Progress 
+                        value={dayProgress} 
+                        className="h-1.5 mt-2 w-4/5" 
+                        indicatorClassName={isSelected ? 'bg-white/80' : 'bg-primary'}
+                    />
+                </button>
+            </div>
           )
         })}
       </div>
