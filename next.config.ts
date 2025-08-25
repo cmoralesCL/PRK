@@ -1,3 +1,4 @@
+import './src/env'; // Importar para cargar las variables de entorno
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
