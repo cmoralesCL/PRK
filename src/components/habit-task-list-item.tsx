@@ -16,8 +16,8 @@ import { Badge } from './ui/badge';
 
 interface HabitTaskListItemProps {
   item: Pulse;
-  phases: Phase[];
-  orbits: Orbit[];
+  phases?: Phase[];
+  orbits?: Orbit[];
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
   onUndo?: (id: string, date: Date) => void;
   onArchive?: (id: string) => void;
@@ -29,8 +29,8 @@ interface HabitTaskListItemProps {
 
 export function HabitTaskListItem({ 
     item,
-    phases,
-    orbits, 
+    phases = [],
+    orbits = [], 
     onToggle, 
     onUndo,
     onArchive, 
@@ -90,56 +90,61 @@ export function HabitTaskListItem({
       const target = item.measurement_goal?.target_count ?? 1;
 
       return (
-        <div className="flex flex-col gap-3 p-3 rounded-lg border bg-card transition-colors duration-200 group">
-            <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                    <Checkbox
-                        id={`check-${item.id}`}
-                        checked={isCompleted}
-                        onCheckedChange={handleToggle}
-                        disabled={!onToggle}
-                        className="h-5 w-5 mt-0.5"
-                    />
-                    <div>
-                      <Label htmlFor={`check-${item.id}`} className={cn('text-sm font-medium leading-none flex-grow cursor-pointer', isCompleted && "line-through text-muted-foreground")}>
-                          {item.title}
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                          {Math.floor(currentTotal)} / {target} {item.measurement_goal?.unit || ''}
-                      </p>
-                    </div>
-                </div>
-                <div className="flex items-center -mr-2 -mt-1">
-                    {onEdit && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                </div>
-            </div>
-            
-            <div className="pl-9 space-y-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                      {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
-                      {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
-                      {item.frequency && <Badge variant="default" className="bg-cyan-100 text-cyan-800 hover:bg-cyan-200/80">FRECUENCIA</Badge>}
-                  </div>
-
-                  {onToggle && (
-                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                        <Input
-                            type="number"
-                            value={progressValue}
-                            onChange={(e) => setProgressValue(e.target.value)}
-                            className="h-8 w-20 bg-background"
-                            placeholder="Valor"
+        <div className="flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors duration-200 group">
+             {isDraggable && (
+                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab mt-1 flex-shrink-0" />
+            )}
+            <div className="flex flex-col gap-3 flex-grow">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                        <Checkbox
+                            id={`check-${item.id}`}
+                            checked={isCompleted}
+                            onCheckedChange={handleToggle}
+                            disabled={!onToggle}
+                            className="h-5 w-5 mt-0.5"
                         />
-                        <Button size="sm" className="h-8" onClick={() => handleSaveQuantitative(Number(progressValue))}>
-                          Agregar
-                        </Button>
+                        <div>
+                        <Label htmlFor={`check-${item.id}`} className={cn('text-sm font-medium leading-none flex-grow cursor-pointer', isCompleted && "line-through text-muted-foreground")}>
+                            {item.title}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {Math.floor(currentTotal)} / {target} {item.measurement_goal?.unit || ''}
+                        </p>
+                        </div>
                     </div>
-                  )}
+                    <div className="flex items-center -mr-2 -mt-1">
+                        {onEdit && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
+                
+                <div className="pl-9 space-y-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
+                        {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
+                        {item.frequency && <Badge variant="default" className="bg-cyan-100 text-cyan-800 hover:bg-cyan-200/80">FRECUENCIA</Badge>}
+                    </div>
+
+                    {onToggle && (
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                            <Input
+                                type="number"
+                                value={progressValue}
+                                onChange={(e) => setProgressValue(e.target.value)}
+                                className="h-8 w-20 bg-background"
+                                placeholder="Valor"
+                            />
+                            <Button size="sm" className="h-8" onClick={() => handleSaveQuantitative(Number(progressValue))}>
+                            Agregar
+                            </Button>
+                        </div>
+                    )}
+                    </div>
                 </div>
             </div>
         </div>
