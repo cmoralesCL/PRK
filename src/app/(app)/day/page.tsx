@@ -31,7 +31,13 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
   const { orbits, phases, pulses, commitments, weeklyProgress, monthlyProgress } = await getDashboardData(selectedDateString);
 
   // Derive the daily progress for the week from the main dashboard data for consistency.
-  const totalWeight = pulses.reduce((sum, task) => sum + task.weight, 0);
+  const totalWeight = pulses.reduce((sum, task) => {
+    if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
+        return sum + task.weight;
+    }
+    return sum + task.weight;
+  }, 0);
+
   const weightedCompleted = pulses.reduce((sum, task) => {
     if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
         const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;

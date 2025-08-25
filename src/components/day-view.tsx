@@ -193,10 +193,13 @@ export function DayView({
     let weightedCompleted = 0;
 
     pulses.forEach(task => {
-        totalWeight += task.weight;
-        if(task.completedToday) {
-            weightedCompleted += task.weight;
+        if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
+            const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
+            weightedCompleted += Math.min(progressPercentage, 1) * task.weight;
+        } else if (task.completedToday) {
+            weightedCompleted += 1 * task.weight;
         }
+        totalWeight += task.weight;
     });
 
     return totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
@@ -224,6 +227,13 @@ export function DayView({
                     </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
+                            <span className="text-sm font-bold text-foreground">{Math.round(dailyProgress)}%</span>
+                        </div>
+                        <Progress value={dailyProgress} />
+                    </div>
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-medium text-muted-foreground">Progreso Semanal</span>
