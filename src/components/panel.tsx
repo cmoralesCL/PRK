@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -38,6 +37,13 @@ export function Panel({
   const { setOrbitToEdit } = useDialog();
 
   const [openOrbitIds, setOpenOrbitIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Initialize open orbits only on the client side after mount
+    // to avoid hydration mismatch.
+    setOpenOrbitIds(orbits.map(lp => lp.id));
+  }, [orbits]);
+
 
   const [isPhaseDialogOpen, setPhaseDialogOpen] = useState(false);
   const [isPulseDialogOpen, setPulseDialogOpen] = useState(false);
