@@ -180,7 +180,7 @@ export function AddPulseDialog({
           ...pulse,
           phase_ids: pulse.phase_ids || [],
           frequency: pulse.frequency ?? 'UNICA',
-          start_date: pulse.start_date ? parseISO(pulse.start_date) : (defaultDate || new Date()),
+          start_date: pulse.start_date ? parseISO(pulse.start_date) : (defaultDate || undefined),
           due_date: pulse.due_date ? parseISO(pulse.due_date) : undefined,
           frequency_interval: pulse.frequency_interval ?? undefined,
           frequency_day_of_month: pulse.frequency_day_of_month ?? undefined,
