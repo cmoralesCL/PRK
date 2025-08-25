@@ -259,7 +259,6 @@ export function DayView({
         <div className="mt-6">
             <div className="flex items-center gap-4 mb-4">
               <h2 className="text-2xl font-headline font-bold">Pulsos del Día</h2>
-              <ProgressCircle progress={dailyProgress} />
             </div>
             <div className="mt-4 space-y-2">
                 {pulses && pulses.length > 0 ? (
