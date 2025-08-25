@@ -3,7 +3,7 @@
 
 import { useState, useTransition, ReactNode } from 'react';
 import { AddOrbitDialog } from './add-life-prk-dialog';
-import { DialogContext, DialogProvider } from '@/hooks/use-dialog';
+import { DialogProvider } from '@/hooks/use-dialog';
 import type { Orbit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addOrbit, updateOrbit } from '@/app/actions';
@@ -37,7 +37,7 @@ export function PageWrapper({ children }: { children: ReactNode }) {
     };
 
     return (
-        <DialogProvider value={{ onOpen: handleOpen, setOrbitToEdit: handleOpen }}>
+        <DialogProvider value={{ setOrbitToEdit: handleOpen }}>
             {children}
             <AddOrbitDialog
                 isOpen={isOrbitDialogOpen}

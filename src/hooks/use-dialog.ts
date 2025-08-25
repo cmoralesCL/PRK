@@ -4,7 +4,6 @@ import { createContext, useContext } from 'react';
 import type { Orbit } from '@/lib/types';
 
 interface DialogContextType {
-    onOpen: () => void;
     setOrbitToEdit: (orbit: Orbit | null) => void;
 }
 

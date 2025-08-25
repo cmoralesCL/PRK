@@ -20,6 +20,7 @@ import {
 import { Button } from './ui/button';
 import { Accordion } from '@/components/ui/accordion';
 import { useDialog } from '@/hooks/use-dialog';
+import { Plus } from 'lucide-react';
 
 interface PanelProps {
   orbits: Orbit[];
@@ -36,15 +37,7 @@ export function Panel({
   const [isPending, startTransition] = useTransition();
   const { setOrbitToEdit } = useDialog();
 
-  const [openOrbitIds, setOpenOrbitIds] = useState<string[]>(orbits.map(lp => lp.id));
-
-  useEffect(() => {
-    setOpenOrbitIds(currentOpenIds => {
-      const newOrbitIds = orbits.map(lp => lp.id);
-      const allIds = new Set([...currentOpenIds, ...newOrbitIds]);
-      return Array.from(allIds);
-    });
-  }, [orbits]);
+  const [openOrbitIds, setOpenOrbitIds] = useState<string[]>([]);
 
   const [isPhaseDialogOpen, setPhaseDialogOpen] = useState(false);
   const [isPulseDialogOpen, setPulseDialogOpen] = useState(false);
@@ -141,7 +134,6 @@ export function Panel({
   const handleArchivePulse = (id: string) => {
     startTransition(async () => {
         try {
-          // The date doesn't matter for a date-agnostic view, but the action requires one.
           await archivePulse(id, new Date().toISOString());
           toast({ title: 'Pulso Archivado' });
         } catch (error) {
@@ -153,9 +145,15 @@ export function Panel({
   return (
     <>
       <main className="flex-1 container mx-auto px-2 sm:px-4 lg:px-6 py-4 overflow-y-auto">
-        <div className="mb-4">
-            <h1 className="text-2xl font-bold font-headline text-foreground">Panel Estratégico</h1>
-            <p className="text-sm text-muted-foreground">Una vista completa de todas tus Órbitas, Fases y Pulsos.</p>
+        <div className="flex justify-between items-center mb-4">
+            <div>
+              <h1 className="text-2xl font-bold font-headline text-foreground">Panel Estratégico</h1>
+              <p className="text-sm text-muted-foreground">Una vista completa de todas tus Órbitas, Fases y Pulsos.</p>
+            </div>
+             <Button onClick={() => setOrbitToEdit(null)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir Órbita
+            </Button>
         </div>
 
         {orbits.length === 0 && !isPending && (
@@ -224,5 +222,3 @@ export function Panel({
     </>
   );
 }
-
-    

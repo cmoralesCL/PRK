@@ -1,74 +1,69 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 203 10% 98%; /* #F9FAFB - Gris extra claro */
-    --foreground: 222 47% 11%; /* #111827 - Casi negro (Títulos) */
+    --background: 240 10% 98.5%; /* #FBFBFC - Lavanda muy claro */
+    --foreground: 240 10% 3.9%;
 
-    --card: 0 0% 100%; /* #FFFFFF - Blanco puro */
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 10% 3.9%;
  
-    --primary: 172 76% 42%; /* #14B8A6 - Teal-500 (Acento Sólido) */
-    --primary-foreground: 210 40% 98%;
+    --primary: 221 83% 53%; /* #2844a7 -> #3b82f6 - Indigo */
+    --primary-foreground: 0 0% 98%;
  
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
  
-    --muted: 210 20% 94%; /* #E5E7EB - Gris claro (Bordes) */
-    --muted-foreground: 215 14% 47%; /* #6B7281 - Gris medio (Texto Sutil) */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
  
-    --accent: 190 95% 43%; /* #06B6D4 - Cyan-500 */
-    --accent-foreground: 210 40% 98%;
+    --accent: 173 95% 43%; /* #06B6D4 - Teal */
+    --accent-foreground: 0 0% 98%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --warm: 24 95% 53%; /* Manteniendo un cálido para gradientes */
-    --warm-foreground: 210 40% 98%;
- 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 210 20% 90%; /* #E5E7EB - Gris claro */
-    --input: 210 20% 90%;
-    --ring: 172 76% 42%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221 83% 53%;
  
     --radius: 0.5rem;
   }
  
   .dark {
-    --background: 222 47% 11%; /* #111827 - Azul noche */
-    --foreground: 210 20% 98%; /* #F9FAFB - Casi blanco (Títulos) */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
  
-    --card: 222 39% 17%; /* #1F2937 - Gris oscuro */
-    --card-foreground: 210 20% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
  
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
  
-    --primary: 172 76% 42%; /* #14B8A6 - Teal-500 */
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
  
-    --secondary: 222 39% 17%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
  
-    --muted: 223 27% 22%; /* #374151 - Gris medio (Bordes) */
-    --muted-foreground: 216 12% 63%; /* #9CA3AF - Gris medio (Texto Sutil) */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
  
-    --accent: 190 95% 43%; /* #06B6D4 - Cyan-500 */
-    --accent-foreground: 210 40% 98%;
-
-    --warm: 24 95% 63%;
-    --warm-foreground: 222.2 47.4% 11.2%;
+    --accent: 173 95% 43%;
+    --accent-foreground: 0 0% 98%;
  
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
  
-    --border: 223 27% 22%;
-    --input: 223 27% 22%;
-    --ring: 172 76% 42%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217 91% 60%;
   }
 }
  
@@ -81,11 +76,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    color: hsl(var(--muted-foreground) / 0.8); /* Gris oscuro para texto principal */
+    color: hsl(var(--muted-foreground) / 0.8);
   }
 
   h1, h2, h3, h4, h5, h6 {
     color: hsl(var(--foreground));
   }
 }
-

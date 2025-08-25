@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Target, Plus, Archive, MoreVertical, Pencil } from 'lucide-react';
+import { Target, Plus, Archive, MoreVertical, Pencil, CheckSquare, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { PhaseCard } from './area-prk-card';
@@ -110,7 +110,7 @@ export function LifePrkSection({
                 <PhaseCard
                     key={kp.id}
                     phase={kp}
-                    actions={allPulses.filter(ht => Array.isArray(ht.phase_ids) && ht.phase_ids.includes(kp.id))}
+                    pulses={allPulses.filter(ht => Array.isArray(ht.phase_ids) && ht.phase_ids.includes(kp.id))}
                     onAddPulse={onAddPulse}
                     onEditPulse={onEditPulse}
                     onArchive={onArchivePhase}
