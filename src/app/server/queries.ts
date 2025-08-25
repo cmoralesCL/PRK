@@ -421,8 +421,7 @@ export async function getDashboardData(selectedDateString: string) {
     const commitments = getActiveCommitments(allHabitTasks, allProgressLogs, selectedDate);
     
     // Calculate Weekly Progress
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const weeklyProgress = await calculateWeeklyProgress(weekStart, allHabitTasks, allProgressLogs);
+    const weeklyProgress = await calculateWeeklyProgress(selectedDate, allHabitTasks, allProgressLogs);
 
     // Calculate Monthly Progress
     const monthlyProgress = await calculateMonthlyProgress(selectedDate, allHabitTasks, allProgressLogs);
@@ -439,11 +438,13 @@ export async function getDashboardData(selectedDateString: string) {
 
 
 async function calculateWeeklyProgress(
-    weekStart: Date,
+    selectedDate: Date,
     allHabitTasks: Pulse[],
     allProgressLogs: ProgressLog[]
 ): Promise<number> {
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    // Calculate progress only up to the selected date within the week
+    const weekEnd = selectedDate; 
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
     let totalWeightedProgress = 0;
@@ -508,7 +509,8 @@ async function calculateMonthlyProgress(
     allProgressLogs: ProgressLog[]
 ): Promise<number> {
     const monthStart = startOfMonth(referenceDate);
-    const monthEnd = endOfMonth(referenceDate);
+    // Calculate progress only up to the selected date within the month
+    const monthEnd = referenceDate;
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     let habitTasksByDay: Record<string, Pulse[]> = {};
