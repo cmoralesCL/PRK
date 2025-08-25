@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { HabitTaskListItem } from './habit-task-list-item';
-import type { HabitTask } from '@/lib/types';
-import { logHabitTaskCompletion, removeHabitTaskCompletion } from '@/app/actions';
+import type { Pulse } from '@/lib/types';
+import { logPulseCompletion, removePulseCompletion } from '@/app/actions';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
@@ -24,9 +24,9 @@ interface DayDetailDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   day: Date | null;
-  tasks: HabitTask[];
+  tasks: Pulse[];
   onAddTask: (date: Date) => void;
-  onEditTask: (task: HabitTask, date: Date) => void;
+  onEditTask: (task: Pulse, date: Date) => void;
   onArchiveTask: (id: string, date: Date) => void;
 }
 
@@ -44,16 +44,16 @@ export function DayDetailDialog({
   
   if (!day) return null;
 
-  const handleToggleHabitTask = (id: string, completed: boolean, date: Date, progressValue?: number) => {
+  const handleTogglePulse = (id: string, completed: boolean, date: Date, progressValue?: number) => {
     const task = tasks.find(ht => ht.id === id);
     if (!task) return;
 
     startTransition(async () => {
       try {
         if (completed) {
-          await logHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0], progressValue);
+          await logPulseCompletion(id, task.type, date.toISOString().split('T')[0], progressValue);
         } else {
-          await removeHabitTaskCompletion(id, task.type, date.toISOString().split('T')[0]);
+          await removePulseCompletion(id, task.type, date.toISOString().split('T')[0]);
         }
         toast({ title: completed ? '¡Acción registrada!' : 'Registro deshecho.' });
       } catch (error) {
@@ -62,7 +62,7 @@ export function DayDetailDialog({
     });
   };
 
-  const handleEdit = (task: HabitTask) => {
+  const handleEdit = (task: Pulse) => {
     onEditTask(task, day);
   }
 
@@ -87,7 +87,7 @@ export function DayDetailDialog({
                     <HabitTaskListItem 
                         key={task.id} 
                         item={task} 
-                        onToggle={handleToggleHabitTask}
+                        onToggle={handleTogglePulse}
                         onEdit={handleEdit}
                         onArchive={() => handleArchive(task.id)}
                         selectedDate={day}

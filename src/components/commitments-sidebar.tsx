@@ -5,11 +5,11 @@
 import { useTransition, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ListTodo, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
-import type { HabitTask, HabitFrequency, ProgressLog } from '@/lib/types';
+import type { Pulse, HabitFrequency, ProgressLog } from '@/lib/types';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
-import { logHabitTaskCompletion, removeHabitTaskCompletion, archiveHabitTask } from '@/app/actions';
+import { logPulseCompletion, removePulseCompletion, archivePulse } from '@/app/actions';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -24,12 +24,12 @@ const tabToFrequencyMap: Record<CommitmentTab, HabitFrequency> = {
 };
 
 interface CommitmentsSidebarProps {
-  commitments: HabitTask[];
+  commitments: Pulse[];
   selectedDate: Date;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAddCommitment: (frequency: HabitFrequency) => void;
-  onEditCommitment: (task: HabitTask) => void;
+  onEditCommitment: (task: Pulse) => void;
 }
 
 export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpen, onAddCommitment, onEditCommitment }: CommitmentsSidebarProps) {
@@ -45,7 +45,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
 
     startTransition(async () => {
       try {
-        await logHabitTaskCompletion(id, task.type, completionDate, progressValue);
+        await logPulseCompletion(id, task.type, completionDate, progressValue);
         toast({ title: "¡Progreso registrado!" });
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la acción.' });
@@ -60,7 +60,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     const completionDate = date.toISOString().split('T')[0];
     startTransition(async () => {
         try {
-            await removeHabitTaskCompletion(id, task.type, completionDate);
+            await removePulseCompletion(id, task.type, completionDate);
             toast({ title: "Registro deshecho" });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
@@ -68,17 +68,17 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
     });
   }
 
-  const handleEdit = (task: HabitTask) => {
+  const handleEdit = (task: Pulse) => {
     onEditCommitment(task);
   };
 
   const handleArchive = (id: string) => {
     startTransition(async () => {
         try {
-          await archiveHabitTask(id, selectedDate.toISOString());
-          toast({ title: 'Hábito/Tarea Archivado' });
+          await archivePulse(id, selectedDate.toISOString());
+          toast({ title: 'Pulso Archivado' });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Hábito/Tarea.' });
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo archivar el Pulso.' });
         }
     });
   };
@@ -87,7 +87,7 @@ export function CommitmentsSidebar({ commitments, selectedDate, isOpen, setIsOpe
   const monthlyCommitments = commitments.filter(c => c.frequency?.startsWith('MENSUAL_ACUMULATIVO'));
   const quarterlyCommitments = commitments.filter(c => c.frequency?.startsWith('TRIMESTRAL_ACUMULATIVO'));
   
-  const renderCommitmentList = (tasks: HabitTask[]) => {
+  const renderCommitmentList = (tasks: Pulse[]) => {
     if (tasks.length === 0) {
         return <p className="text-sm text-muted-foreground text-center py-4">No hay compromisos para este período.</p>;
     }
