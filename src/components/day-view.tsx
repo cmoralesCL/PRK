@@ -28,6 +28,7 @@ import { Progress } from './ui/progress';
 import Link from 'next/link';
 import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
 import { createClient } from '@/lib/supabase/client';
+import { ThemeToggle } from './theme-toggle';
 
 interface QuoteCardProps {
     quote: QuoteOfTheDayOutput;
@@ -82,7 +83,9 @@ export function DayView({
   const [draggedItem, setDraggedItem] = useState<Pulse | null>(null);
 
   useEffect(() => {
-    setSelectedDate(parseISO(initialSelectedDate));
+    if (initialSelectedDate) {
+      setSelectedDate(parseISO(initialSelectedDate));
+    }
     setPulses(initialPulses);
   }, [initialSelectedDate, initialPulses]);
 
@@ -267,10 +270,13 @@ export function DayView({
               <div className="text-sm text-muted-foreground">
                   Conectado como <span className="font-semibold text-foreground">{userEmail}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar Sesión
-              </Button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Cerrar Sesión
+                </Button>
+              </div>
           </div>
       </header>
       <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
