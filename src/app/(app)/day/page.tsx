@@ -11,7 +11,7 @@ import { getQuoteOfTheDay } from '@/ai/flows/get-quote-of-the-day';
 
 export const dynamic = 'force-dynamic';
 
-async function getUserIdAndDate(searchParams: { date?: string }) {
+async function getUserAndDate(searchParams: { date?: string }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -22,11 +22,11 @@ async function getUserIdAndDate(searchParams: { date?: string }) {
     const selectedDateString = searchParams.date || format(new Date(), 'yyyy-MM-dd');
     const selectedDate = parseISO(selectedDateString);
 
-    return { userId: user.id, selectedDate, selectedDateString };
+    return { user, selectedDate, selectedDateString };
 }
 
 export default async function DayPage({ searchParams }: { searchParams: { date?: string } }) {
-  const { userId, selectedDate, selectedDateString } = await getUserIdAndDate(searchParams);
+  const { user, selectedDate, selectedDateString } = await getUserAndDate(searchParams);
   
   // Fetch all dashboard data for the selected date. This now includes weekly and monthly progress.
   const { orbits, phases, pulses, commitments, weeklyProgress, monthlyProgress } = await getDashboardData(selectedDateString);
@@ -63,6 +63,7 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
 
   return (
     <DayView
+        userEmail={user.email}
         orbits={orbits}
         phases={phases}
         pulses={pulses}
