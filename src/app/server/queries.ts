@@ -741,6 +741,7 @@ export async function endOfSemester(date: Date): Promise<Date> {
 function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate: Date, endDate: Date): number {
     let totalWeightedProgress = 0;
     let totalPossibleWeight = 0;
+    const today = startOfDay(new Date());
 
     const activeTasks = tasks.filter(task => {
         if (!task.start_date) return false;
@@ -756,15 +757,17 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
         const taskWeight = task.weight || 1;
         let periodAchievedProgress = 0;
         let opportunityCount = 0;
-
+        const taskStartDate = parseISO(task.start_date!);
+        
         // --- Handle Daily/Scheduled Tasks ---
         if (!task.frequency?.includes('ACUMULATIVO')) {
-            const daysInPeriod = eachDayOfInterval({ start: startDate, end: endDate });
+            const periodStartDate = isAfter(taskStartDate, startDate) ? taskStartDate : startDate;
+            const daysInPeriod = eachDayOfInterval({ start: periodStartDate, end: endDate });
             const activeDays = daysInPeriod.filter(day => isTaskActiveOnDate(task, day));
             opportunityCount = activeDays.length;
 
             if (opportunityCount > 0) {
-                const periodLogs = logs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
+                const periodLogs = logs.filter(log => log.habit_task_id === task.id && isWithinInterval(parseISO(log.completion_date), { start: periodStartDate, end: endDate }));
                 
                 if (task.measurement_type === 'quantitative') {
                     const totalValue = periodLogs.reduce((sum, log) => sum + (log.progress_value ?? 0), 0);
@@ -781,7 +784,9 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
         else {
              let periodProgress = 0;
             if (task.frequency.startsWith('SEMANAL')) {
-                const weeksInPeriod = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
+                const periodStartDate = isAfter(taskStartDate, startDate) ? taskStartDate : startDate;
+                const weeksInPeriod = eachWeekOfInterval({ start: periodStartDate, end: endDate }, { weekStartsOn: 1 })
+                    .filter(week => isBefore(week, today)); // Only count weeks that have started
                 let totalWeeklyProgress = 0;
                 
                 for (const week of weeksInPeriod) {
@@ -804,7 +809,9 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
                 }
 
             } else if (task.frequency.startsWith('MENSUAL')) {
-                 const monthsInPeriod = eachMonthOfInterval({ start: startDate, end: endDate });
+                 const periodStartDate = isAfter(taskStartDate, startDate) ? taskStartDate : startDate;
+                 const monthsInPeriod = eachMonthOfInterval({ start: periodStartDate, end: endDate })
+                    .filter(month => isBefore(month, today)); // Only count months that have started
                  for (const month of monthsInPeriod) {
                     if (getActiveCommitments([task],[], month).length > 0) {
                         opportunityCount++;
@@ -965,7 +972,12 @@ export async function getPanelData() {
     // Calculate overall progress for each area up to today
     const areaPrksWithProgress = areaPrks.map(areaPrk => {
         const relevantTasks = pulsesWithProgress.filter(ht => ht.phase_ids.includes(areaPrk.id));
-        const progress = calculatePeriodProgress(relevantTasks, allProgressLogs, historicalStartDate, today);
+        if (relevantTasks.length === 0) {
+            return { ...areaPrk, progress: 0 };
+        }
+        const totalProgress = relevantTasks.reduce((sum, task) => sum + ((task.progress ?? 0) * task.weight), 0);
+        const totalWeight = relevantTasks.reduce((sum, task) => sum + task.weight, 0);
+        const progress = totalWeight > 0 ? totalProgress / totalWeight : 0;
         
         return { ...areaPrk, progress };
     });
