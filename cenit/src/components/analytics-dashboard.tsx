@@ -1,10 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
 import { BarChart, Layers, Target, CheckCircle, Orbit } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { AnalyticsData, Phase, Pulse, Orbit as OrbitType } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { AnalyticsData } from '@/lib/types';
 import {
   ChartContainer,
   ChartTooltip,
@@ -55,49 +54,58 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
   let chartTitle = 'Progreso por Órbita';
   if (filters.level === 'phases' && filters.orbitId) {
-      chartTitle = `Progreso por Fase en "${allOrbits.find(o => o.id === filters.orbitId)?.title}"`;
+      const orbit = allOrbits.find(o => o.id === filters.orbitId);
+      chartTitle = orbit ? `Progreso por Fase en "${orbit.title}"` : 'Progreso por Fase';
   } else if (filters.level === 'pulses' && filters.phaseId) {
-       chartTitle = `Progreso por Pulso en "${allPhases.find(p => p.id === filters.phaseId)?.title}"`;
+       const phase = allPhases.find(p => p.id === filters.phaseId);
+       chartTitle = phase ? `Progreso por Pulso en "${phase.title}"` : 'Progreso por Pulso';
   }
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Select value={filters.level} onValueChange={handleLevelChange}>
-            <SelectTrigger><SelectValue placeholder="Seleccionar Nivel" /></SelectTrigger>
-            <SelectContent>
-                <SelectItem value="orbits">Órbitas</SelectItem>
-                <SelectItem value="phases">Fases</SelectItem>
-                <SelectItem value="pulses">Pulsos</SelectItem>
-            </SelectContent>
-          </Select>
-           <Select 
-                value={filters.orbitId ?? 'all'} 
-                onValueChange={handleOrbitChange} 
-                disabled={filters.level === 'orbits'}>
-            <SelectTrigger><SelectValue placeholder="Seleccionar Órbita" /></SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">Todas las Órbitas</SelectItem>
-                {allOrbits.map(o => <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>)}
-            </SelectContent>
-          </Select>
-           <Select 
-                value={filters.phaseId ?? 'all'} 
-                onValueChange={handlePhaseChange} 
-                disabled={filters.level !== 'pulses' || !filters.orbitId}>
-            <SelectTrigger><SelectValue placeholder="Seleccionar Fase" /></SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">Todas las Fases</SelectItem>
-                {filteredPhases.map(p => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold font-headline">Analítica</h1>
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mt-2">
+            <p className="text-muted-foreground flex-shrink-0">Explora el progreso por</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                <Select value={filters.level} onValueChange={handleLevelChange}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar Nivel" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="orbits">Órbitas</SelectItem>
+                        <SelectItem value="phases">Fases</SelectItem>
+                        <SelectItem value="pulses">Pulsos</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select 
+                        value={filters.orbitId ?? 'all'} 
+                        onValueChange={handleOrbitChange} 
+                        disabled={filters.level === 'orbits'}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar Órbita" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas las Órbitas</SelectItem>
+                        {allOrbits.map(o => <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select 
+                        value={filters.phaseId ?? 'all'} 
+                        onValueChange={handlePhaseChange} 
+                        disabled={filters.level !== 'pulses' || !filters.orbitId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar Fase" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas las Fases</SelectItem>
+                        {filteredPhases.map(p => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </div>
 
+
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={BarChart} title="Promedio de progreso" value={`${stats.avgProgress}%`} footer={stats.stat1_label} />
-            <StatCard icon={Layers} title={filters.level === 'orbits' ? 'Órbitas' : 'Fases'} value={stats.stat1_value.toString()} footer={stats.stat2_label} />
-            <StatCard icon={Target} title={filters.level === 'pulses' ? 'Completados' : 'Pulsos'} value={stats.stat2_value.toString()} footer={filters.level === 'pulses' ? 'vs Pendientes' : 'en total'} />
-            <StatCard icon={CheckCircle} title={filters.level === 'pulses' ? 'Pendientes' : 'Fases'} value={stats.stat3_value.toString()} footer={filters.level === 'pulses' ? '' : 'en total'} />
+            <StatCard icon={BarChart} title="Promedio de progreso" value={`${stats.avgProgress}%`} footer={`${stats.stat1_value} ${filters.level}`} />
+            <StatCard icon={Orbit} title="Órbitas" value={data.allOrbits.length.toString()} footer={`${data.allPhases.length} fases totales`} />
+            <StatCard icon={Layers} title="Fases" value={stats.stat1_value.toString()} footer={`${stats.stat2_label}`} />
+            <StatCard icon={CheckCircle} title="Pulsos" value={stats.stat2_value.toString()} footer={`${stats.stat3_value.toString()} pendientes`} />
       </div>
 
       <Card>
@@ -115,7 +123,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                 margin={{
                     top: 10,
                     right: 10,
-                    bottom: 60,
+                    bottom: 80,
                     left: -10,
                 }}
                 barCategoryGap="20%"
@@ -128,6 +136,8 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                     axisLine={false}
                     angle={-45}
                     textAnchor="end"
+                    interval={0}
+                    height={100}
                 />
                 <YAxis
                     domain={[0, 100]}
