@@ -21,7 +21,7 @@ type Level = 'orbits' | 'phases' | 'pulses';
 interface AnalyticsDashboardProps {
   data: AnalyticsData;
   onFilterChange: (filters: { level: Level; orbitId?: string | null; phaseId?: string | null; }) => void;
-  filters: { level: Level, orbitId?: string | null; phaseId?: string | null; };
+  filters: { level: Level, orbitId?: string | null; phaseId?: any | null; };
 }
 
 export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
@@ -53,6 +53,13 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
   } else if (filters.level === 'pulses') {
        chartTitle = `Progreso por Pulso`;
   }
+  
+  const tickFormatter = (value: string) => {
+    if (value.length > 20) {
+      return value.slice(0, 20) + '...';
+    }
+    return value;
+  };
 
   return (
     <div className="space-y-6">
@@ -70,7 +77,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
         </Tabs>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={ProgressCircle} title="Promedio de progreso" value={`${stats.overallProgress}%`} footer={`${stats.stat1_value} órbitas`} progress={stats.overallProgress} />
           <StatCard icon={Orbit} title="Órbitas" value={stats.stat1_value.toString()} footer={stats.stat1_label} isCount />
           <StatCard icon={Layers} title="Fases" value={stats.stat2_value.toString()} footer={stats.stat2_label} isCount />
@@ -104,6 +111,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                         axisLine={false}
                         tickMargin={10}
                         interval={0}
+                        tickFormatter={tickFormatter}
                     />
                     <YAxis type="number" domain={[0,100]} />
                     <ChartTooltip
