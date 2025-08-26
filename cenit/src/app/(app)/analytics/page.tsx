@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -54,18 +52,16 @@ export default function AnalyticsPage() {
     };
 
     return (
-        <main className="flex-1 overflow-y-auto">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                 {isLoading || !data ? (
-                    <AnalyticsSkeleton />
-                 ) : (
-                    <AnalyticsDashboard 
-                        data={data} 
-                        onFilterChange={handleFilterChange}
-                        filters={{ level, orbitId, phaseId }}
-                    />
-                 )}
-            </div>
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {isLoading || !data ? (
+                <AnalyticsSkeleton />
+            ) : (
+                <AnalyticsDashboard 
+                    data={data} 
+                    onFilterChange={handleFilterChange}
+                    filters={{ level, orbitId, phaseId }}
+                />
+            )}
         </main>
     );
 }
@@ -73,13 +69,15 @@ export default function AnalyticsPage() {
 function AnalyticsSkeleton() {
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Skeleton className="h-10" />
-                <Skeleton className="h-10" />
-                <Skeleton className="h-10" />
+            <div className="flex justify-between items-center">
+                <div className="w-1/2 space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-full" />
+                </div>
+                <Skeleton className="h-10 w-64" />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
             </div>
             <Skeleton className="h-96" />
         </div>
