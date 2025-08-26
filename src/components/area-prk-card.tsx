@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
-import React, { useState } from 'react';
+import React from 'react';
 import { Card } from './ui/card';
 import {
   Collapsible,
@@ -24,6 +24,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from './ui/badge';
 import { PulseListItem } from './pulse-list-item';
+import { ProgressCircle } from './ui/progress-circle';
 
 interface PhaseCardProps {
   phase: Phase;
@@ -46,12 +47,12 @@ export function AreaPrkCard({
   onArchivePulse,
   colorTheme
 }: PhaseCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const theme = THEMES[colorTheme];
+  const phaseProgress = phase.progress ?? 0;
 
   return (
     <div className="pl-4">
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="w-full">
+      <Collapsible defaultOpen className="w-full">
         <CollapsibleTrigger asChild>
           <div className="flex w-full items-center gap-2 py-2 group cursor-pointer border-b last:border-b-0">
             <div className="flex items-start gap-3 flex-grow text-left">
@@ -68,9 +69,8 @@ export function AreaPrkCard({
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-2 w-24 flex-shrink-0">
-                <span className="text-md font-bold text-foreground w-12 text-right">{phase.progress.toFixed(0)}%</span>
-                <Progress value={phase.progress} className="h-2 w-full" colorTheme={colorTheme} />
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <ProgressCircle progress={phaseProgress} className="h-12 w-12" />
             </div>
           </div>
         </CollapsibleTrigger>

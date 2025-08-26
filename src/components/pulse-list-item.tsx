@@ -50,7 +50,7 @@ export function PulseListItem({
         <div className="flex items-center gap-2">
             {pulse.progress !== undefined && (
                 <div className="flex items-center gap-2 w-24 flex-shrink-0">
-                    <span className="text-md font-bold text-foreground w-12 text-right">{Math.round(pulse.progress)}%</span>
+                    <span className="text-sm font-bold text-foreground w-12 text-right">{Math.round(pulse.progress)}%</span>
                     <Progress value={pulse.progress} className="h-2 w-full" colorTheme={colorTheme} />
                 </div>
             )}
