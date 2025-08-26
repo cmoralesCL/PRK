@@ -108,6 +108,7 @@ export function HabitTaskListItem({
                   {item.title}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
                     {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                     {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                 </div>
@@ -182,6 +183,7 @@ export function HabitTaskListItem({
                 <div className="pl-9 space-y-3">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
                         {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                         {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                     </div>
@@ -234,18 +236,19 @@ export function HabitTaskListItem({
                 {item.title}
             </Label>
              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
                 {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                 {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
             </div>
         </div>
         <div className="flex items-center ml-auto">
             {onEdit && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleEdit}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
                     <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
             )}
             {onArchive && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleArchive}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
                     <Archive className="h-4 w-4 text-muted-foreground" />
                 </Button>
             )}
