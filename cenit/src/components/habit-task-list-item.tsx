@@ -119,6 +119,11 @@ export function HabitTaskListItem({
                           <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
                   )}
+                  {onArchive && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
+                          <Archive className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                  )}
               </div>
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -175,6 +180,11 @@ export function HabitTaskListItem({
                         {onEdit && (
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                        )}
+                        {onArchive && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
+                                <Archive className="h-4 w-4 text-muted-foreground" />
                             </Button>
                         )}
                     </div>
@@ -243,12 +253,12 @@ export function HabitTaskListItem({
         </div>
         <div className="flex items-center ml-auto">
             {onEdit && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleEdit}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
                     <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
             )}
             {onArchive && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={handleArchive}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleArchive}>
                     <Archive className="h-4 w-4 text-muted-foreground" />
                 </Button>
             )}
