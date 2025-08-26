@@ -367,7 +367,7 @@ async function fetchAndMapHabitTasks(userId: string): Promise<Pulse[]> {
         .from('habit_tasks')
         .select('*')
         .eq('user_id', userId)
-        .order('display_order', { nullsFirst: true }); // Sort by display_order
+        .order('display_order', { nullsFirst: true });
     if (tasksError) throw tasksError;
 
     const { data: links, error: linksError } = await supabase
@@ -882,10 +882,10 @@ export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: s
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
     
-    const { data: orbits, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+    const { data: orbitsData, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) throw lifePrksError;
 
-    const { data: phases, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    const { data: phasesData, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
 
     const calculateAndRound = (startDate: Date, endDate: Date) => {
@@ -901,7 +901,7 @@ export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: s
     const overallProgress = calculateAndRound(startOfYear(new Date(2020,0,1)), endOfYear(today)); // A wide range for "all time"
 
     // Area PRK breakdown
-    const phasesWithProgress = phases.map(ap => {
+    const phasesWithProgress = phasesData.map(ap => {
         const areaTasks = allPulses.filter(t => t.phase_ids.includes(ap.id));
         const areaLogs = allProgressLogs.filter(l => areaTasks.some(t => t.id === l.habit_task_id));
 
@@ -948,8 +948,8 @@ export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: s
             weeklyProgress,
             monthlyProgress,
             quarterlyProgress,
-            orbitsCount: orbits.length,
-            phasesCount: phases.length,
+            orbitsCount: orbitsData.length,
+            phasesCount: phasesData.length,
             pulsesCompleted: allProgressLogs.length,
         },
         phases: phasesWithProgress,
@@ -960,8 +960,8 @@ export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: s
             yearly: yearlyChartData,
         },
         // Data for filters
-        orbits,
-        allPhases: phases,
+        orbits: orbitsData,
+        allPhases: phasesData,
         allPulses,
     };
 }
@@ -1027,5 +1027,7 @@ export async function getPanelData() {
         allPulses: pulsesWithProgress,
     };
 }
+
+    
 
     

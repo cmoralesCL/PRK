@@ -2,9 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp, Filter } from 'lucide-react';
+import { BookCheck, CalendarCheck, CalendarDays, Gauge, Target, TrendingUp, Filter, Orbit, CheckSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaPrk, HabitTask, LifePrk } from '@/lib/types';
+import type { AnalyticsData, Phase, Pulse, Orbit as OrbitType } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   ChartContainer,
@@ -23,44 +23,24 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from './ui/button';
+import { Label } from './ui/label';
+
 
 type ChartData = { date: string; Progreso: number }[];
 
-interface AnalyticsDataForDashboard {
-  stats: {
-    overallProgress: number;
-    weeklyProgress: number;
-    monthlyProgress: number;
-    quarterlyProgress: number;
-    lifePrksCount: number;
-    areaPrksCount: number;
-    tasksCompleted: number;
-  };
-  areaPrks: (AreaPrk & { progress: number; monthlyProgress: number })[];
-  progressOverTime: {
-    weekly: ChartData;
-    monthly: ChartData;
-    quarterly: ChartData;
-    yearly: ChartData;
-  };
-  lifePrks: LifePrk[];
-  allAreaPrks: AreaPrk[];
-  allHabitTasks: HabitTask[];
-}
-
 interface AnalyticsDashboardProps {
-  data: AnalyticsDataForDashboard;
-  onFilterChange: (filters: { lifePrkId?: string | null; areaPrkId?: string | null; habitTaskId?: string | null; }) => void;
-  filters: { lifePrkId?: string | null; areaPrkId?: string | null; habitTaskId?: string | null; };
+  data: AnalyticsData;
+  onFilterChange: (filters: { orbitId?: string | null; phaseId?: string | null; pulseId?: string | null; }) => void;
+  filters: { orbitId?: string | null; phaseId?: string | null; pulseId?: string | null; };
 }
 
 export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
-  const { stats, areaPrks, progressOverTime, lifePrks, allAreaPrks, allHabitTasks } = data;
+  const { stats, phases, progressOverTime, orbits, allPhases, allPulses } = data;
   const [chartView, setChartView] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
 
-  const [selectedLifePrk, setSelectedLifePrk] = useState<string | null>(filters.lifePrkId || null);
-  const [selectedAreaPrk, setSelectedAreaPrk] = useState<string | null>(filters.areaPrkId || null);
-  const [selectedHabitTask, setSelectedHabitTask] = useState<string | null>(filters.habitTaskId || null);
+  const [selectedOrbit, setSelectedOrbit] = useState<string | null>(filters.orbitId || null);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(filters.phaseId || null);
+  const [selectedPulse, setSelectedPulse] = useState<string | null>(filters.pulseId || null);
 
   const chartConfig = {
       Progreso: {
@@ -71,36 +51,36 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
   const currentChartData = progressOverTime[chartView];
 
-  const handleLifePrkChange = (value: string) => {
-    const newLifePrkId = value === 'all' ? null : value;
-    setSelectedLifePrk(newLifePrkId);
-    setSelectedAreaPrk(null);
-    setSelectedHabitTask(null);
-    onFilterChange({ lifePrkId: newLifePrkId, areaPrkId: null, habitTaskId: null });
+  const handleOrbitChange = (value: string) => {
+    const newOrbitId = value === 'all' ? null : value;
+    setSelectedOrbit(newOrbitId);
+    setSelectedPhase(null);
+    setSelectedPulse(null);
+    onFilterChange({ orbitId: newOrbitId, phaseId: null, pulseId: null });
   }
 
-  const handleAreaPrkChange = (value: string) => {
-    const newAreaPrkId = value === 'all' ? null : value;
-    setSelectedAreaPrk(newAreaPrkId);
-    setSelectedHabitTask(null);
-    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: newAreaPrkId, habitTaskId: null });
+  const handlePhaseChange = (value: string) => {
+    const newPhaseId = value === 'all' ? null : value;
+    setSelectedPhase(newPhaseId);
+    setSelectedPulse(null);
+    onFilterChange({ orbitId: selectedOrbit, phaseId: newPhaseId, pulseId: null });
   }
 
-  const handleHabitTaskChange = (value: string) => {
-    const newHabitTaskId = value === 'all' ? null : value;
-    setSelectedHabitTask(newHabitTaskId);
-    onFilterChange({ lifePrkId: selectedLifePrk, areaPrkId: selectedAreaPrk, habitTaskId: newHabitTaskId });
+  const handlePulseChange = (value: string) => {
+    const newPulseId = value === 'all' ? null : value;
+    setSelectedPulse(newPulseId);
+    onFilterChange({ orbitId: selectedOrbit, phaseId: selectedPhase, pulseId: newPulseId });
   }
 
   const handleResetFilters = () => {
-    setSelectedLifePrk(null);
-    setSelectedAreaPrk(null);
-    setSelectedHabitTask(null);
-    onFilterChange({ lifePrkId: null, areaPrkId: null, habitTaskId: null });
+    setSelectedOrbit(null);
+    setSelectedPhase(null);
+    setSelectedPulse(null);
+    onFilterChange({ orbitId: null, phaseId: null, pulseId: null });
   };
   
-  const filteredAreaPrks = selectedLifePrk ? allAreaPrks.filter(ap => ap.life_prk_id === selectedLifePrk) : [];
-  const filteredHabitTasks = selectedAreaPrk ? allHabitTasks.filter(ht => ht.area_prk_id === selectedAreaPrk) : [];
+  const filteredPhases = selectedOrbit ? allPhases.filter(ap => ap.life_prk_id === selectedOrbit) : [];
+  const filteredPulses = selectedPhase ? allPulses.filter(ht => ht.phase_ids.includes(selectedPhase)) : [];
   
   return (
     <div className="space-y-8">
@@ -108,14 +88,14 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
         <CardHeader>
           <CardTitle className="font-headline">Resumen de Progreso</CardTitle>
           <CardDescription>
-            Tu rendimiento en diferentes períodos de tiempo.
+            Tu rendimiento en diferentes períodos de tiempo y el estado general de tu sistema.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Progreso Semanal" value={`${stats.weeklyProgress}%`} icon={CalendarCheck} />
             <StatCard title="Progreso Mensual" value={`${stats.monthlyProgress}%`} icon={CalendarDays} />
-            <StatCard title="Progreso Trimestral" value={`${stats.quarterlyProgress}%`} icon={TrendingUp} />
-            <StatCard title="Progreso General" value={`${stats.overallProgress}%`} icon={Gauge} />
+            <StatCard title="Órbitas Activas" value={`${stats.orbitsCount}`} icon={Orbit} />
+            <StatCard title="Fases Activas" value={`${stats.phasesCount}`} icon={Target} />
         </CardContent>
       </Card>
 
@@ -123,9 +103,9 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle className="font-headline">Evolución del Progreso General</CardTitle>
+              <CardTitle className="font-headline">Evolución del Progreso</CardTitle>
               <CardDescription>
-                Rendimiento histórico agrupado por período de tiempo.
+                Rendimiento histórico. Usa los filtros para analizar áreas específicas.
               </CardDescription>
             </div>
             <ToggleGroup
@@ -146,32 +126,32 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 border rounded-lg bg-muted/50 items-end">
               <div className="grid gap-2 flex-1 w-full">
-                <Label htmlFor="life-prk-filter">PRK de Vida</Label>
-                <Select value={selectedLifePrk ?? 'all'} onValueChange={handleLifePrkChange}>
-                  <SelectTrigger id="life-prk-filter"><SelectValue placeholder="Seleccionar PRK de Vida" /></SelectTrigger>
+                <Label htmlFor="orbit-filter">Órbita</Label>
+                <Select value={selectedOrbit ?? 'all'} onValueChange={handleOrbitChange}>
+                  <SelectTrigger id="orbit-filter"><SelectValue placeholder="Seleccionar Órbita" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos (General)</SelectItem>
-                    {lifePrks.map(lp => <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>)}
+                    <SelectItem value="all">Todas (General)</SelectItem>
+                    {orbits.map(lp => <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2 flex-1 w-full">
-                 <Label htmlFor="area-prk-filter">PRK de Área</Label>
-                 <Select value={selectedAreaPrk ?? 'all'} onValueChange={handleAreaPrkChange} disabled={!selectedLifePrk}>
-                   <SelectTrigger id="area-prk-filter"><SelectValue placeholder="Seleccionar PRK de Área" /></SelectTrigger>
+                 <Label htmlFor="phase-filter">Fase</Label>
+                 <Select value={selectedPhase ?? 'all'} onValueChange={handlePhaseChange} disabled={!selectedOrbit}>
+                   <SelectTrigger id="phase-filter"><SelectValue placeholder="Seleccionar Fase" /></SelectTrigger>
                    <SelectContent>
-                      <SelectItem value="all">Todos en este PRK de Vida</SelectItem>
-                      {filteredAreaPrks.map(ap => <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>)}
+                      <SelectItem value="all">Todas en esta Órbita</SelectItem>
+                      {filteredPhases.map(ap => <SelectItem key={ap.id} value={ap.id}>{ap.title}</SelectItem>)}
                    </SelectContent>
                  </Select>
               </div>
               <div className="grid gap-2 flex-1 w-full">
-                 <Label htmlFor="habit-task-filter">Hábito/Tarea</Label>
-                 <Select value={selectedHabitTask ?? 'all'} onValueChange={handleHabitTaskChange} disabled={!selectedAreaPrk}>
-                   <SelectTrigger id="habit-task-filter"><SelectValue placeholder="Seleccionar Hábito/Tarea" /></SelectTrigger>
+                 <Label htmlFor="pulse-filter">Pulso</Label>
+                 <Select value={selectedPulse ?? 'all'} onValueChange={handlePulseChange} disabled={!selectedPhase}>
+                   <SelectTrigger id="pulse-filter"><SelectValue placeholder="Seleccionar Pulso" /></SelectTrigger>
                    <SelectContent>
-                      <SelectItem value="all">Todas en este PRK de Área</SelectItem>
-                      {filteredHabitTasks.map(ht => <SelectItem key={ht.id} value={ht.id}>{ht.title}</SelectItem>)}
+                      <SelectItem value="all">Todos en esta Fase</SelectItem>
+                      {filteredPulses.map(ht => <SelectItem key={ht.id} value={ht.id}>{ht.title}</SelectItem>)}
                    </SelectContent>
                  </Select>
               </div>
@@ -230,22 +210,22 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
       <Card>
         <CardHeader>
-            <CardTitle>Resumen de PRKs de Área</CardTitle>
+            <CardTitle>Resumen de Fases</CardTitle>
             <CardDescription>
-                Un desglose del progreso acumulado y del mes actual para cada área.
+                Un desglose del progreso acumulado y del mes actual para cada Fase.
             </CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[40%]">Nombre del PRK de Área</TableHead>
+                        <TableHead className="w-[40%]">Nombre de la Fase</TableHead>
                         <TableHead className="text-center">Progreso del Mes</TableHead>
                         <TableHead className="text-center">Progreso Acumulado</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {areaPrks.map((item) => (
+                    {phases.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.title}</TableCell>
                             <TableCell className="text-center">
@@ -300,13 +280,4 @@ function ProgressBadge({ progress }: { progress: number }) {
     );
 }
 
-interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
-
-function Label({ className, ...props }: LabelProps) {
-    return (
-        <label
-            className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)}
-            {...props}
-        />
-    )
-}
+    
