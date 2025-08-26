@@ -135,9 +135,9 @@ export type AnalyticsData = {
     stat3_value: number;
     stat3_label: string;
   };
-  chartData: { name: string; value: number }[];
+  chartData: { name: string; progress: number, remaining: number }[];
   // Data for filters
-  orbits: Orbit[];
+  allOrbits: Orbit[];
   allPhases: Phase[];
   allPulses: Pulse[];
 }

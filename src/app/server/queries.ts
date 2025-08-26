@@ -873,6 +873,7 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
 }
 
 export async function getAnalyticsData(filters: {
+    level: 'orbits' | 'phases' | 'pulses';
     orbitId?: string;
     phaseId?: string;
 }): Promise<AnalyticsData> {
@@ -890,7 +891,8 @@ export async function getAnalyticsData(filters: {
 
     const { data: allPhases, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
-    
+
+    // --- Calculate Overall Progress ---
     const orbitsWithProgress = allOrbits.map(orbit => {
         const orbitPhases = allPhases.filter(p => p.life_prk_id === orbit.id);
         if (orbitPhases.length === 0) return { ...orbit, progress: 0 };
@@ -899,78 +901,81 @@ export async function getAnalyticsData(filters: {
         const progress = calculatePeriodProgress(orbitPulses, allProgressLogs, historicalStartDate, today);
         return { ...orbit, progress };
     });
-
     const totalOverallProgress = orbitsWithProgress.reduce((sum, o) => sum + o.progress, 0);
     const overallProgress = orbitsWithProgress.length > 0 ? Math.round(totalOverallProgress / orbitsWithProgress.length) : 0;
 
-    // --- Prepare data for charts and stats ---
-    let chartData: { name: string; value: number }[] = [];
+    // --- Prepare Data for Charts and Stats ---
+    let chartData: { name: string; progress: number, remaining: number }[] = [];
     let stats = {
         avgProgress: 0,
-        overallProgress,
-        stat1_value: 0,
-        stat1_label: '',
-        stat2_value: 0,
-        stat2_label: '',
-        stat3_value: 0,
-        stat3_label: '',
+        stat1_value: 0, stat1_label: '',
+        stat2_value: 0, stat2_label: '',
+        stat3_value: 0, stat3_label: '',
     };
     
-    if (filters.phaseId) { // Pulse level
-        const selectedPhase = allPhases.find(p => p.id === filters.phaseId);
-        const pulsesInPhase = allPulses.filter(p => p.phase_ids.includes(filters.phaseId!));
-        const pulsesWithProgress = pulsesInPhase.map(p => ({
-            ...p,
-            progress: calculatePeriodProgress([p], allProgressLogs, historicalStartDate, today)
-        }));
+    if (filters.level === 'orbits') {
+        chartData = orbitsWithProgress.map(o => {
+            const progress = Math.round(o.progress);
+            return { name: o.title, progress: progress, remaining: 100 - progress };
+        });
+        stats.avgProgress = overallProgress;
+        stats.stat1_value = allOrbits.length;
+        stats.stat1_label = 'órbitas';
+        stats.stat2_value = allPhases.length;
+        stats.stat2_label = 'fases totales';
+        stats.stat3_value = allPulses.length;
+        stats.stat3_label = 'pulsos totales';
 
-        chartData = pulsesWithProgress.map(p => ({ name: p.title, value: Math.round(p.progress ?? 0) }));
-        const totalProgress = pulsesWithProgress.reduce((sum, p) => sum + (p.progress ?? 0), 0);
-        stats.avgProgress = pulsesWithProgress.length > 0 ? Math.round(totalProgress / pulsesWithProgress.length) : 0;
-        stats.stat1_value = pulsesInPhase.length;
-        stats.stat1_label = 'Pulsos en Fase';
-        stats.stat2_value = pulsesWithProgress.filter(p => (p.progress ?? 0) >= 100).length;
-        stats.stat2_label = 'Completados';
-        stats.stat3_value = pulsesWithProgress.length - stats.stat2_value;
-        stats.stat3_label = 'Pendientes';
-
-    } else if (filters.orbitId) { // Phase level
-        const phasesInOrbit = allPhases.filter(p => p.life_prk_id === filters.orbitId);
-        const phasesWithProgress = phasesInOrbit.map(phase => {
+    } else if (filters.level === 'phases') {
+        const phasesWithProgress = allPhases.map(phase => {
             const phasePulses = allPulses.filter(p => p.phase_ids.includes(phase.id));
             const progress = calculatePeriodProgress(phasePulses, allProgressLogs, historicalStartDate, today);
             return { ...phase, progress };
         });
 
-        chartData = phasesWithProgress.map(p => ({ name: p.title, value: Math.round(p.progress) }));
+        chartData = phasesWithProgress.map(p => {
+            const progress = Math.round(p.progress);
+            return { name: p.title, progress: progress, remaining: 100 - progress };
+        });
+
         const totalProgress = phasesWithProgress.reduce((sum, p) => sum + p.progress, 0);
         stats.avgProgress = phasesWithProgress.length > 0 ? Math.round(totalProgress / phasesWithProgress.length) : 0;
-        stats.stat1_value = phasesInOrbit.length;
-        stats.stat1_label = 'Fases en Órbita';
-        const pulsesInOrbit = allPulses.filter(p => p.phase_ids.some(pid => phasesInOrbit.map(ph => ph.id).includes(pid))).length;
-        stats.stat2_value = pulsesInOrbit
-        stats.stat2_label = `${pulsesInOrbit} pulsos`;
-        stats.stat3_value = 0;
-        stats.stat3_label = '';
-
-    } else { // Orbit level
-        chartData = orbitsWithProgress.map(o => ({ name: o.title, value: Math.round(o.progress) }));
-        stats.avgProgress = overallProgress;
         stats.stat1_value = allOrbits.length;
-        stats.stat1_label = 'Órbitas';
+        stats.stat1_label = 'órbitas';
         stats.stat2_value = allPhases.length;
-        stats.stat2_label = `${allPhases.length} fases`;
+        stats.stat2_label = 'fases';
         stats.stat3_value = allPulses.length;
-        stats.stat3_label = `${allPulses.length} pulsos`;
+        stats.stat3_label = 'pulsos';
+    
+    } else if (filters.level === 'pulses') {
+        const pulsesWithProgress = allPulses.map(p => ({
+            ...p,
+            progress: calculatePeriodProgress([p], allProgressLogs, historicalStartDate, today)
+        }));
+
+        chartData = pulsesWithProgress.map(p => {
+            const progress = Math.round(p.progress ?? 0);
+            return { name: p.title, progress: progress, remaining: 100 - progress };
+        });
+        
+        const totalProgress = pulsesWithProgress.reduce((sum, p) => sum + (p.progress ?? 0), 0);
+        stats.avgProgress = pulsesWithProgress.length > 0 ? Math.round(totalProgress / pulsesWithProgress.length) : 0;
+        const completed = pulsesWithProgress.filter(p => (p.progress ?? 0) >= 100).length;
+        
+        stats.stat1_value = allOrbits.length;
+        stats.stat1_label = 'órbitas';
+        stats.stat2_value = allPhases.length;
+        stats.stat2_label = 'fases';
+        stats.stat3_value = completed;
+        stats.stat3_label = `de ${allPulses.length} pulsos completados`;
     }
 
     return {
-        stats,
+        stats: { ...stats, overallProgress },
         chartData,
-        // Data for filters
-        orbits: allOrbits,
-        allPhases: allPhases,
-        allPulses: allPulses,
+        allOrbits,
+        allPhases,
+        allPulses,
     };
 }
 
@@ -1035,3 +1040,8 @@ export async function getPanelData() {
         allPulses: pulsesWithProgress,
     };
 }
+
+    
+
+    
+
