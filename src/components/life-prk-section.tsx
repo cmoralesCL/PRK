@@ -4,7 +4,6 @@
 import * as React from 'react';
 import { Target, Plus, Archive, MoreVertical, Pencil, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { AreaPrkCard } from './area-prk-card';
 import type { Orbit, Phase, Pulse } from '@/lib/types';
 import {
@@ -19,6 +18,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { THEMES } from '@/lib/themes';
+import { ProgressCircle } from './ui/progress-circle';
+import { Badge } from './ui/badge';
 
 interface OrbitSectionProps {
   orbit: Orbit;
@@ -51,6 +52,10 @@ export function LifePrkSection({
   const orbitProgress = orbit.progress ?? 0;
   const colorTheme = orbit.color_theme || 'mint';
   const theme = THEMES[colorTheme];
+  
+  const pulseCount = phases.reduce((acc, phase) => {
+    return acc + allPulses.filter(p => p.phase_ids.includes(phase.id)).length;
+  }, 0);
 
   return (
     <AccordionItem value={orbit.id} className="border-b-0">
@@ -69,11 +74,14 @@ export function LifePrkSection({
                         {orbit.description && (
                             <p className="text-sm text-muted-foreground font-normal max-w-md">{orbit.description}</p>
                         )}
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="secondary">{phases.length} Fases</Badge>
+                            <Badge variant="secondary">{pulseCount} Pulsos</Badge>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 w-24 flex-shrink-0">
-                    <span className="text-lg font-bold text-foreground w-12 text-right">{orbitProgress.toFixed(0)}%</span>
-                    <Progress value={orbitProgress} className="h-2 w-full" colorTheme={colorTheme} />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                   <ProgressCircle progress={orbitProgress} />
                 </div>
             </div>
         </AccordionTrigger>

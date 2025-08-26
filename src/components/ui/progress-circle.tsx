@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -19,12 +18,12 @@ export const ProgressCircle = React.forwardRef<
   return (
     <svg
       ref={ref}
-      className={cn("h-10 w-10", className)}
+      className={cn("h-16 w-16", className)}
       viewBox="0 0 40 40"
       {...props}
     >
       <circle
-        className="text-muted"
+        className="text-muted/20"
         strokeWidth="4"
         stroke="currentColor"
         fill="transparent"
@@ -34,9 +33,11 @@ export const ProgressCircle = React.forwardRef<
       />
       <circle
         className="text-primary transition-all duration-500 ease-in-out"
+        style={{
+            strokeDashoffset: offset,
+            strokeDasharray: circumference,
+        }}
         strokeWidth="4"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
         strokeLinecap="round"
         stroke="currentColor"
         fill="transparent"
@@ -50,7 +51,7 @@ export const ProgressCircle = React.forwardRef<
         y="50%"
         textAnchor="middle"
         dy=".3em"
-        className="text-xs font-bold fill-current text-foreground"
+        className="text-sm font-bold fill-current text-foreground"
       >
         {`${Math.round(progress)}%`}
       </text>
