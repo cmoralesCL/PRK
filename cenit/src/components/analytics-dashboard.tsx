@@ -141,7 +141,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                 />
                 <YAxis
                     domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
+                    tickFormatter={(value) => `${value}`}
                 />
                 <ChartTooltip
                     cursor={true}
