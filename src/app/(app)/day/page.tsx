@@ -4,35 +4,17 @@ import * as React from 'react';
 import { getDashboardData } from '@/app/server/queries';
 import { parseISO, format } from 'date-fns';
 import { DayView } from '@/components/day-view';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import type { DailyProgressSnapshot } from '@/lib/types';
 import { getQuoteOfTheDay } from '@/ai/flows/get-quote-of-the-day';
 
 export const dynamic = 'force-dynamic';
 
-async function getUserAndDate(searchParams: { date?: string }) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/login');
-    }
-
-    const selectedDateString = searchParams.date || format(new Date(), 'yyyy-MM-dd');
-    const selectedDate = parseISO(selectedDateString);
-
-    return { user, selectedDate, selectedDateString };
-}
-
 export default async function DayPage({ searchParams }: { searchParams: { date?: string } }) {
-  const { user, selectedDate, selectedDateString } = await getUserAndDate(searchParams);
+  const selectedDateString = searchParams.date || format(new Date(), 'yyyy-MM-dd');
   
-  // Fetch all dashboard data for the selected date. This now includes weekly and monthly progress.
   const { orbits, phases, pulses, commitments, weeklyProgress, monthlyProgress } = await getDashboardData(selectedDateString);
   const quoteData = await getQuoteOfTheDay();
 
-  // Derive the daily progress for the week from the main dashboard data for consistency.
   const totalWeight = pulses.reduce((sum, task) => {
     if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
         return sum + task.weight;
@@ -53,8 +35,6 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
 
   const dailyProgress = totalWeight > 0 ? (weightedCompleted / totalWeight) * 100 : 0;
 
-  // This is a simplified approach for the DayPage. A full week fetch might be needed if nav becomes complex.
-  // For now, we only need the progress for the *selected* day to be accurate.
   const dailyProgressDataForWeek: DailyProgressSnapshot[] = [{
       snapshot_date: selectedDateString,
       progress: dailyProgress,
@@ -63,7 +43,6 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
 
   return (
     <DayView
-        userEmail={user.email}
         orbits={orbits}
         phases={phases}
         pulses={pulses}
