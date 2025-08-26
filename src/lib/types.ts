@@ -126,21 +126,16 @@ export interface KpiData {
 
 export type AnalyticsData = {
   stats: {
+    avgProgress: number;
     overallProgress: number;
-    weeklyProgress: number;
-    monthlyProgress: number;
-    quarterlyProgress: number;
-    orbitsCount: number;
-    phasesCount: number;
-    pulsesCompleted: number;
+    stat1_value: number;
+    stat1_label: string;
+    stat2_value: number;
+    stat2_label: string;
+    stat3_value: number;
+    stat3_label: string;
   };
-  phases: (Phase & { progress: number; monthlyProgress: number })[];
-  progressOverTime: {
-    weekly: { date: string; Progreso: number }[];
-    monthly: { date: string; Progreso: number }[];
-    quarterly: { date: string; Progreso: number }[];
-    yearly: { date: string; Progreso: number }[];
-  };
+  chartData: { name: string; value: number }[];
   // Data for filters
   orbits: Orbit[];
   allPhases: Phase[];

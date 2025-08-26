@@ -872,97 +872,105 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
     return progress > 100 ? 100 : progress;
 }
 
-export async function getAnalyticsData(filters?: { orbitId?: string; phaseId?: string; pulseId?: string; }): Promise<AnalyticsData> {
+export async function getAnalyticsData(filters: {
+    orbitId?: string;
+    phaseId?: string;
+}): Promise<AnalyticsData> {
     const supabase = createClient();
     const userId = await getCurrentUserId();
     const today = new Date();
+    const historicalStartDate = new Date(2020, 0, 1);
 
     const allPulses = await fetchAndMapHabitTasks(userId);
-
     const { data: allProgressLogs, error: progressLogsError } = await supabase.from('progress_logs').select('*').eq('user_id', userId);
     if (progressLogsError) throw progressLogsError;
-    
-    const { data: orbitsData, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
+
+    const { data: allOrbits, error: lifePrksError } = await supabase.from('life_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (lifePrksError) throw lifePrksError;
 
-    const { data: phasesData, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
+    const { data: allPhases, error: areaPrksError } = await supabase.from('area_prks').select('*').eq('archived', false).eq('user_id', userId);
     if (areaPrksError) throw areaPrksError;
-
-    const calculateAndRound = (startDate: Date, endDate: Date) => {
-        const periodLogs = allProgressLogs.filter(log => isWithinInterval(parseISO(log.completion_date), { start: startDate, end: endDate }));
-        const progress = calculatePeriodProgress(allPulses, periodLogs, startDate, endDate);
-        return Math.round(progress > 100 ? 100 : progress);
-    };
-
-    // Stats
-    const weeklyProgress = calculateAndRound(startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 }));
-    const monthlyProgress = calculateAndRound(startOfMonth(today), endOfMonth(today));
-    const quarterlyProgress = calculateAndRound(startOfQuarter(today), endOfQuarter(today));
-    const overallProgress = calculateAndRound(startOfYear(new Date(2020,0,1)), endOfYear(today)); // A wide range for "all time"
-
-    // Area PRK breakdown
-    const phasesWithProgress = phasesData.map(ap => {
-        const areaTasks = allPulses.filter(t => t.phase_ids.includes(ap.id));
-        const areaLogs = allProgressLogs.filter(l => areaTasks.some(t => t.id === l.habit_task_id));
-
-        const overall = calculatePeriodProgress(areaTasks, areaLogs, startOfYear(new Date(2020,0,1)), endOfYear(today));
-        const monthly = calculatePeriodProgress(areaTasks, areaLogs, startOfMonth(today), endOfMonth(today));
-        
-        return {
-            ...ap,
-            progress: Math.round(overall > 100 ? 100 : overall),
-            monthlyProgress: Math.round(monthly > 100 ? 100 : monthly),
-        };
+    
+    const orbitsWithProgress = allOrbits.map(orbit => {
+        const orbitPhases = allPhases.filter(p => p.life_prk_id === orbit.id);
+        if (orbitPhases.length === 0) return { ...orbit, progress: 0 };
+        const phaseIds = orbitPhases.map(p => p.id);
+        const orbitPulses = allPulses.filter(p => p.phase_ids.some(pid => phaseIds.includes(pid)));
+        const progress = calculatePeriodProgress(orbitPulses, allProgressLogs, historicalStartDate, today);
+        return { ...orbit, progress };
     });
 
-    // Chart Data
-    const historyStartDate = subYears(today, 2);
-    const weeklyChartData = eachWeekOfInterval({ start: historyStartDate, end: today }, { weekStartsOn: 1 })
-        .map(weekStart => ({
-            date: format(weekStart, 'dd/MM/yy'),
-            Progreso: calculateAndRound(weekStart, endOfWeek(weekStart, { weekStartsOn: 1 }))
-        }));
+    const totalOverallProgress = orbitsWithProgress.reduce((sum, o) => sum + o.progress, 0);
+    const overallProgress = orbitsWithProgress.length > 0 ? Math.round(totalOverallProgress / orbitsWithProgress.length) : 0;
+
+    // --- Prepare data for charts and stats ---
+    let chartData: { name: string; value: number }[] = [];
+    let stats = {
+        avgProgress: 0,
+        overallProgress,
+        stat1_value: 0,
+        stat1_label: '',
+        stat2_value: 0,
+        stat2_label: '',
+        stat3_value: 0,
+        stat3_label: '',
+    };
     
-    const monthlyChartData = eachMonthOfInterval({ start: historyStartDate, end: today })
-        .map(monthStart => ({
-            date: format(monthStart, 'MMM yy', { locale: es }),
-            Progreso: calculateAndRound(monthStart, endOfMonth(monthStart))
+    if (filters.phaseId) { // Pulse level
+        const selectedPhase = allPhases.find(p => p.id === filters.phaseId);
+        const pulsesInPhase = allPulses.filter(p => p.phase_ids.includes(filters.phaseId!));
+        const pulsesWithProgress = pulsesInPhase.map(p => ({
+            ...p,
+            progress: calculatePeriodProgress([p], allProgressLogs, historicalStartDate, today)
         }));
 
-    const quarterlyChartData = eachQuarterOfInterval({ start: historyStartDate, end: today })
-        .map(qStart => ({
-            date: `Q${format(qStart, 'q yyyy')}`,
-            Progreso: calculateAndRound(qStart, endOfQuarter(qStart))
-        }));
+        chartData = pulsesWithProgress.map(p => ({ name: p.title, value: Math.round(p.progress ?? 0) }));
+        const totalProgress = pulsesWithProgress.reduce((sum, p) => sum + (p.progress ?? 0), 0);
+        stats.avgProgress = pulsesWithProgress.length > 0 ? Math.round(totalProgress / pulsesWithProgress.length) : 0;
+        stats.stat1_value = pulsesInPhase.length;
+        stats.stat1_label = 'Pulsos en Fase';
+        stats.stat2_value = pulsesWithProgress.filter(p => (p.progress ?? 0) >= 100).length;
+        stats.stat2_label = 'Completados';
+        stats.stat3_value = pulsesWithProgress.length - stats.stat2_value;
+        stats.stat3_label = 'Pendientes';
 
-    const yearlyChartData = [
-        { date: getYear(subYears(today, 2)).toString(), Progreso: calculateAndRound(startOfYear(subYears(today, 2)), endOfYear(subYears(today, 2))) },
-        { date: getYear(subYears(today, 1)).toString(), Progreso: calculateAndRound(startOfYear(subYears(today, 1)), endOfYear(subYears(today, 1))) },
-        { date: getYear(today).toString(), Progreso: calculateAndRound(startOfYear(today), endOfYear(today)) },
-    ];
+    } else if (filters.orbitId) { // Phase level
+        const phasesInOrbit = allPhases.filter(p => p.life_prk_id === filters.orbitId);
+        const phasesWithProgress = phasesInOrbit.map(phase => {
+            const phasePulses = allPulses.filter(p => p.phase_ids.includes(phase.id));
+            const progress = calculatePeriodProgress(phasePulses, allProgressLogs, historicalStartDate, today);
+            return { ...phase, progress };
+        });
 
+        chartData = phasesWithProgress.map(p => ({ name: p.title, value: Math.round(p.progress) }));
+        const totalProgress = phasesWithProgress.reduce((sum, p) => sum + p.progress, 0);
+        stats.avgProgress = phasesWithProgress.length > 0 ? Math.round(totalProgress / phasesWithProgress.length) : 0;
+        stats.stat1_value = phasesInOrbit.length;
+        stats.stat1_label = 'Fases en Órbita';
+        const pulsesInOrbit = allPulses.filter(p => p.phase_ids.some(pid => phasesInOrbit.map(ph => ph.id).includes(pid))).length;
+        stats.stat2_value = pulsesInOrbit
+        stats.stat2_label = `${pulsesInOrbit} pulsos`;
+        stats.stat3_value = 0;
+        stats.stat3_label = '';
+
+    } else { // Orbit level
+        chartData = orbitsWithProgress.map(o => ({ name: o.title, value: Math.round(o.progress) }));
+        stats.avgProgress = overallProgress;
+        stats.stat1_value = allOrbits.length;
+        stats.stat1_label = 'Órbitas';
+        stats.stat2_value = allPhases.length;
+        stats.stat2_label = `${allPhases.length} fases`;
+        stats.stat3_value = allPulses.length;
+        stats.stat3_label = `${allPulses.length} pulsos`;
+    }
 
     return {
-        stats: {
-            overallProgress,
-            weeklyProgress,
-            monthlyProgress,
-            quarterlyProgress,
-            orbitsCount: orbitsData.length,
-            phasesCount: phasesData.length,
-            pulsesCompleted: allProgressLogs.length,
-        },
-        phases: phasesWithProgress,
-        progressOverTime: { 
-            weekly: weeklyChartData,
-            monthly: monthlyChartData,
-            quarterly: quarterlyChartData,
-            yearly: yearlyChartData,
-        },
+        stats,
+        chartData,
         // Data for filters
-        orbits: orbitsData,
-        allPhases: phasesData,
-        allPulses,
+        orbits: allOrbits,
+        allPhases: allPhases,
+        allPulses: allPulses,
     };
 }
 
@@ -1027,7 +1035,3 @@ export async function getPanelData() {
         allPulses: pulsesWithProgress,
     };
 }
-
-    
-
-    
