@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import Link from 'next/link';
 import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
+import { AppHeader } from './app-header';
 
 interface QuoteCardProps {
     quote: QuoteOfTheDayOutput;
@@ -42,6 +43,7 @@ function QuoteCard({ quote }: QuoteCardProps) {
 
 
 interface DayViewProps {
+  userEmail?: string | null;
   orbits: Orbit[];
   phases: Phase[];
   pulses: Pulse[];
@@ -54,6 +56,7 @@ interface DayViewProps {
 }
 
 export function DayView({
+  userEmail,
   orbits,
   phases,
   pulses: initialPulses,
@@ -251,7 +254,8 @@ export function DayView({
 
   return (
     <>
-      <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
+      <AppHeader userEmail={userEmail} />
+      <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
         
         <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
         
@@ -351,7 +355,7 @@ export function DayView({
         
         <QuoteCard quote={quote} />
 
-      </main>
+      </div>
 
       {/* Hidden button to be triggered by the global FAB */}
       <button id="day-view-fab-trigger" onClick={() => handleOpenAddPulseDialog()} className="hidden" aria-hidden="true"></button>

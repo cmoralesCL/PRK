@@ -63,6 +63,7 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
 
   return (
     <DayView
+        userEmail={user.email}
         orbits={orbits}
         phases={phases}
         pulses={pulses}
