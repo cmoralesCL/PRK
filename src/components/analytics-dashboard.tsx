@@ -1,7 +1,6 @@
-
 'use client';
 
-import { BarChart, Layers, Target, CheckCircle, Orbit, LineChart } from 'lucide-react';
+import { Layers, CheckCircle, Orbit, LineChart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { AnalyticsData } from '@/lib/types';
 import {
@@ -11,17 +10,10 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart, Text, Legend } from "recharts"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts"
 import { useState, useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { ProgressCircle } from './ui/progress-circle';
 
 type Level = 'orbits' | 'phases' | 'pulses';
@@ -33,13 +25,12 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
-  const { stats, chartData, allOrbits, allPhases } = data;
+  const { stats, chartData } = data;
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
 
   const handleLevelChange = (value: Level) => {
     onFilterChange({ level: value, orbitId: null, phaseId: null });
@@ -62,28 +53,6 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
   } else if (filters.level === 'pulses') {
        chartTitle = `Progreso por Pulso`;
   }
-  
-  const CustomTick = (props: any) => {
-    const { x, y, payload } = props;
-    const MAX_LENGTH = 15;
-    const displayName = payload.value.length > MAX_LENGTH ? `${payload.value.substring(0, MAX_LENGTH)}...` : payload.value;
-
-    return (
-      <g transform={`translate(${x},${y})`}>
-        <text
-            x={0}
-            y={0}
-            dy={16}
-            textAnchor="end"
-            fill="hsl(var(--muted-foreground))"
-            transform="rotate(-35)"
-            className="text-xs"
-        >
-            {displayName}
-        </text>
-      </g>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -92,7 +61,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
           <h1 className="text-3xl font-bold font-headline">Analítica</h1>
           <p className="text-muted-foreground">Visualiza y compara progreso por Órbitas, Fases y Pulsos.</p>
         </div>
-        <Tabs value={filters.level} onValueChange={handleLevelChange} className="w-full max-w-xs">
+        <Tabs value={filters.level} onValueChange={(v) => handleLevelChange(v as Level)} className="w-full max-w-xs">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="orbits">Órbitas</TabsTrigger>
             <TabsTrigger value="phases">Fases</TabsTrigger>
@@ -103,9 +72,9 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={ProgressCircle} title="Promedio de progreso" value={`${stats.overallProgress}%`} footer={`${stats.stat1_value} órbitas`} progress={stats.overallProgress} />
-          <StatCard icon={Orbit} title="Órbitas" value={stats.stat1_value.toString()} footer={stats.stat1_label} />
-          <StatCard icon={Layers} title="Fases" value={stats.stat2_value.toString()} footer={stats.stat2_label} />
-          <StatCard icon={CheckCircle} title="Pulsos" value={stats.stat3_value.toString()} footer={stats.stat3_label} />
+          <StatCard icon={Orbit} title="Órbitas" value={stats.stat1_value.toString()} footer={stats.stat1_label} isCount />
+          <StatCard icon={Layers} title="Fases" value={stats.stat2_value.toString()} footer={stats.stat2_label} isCount />
+          <StatCard icon={CheckCircle} title="Pulsos" value={stats.stat3_value.toString()} footer={stats.stat3_label} isCount />
       </div>
 
       <Card>
@@ -125,7 +94,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                     accessibilityLayer
                     data={chartData}
                     margin={{
-                      top: 10, right: 20, bottom: 60, left: 0
+                      top: 10, right: 20, bottom: 20, left: 0
                     }}
                 >
                     <CartesianGrid vertical={false} />
@@ -134,9 +103,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
-                        height={50}
                         interval={0}
-                        tick={<CustomTick />}
                     />
                     <YAxis type="number" domain={[0,100]} />
                     <ChartTooltip
@@ -165,28 +132,43 @@ interface StatCardProps {
   footer: string;
   icon: React.ElementType;
   progress?: number;
+  isCount?: boolean;
 }
 
-function StatCard({ title, value, footer, icon: Icon, progress }: StatCardProps) {
-  return (
-    <Card>
-        <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-            <div className="flex items-center justify-center">
-              {progress !== undefined ? (
-                  <ProgressCircle progress={progress} className="h-10 w-10" />
-              ) : (
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                      <Icon className="h-6 w-6 text-primary" />
-                  </div>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{title}</p>
-              <p className="text-2xl font-bold">{value}</p>
+function StatCard({ title, value, footer, icon: Icon, progress, isCount = false }: StatCardProps) {
+  if (isCount) {
+    return (
+       <Card>
+        <CardHeader className="pb-4">
+           <div className="p-2 bg-primary/10 rounded-lg w-fit">
+              <Icon className="h-6 w-6 text-primary" />
             </div>
         </CardHeader>
         <CardContent>
-            <p className="text-xs text-muted-foreground ml-14">{footer}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold">{value}</p>
+        </CardContent>
+    </Card>
+    )
+  }
+
+  return (
+    <Card>
+        <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+            {progress !== undefined ? (
+                <ProgressCircle progress={progress} className="h-14 w-14" />
+            ) : (
+                <div className="p-2 bg-primary/10 rounded-lg">
+                    <Icon className="h-6 w-6 text-primary" />
+                </div>
+            )}
+            <div>
+              <p className="text-sm text-muted-foreground">{title}</p>
+              <p className="text-3xl font-bold">{value}</p>
+            </div>
+        </CardHeader>
+        <CardContent>
+            <p className="text-xs text-muted-foreground ml-[68px]">{footer}</p>
         </CardContent>
     </Card>
   );
