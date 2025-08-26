@@ -124,23 +124,21 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                 <RechartsBarChart 
                     accessibilityLayer
                     data={chartData}
-                    layout="vertical"
-                    stackOffset="expand"
                     margin={{
-                      top: 10, right: 20, bottom: 40, left: 20
+                      top: 10, right: 20, bottom: 60, left: 0
                     }}
                 >
-                    <CartesianGrid horizontal={false} />
-                    <YAxis
-                        type="category"
+                    <CartesianGrid vertical={false} />
+                    <XAxis
                         dataKey="name"
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
-                        width={120}
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                        height={50}
+                        interval={0}
+                        tick={<CustomTick />}
                     />
-                    <XAxis type="number" hide domain={[0,100]} />
+                    <YAxis type="number" domain={[0,100]} />
                     <ChartTooltip
                         cursor={true}
                         content={<ChartTooltipContent indicator="line" />}
