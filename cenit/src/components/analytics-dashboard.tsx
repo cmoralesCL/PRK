@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useState, useEffect } from 'react';
+import { Skeleton } from './ui/skeleton';
 
 type Level = 'orbits' | 'phases' | 'pulses';
 
@@ -28,6 +30,12 @@ interface AnalyticsDashboardProps {
 
 export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
   const { stats, chartData, orbits, allPhases } = data;
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const handleLevelChange = (value: Level) => {
     onFilterChange({ level: value, orbitId: null, phaseId: null });
@@ -133,40 +141,44 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="min-h-[250px] w-full h-96">
-            <RechartsBarChart 
-                accessibilityLayer
-                data={chartData}
-                margin={{
-                    top: 10,
-                    right: 10,
-                    bottom: 80,
-                    left: -10,
-                }}
-                barCategoryGap="20%"
-            >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                    dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    interval={0}
-                    height={120}
-                    tick={<CustomTick />}
-                />
-                <YAxis
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}`}
-                />
-                <ChartTooltip
-                    cursor={true}
-                    content={<ChartTooltipContent indicator="line" />}
-                />
-                <Bar 
-                    dataKey="value"
-                    fill="var(--color-value)"
-                    radius={[4, 4, 0, 0]}
-                />
-            </RechartsBarChart>
+            {isClient ? (
+                <RechartsBarChart 
+                    accessibilityLayer
+                    data={chartData}
+                    margin={{
+                        top: 10,
+                        right: 10,
+                        bottom: 80,
+                        left: -10,
+                    }}
+                    barCategoryGap="20%"
+                >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={false}
+                        interval={0}
+                        height={120}
+                        tick={<CustomTick />}
+                    />
+                    <YAxis
+                        domain={[0, 100]}
+                        tickFormatter={(value) => `${value}`}
+                    />
+                    <ChartTooltip
+                        cursor={true}
+                        content={<ChartTooltipContent indicator="line" />}
+                    />
+                    <Bar 
+                        dataKey="value"
+                        fill="var(--color-value)"
+                        radius={[4, 4, 0, 0]}
+                    />
+                </RechartsBarChart>
+            ) : (
+                <Skeleton className="h-full w-full" />
+            )}
           </ChartContainer>
         </CardContent>
       </Card>
