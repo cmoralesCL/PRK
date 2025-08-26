@@ -60,9 +60,9 @@ export function LifePrkSection({
   return (
     <AccordionItem value={orbit.id} className="border-b-0">
       <div className="bg-card rounded-lg shadow-sm border">
-        <AccordionTrigger className="p-3 hover:no-underline w-full">
-            <div className="flex items-center justify-between gap-4 w-full">
-                <div className="flex items-start gap-3 flex-grow text-left">
+        <div className="p-3 flex items-center justify-between gap-4 w-full">
+            <AccordionTrigger className="p-0 hover:no-underline flex-grow">
+                <div className="flex items-start gap-3 text-left">
                     <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180 flex-shrink-0 mt-1" />
                     <div className="flex-shrink-0 text-white p-2 rounded-full mt-0.5" style={{ background: theme.gradient }}>
                         <Target className="h-5 w-5" />
@@ -80,11 +80,28 @@ export function LifePrkSection({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                   <ProgressCircle progress={orbitProgress} />
-                </div>
+            </AccordionTrigger>
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <ProgressCircle progress={orbitProgress} />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(orbit)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar Órbita
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onArchive(orbit.id)}>
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archivar Órbita
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-        </AccordionTrigger>
+        </div>
         
       <AccordionContent className="pb-2 px-3">
         <div className="pt-2 space-y-2 border-t mt-2">

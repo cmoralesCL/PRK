@@ -1,9 +1,8 @@
 
 'use client';
 
-import { Plus, Archive, ChevronDown, Pencil, CheckSquare, Repeat, Target, CheckCircle, Circle, Zap } from 'lucide-react';
+import { Plus, Archive, ChevronDown, Pencil, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import type { Phase, Pulse, ColorTheme } from '@/lib/types';
 import {
   DropdownMenu,
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
 import React from 'react';
-import { Card } from './ui/card';
 import {
   Collapsible,
   CollapsibleContent,
@@ -53,9 +51,9 @@ export function AreaPrkCard({
   return (
     <div className="pl-4">
       <Collapsible defaultOpen className="w-full">
-        <CollapsibleTrigger asChild>
-          <div className="flex w-full items-center gap-2 py-2 group cursor-pointer border-b last:border-b-0">
-            <div className="flex items-start gap-3 flex-grow text-left">
+        <div className="flex w-full items-center gap-2 py-2 group border-b last:border-b-0">
+          <CollapsibleTrigger asChild>
+            <div className="flex items-start gap-3 flex-grow text-left cursor-pointer">
                 <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180 flex-shrink-0 mt-1" />
                 <div className="p-1.5 rounded-full mt-0.5" style={{ background: theme.gradient, color: 'white' }}>
                     <Target className="h-4 w-4" />
@@ -69,11 +67,28 @@ export function AreaPrkCard({
                     )}
                 </div>
             </div>
+          </CollapsibleTrigger>
             <div className="flex items-center gap-2 flex-shrink-0">
                 <ProgressCircle progress={phaseProgress} className="h-12 w-12" />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(phase)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar Fase
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onArchive(phase.id)}>
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archivar Fase
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-          </div>
-        </CollapsibleTrigger>
+        </div>
 
         <CollapsibleContent className="pl-12 py-2">
             <div className="space-y-2">
