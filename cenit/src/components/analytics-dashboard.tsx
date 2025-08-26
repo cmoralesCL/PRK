@@ -9,7 +9,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts"
+import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart, Text } from "recharts"
 import {
   Select,
   SelectContent,
@@ -27,7 +27,7 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsDashboardProps) {
-  const { stats, chartData, allOrbits, allPhases } = data;
+  const { stats, chartData, orbits, allPhases } = data;
 
   const handleLevelChange = (value: Level) => {
     onFilterChange({ level: value, orbitId: null, phaseId: null });
@@ -35,12 +35,12 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
   const handleOrbitChange = (orbitId: string) => {
     const newOrbitId = orbitId === 'all' ? null : orbitId;
-    onFilterChange({ level: filters.level, orbitId: newOrbitId, phaseId: null });
+    onFilterChange({ level: 'phases', orbitId: newOrbitId, phaseId: null });
   }
 
   const handlePhaseChange = (phaseId: string) => {
     const newPhaseId = phaseId === 'all' ? null : phaseId;
-    onFilterChange({ level: filters.level, orbitId: filters.orbitId, phaseId: newPhaseId });
+    onFilterChange({ level: 'pulses', orbitId: filters.orbitId, phaseId: newPhaseId });
   }
 
   const chartConfig = {
@@ -54,12 +54,28 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
   let chartTitle = 'Progreso por Órbita';
   if (filters.level === 'phases' && filters.orbitId) {
-      const orbit = allOrbits.find(o => o.id === filters.orbitId);
+      const orbit = orbits.find(o => o.id === filters.orbitId);
       chartTitle = orbit ? `Progreso por Fase en "${orbit.title}"` : 'Progreso por Fase';
   } else if (filters.level === 'pulses' && filters.phaseId) {
        const phase = allPhases.find(p => p.id === filters.phaseId);
        chartTitle = phase ? `Progreso por Pulso en "${phase.title}"` : 'Progreso por Pulso';
   }
+  
+  const CustomTick = (props: any) => {
+    const { x, y, payload } = props;
+    return (
+      <Text
+        x={x}
+        y={y}
+        width={100}
+        textAnchor="middle"
+        verticalAnchor="start"
+        className="text-xs fill-muted-foreground"
+      >
+        {payload.value}
+      </Text>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -83,7 +99,7 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                     <SelectTrigger><SelectValue placeholder="Seleccionar Órbita" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todas las Órbitas</SelectItem>
-                        {allOrbits.map(o => <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>)}
+                        {orbits.map(o => <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select 
@@ -102,10 +118,10 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
 
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={BarChart} title="Promedio de progreso" value={`${stats.avgProgress}%`} footer={`${stats.stat1_value} ${filters.level}`} />
-            <StatCard icon={Orbit} title="Órbitas" value={data.allOrbits.length.toString()} footer={`${data.allPhases.length} fases totales`} />
-            <StatCard icon={Layers} title="Fases" value={stats.stat1_value.toString()} footer={`${stats.stat2_label}`} />
-            <StatCard icon={CheckCircle} title="Pulsos" value={stats.stat2_value.toString()} footer={`${stats.stat3_value.toString()} pendientes`} />
+            <StatCard icon={BarChart} title="Promedio de progreso" value={`${stats.overallProgress}%`} footer={`${data.orbits.length} órbitas`} />
+            <StatCard icon={Orbit} title="Órbitas" value={stats.stat1_value.toString()} footer={stats.stat1_label} />
+            <StatCard icon={Layers} title="Fases" value={stats.stat2_value.toString()} footer={stats.stat2_label} />
+            <StatCard icon={CheckCircle} title="Pulsos" value={stats.stat3_value.toString()} footer={stats.stat3_label} />
       </div>
 
       <Card>
@@ -132,12 +148,10 @@ export function AnalyticsDashboard({ data, onFilterChange, filters }: AnalyticsD
                 <XAxis
                     dataKey="name"
                     tickLine={false}
-                    tickMargin={10}
                     axisLine={false}
-                    angle={-45}
-                    textAnchor="end"
                     interval={0}
-                    height={100}
+                    height={120}
+                    tick={<CustomTick />}
                 />
                 <YAxis
                     domain={[0, 100]}
