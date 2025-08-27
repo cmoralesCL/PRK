@@ -14,7 +14,9 @@ export const ProgressCircle = React.forwardRef<
 >(({ className, progress, ...props }, ref) => {
   const radius = 18
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (progress / 100) * circumference
+  // We allow progress to go over 100% for the visual effect, but cap it at a high number to avoid weird rendering
+  const effectiveProgress = Math.min(progress, 1000); 
+  const offset = circumference - (effectiveProgress / 100) * circumference
 
   return (
     <svg
@@ -52,7 +54,7 @@ export const ProgressCircle = React.forwardRef<
         y="50%"
         textAnchor="middle"
         dy=".3em"
-        className="text-base font-bold fill-current text-foreground"
+        className="text-sm font-bold fill-current text-foreground"
       >
         {`${Math.round(progress)}%`}
       </text>
