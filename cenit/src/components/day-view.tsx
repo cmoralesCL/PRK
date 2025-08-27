@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -162,7 +163,11 @@ export function DayView({
             if (pulse.measurement_type === 'quantitative' && progressValue) {
                 // For quantitative, log a negative progress value to subtract
                 await logPulseCompletion(id, pulse.type, completionDate, progressValue);
-            } else {
+            } else if (pulse.measurement_type === 'binary' && pulse.frequency?.includes('ACUMULATIVO') && progressValue) {
+                // For binary accumulative, we also log a negative value (-1) to undo one instance
+                await logPulseCompletion(id, pulse.type, completionDate, progressValue);
+            }
+             else {
                 // For binary, simply remove the log for that day
                 await removePulseCompletion(id, pulse.type, completionDate);
             }

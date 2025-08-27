@@ -117,7 +117,8 @@ export function HabitTaskListItem({
 
   const handleRemoveInstance = () => {
     if (onUndo) {
-      onUndo(item.id, selectedDate);
+      // For binary accumulative, we "undo" by logging a -1 value.
+      onUndo(item.id, selectedDate, -1);
     }
   };
 
