@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -138,11 +139,11 @@ export function DayView({
     const completionDate = date.toISOString().split('T')[0];
     startTransition(async () => {
         try {
-            if (pulse.measurement_type === 'quantitative' && progressValue) {
-                // For quantitative, log a negative progress value to subtract
-                await logPulseCompletion(id, pulse.type, completionDate, progressValue);
+            if (pulse.measurement_type === 'quantitative') {
+                // For quantitative, a click on "Undo" means resetting the day's progress to 0
+                await removePulseCompletion(id, pulse.type, completionDate);
             } else if (pulse.measurement_type === 'binary' && pulse.frequency?.includes('ACUMULATIVO') && progressValue) {
-                // For binary accumulative, we also log a negative value (-1) to undo one instance
+                // For binary accumulative, we log a negative value (-1) to undo one instance
                 await logPulseCompletion(id, pulse.type, completionDate, progressValue);
             }
              else {
@@ -217,7 +218,7 @@ export function DayView({
     pulses.forEach(task => {
         if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
             const progressPercentage = (task.current_progress_value ?? 0) / task.measurement_goal.target_count;
-            weightedCompleted += Math.min(progressPercentage, 1) * task.weight;
+            weightedCompleted += progressPercentage * task.weight;
         } else if (task.completedToday) {
             weightedCompleted += 1 * task.weight;
         }

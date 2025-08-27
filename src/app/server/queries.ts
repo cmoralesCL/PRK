@@ -237,7 +237,7 @@ function calculateProgressForDate(date: Date, lifePrks: Orbit[], areaPrks: Phase
         const weightedCompleted = relevantTasks.reduce((sum, task) => {
             if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count && task.measurement_goal.target_count > 0) {
                 const progressValue = task.current_progress_value ?? 0;
-                const progressPercentage = Math.min(progressValue / task.measurement_goal.target_count, 1);
+                const progressPercentage = progressValue / task.measurement_goal.target_count;
                 return sum + (progressPercentage * task.weight);
             }
             if (task.completedToday) {
@@ -432,8 +432,8 @@ export async function getDashboardData(selectedDateString: string) {
         phases: areaPrksWithProgress,
         pulses: habitTasksForDay,
         commitments: commitments,
-        weeklyProgress: weeklyProgress > 100 ? 100 : weeklyProgress,
-        monthlyProgress: monthlyProgress > 100 ? 100 : monthlyProgress,
+        weeklyProgress: weeklyProgress,
+        monthlyProgress: monthlyProgress,
     };
 }
 
@@ -469,7 +469,7 @@ async function calculateWeeklyProgress(
                 } else if (task.completedToday) {
                     progressPercentage = 1;
                 }
-                totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
+                totalWeightedProgress += progressPercentage * task.weight;
                 totalWeight += task.weight;
             });
         }
@@ -492,7 +492,7 @@ async function calculateWeeklyProgress(
             progressPercentage = target > 0 ? (completions / target) : 0;
         }
 
-        totalWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
+        totalWeightedProgress += progressPercentage * task.weight;
         totalWeight += task.weight;
     });
 
@@ -500,7 +500,7 @@ async function calculateWeeklyProgress(
         ? (totalWeightedProgress / totalWeight) * 100
         : 0;
     
-    return combinedAvgProgress > 100 ? 100 : combinedAvgProgress;
+    return combinedAvgProgress;
 }
 
 
@@ -534,7 +534,7 @@ async function calculateMonthlyProgress(
             } else if (task.completedToday) {
                 progressPercentage = 1;
             }
-            totalMonthlyWeightedProgress += Math.min(progressPercentage, 1) * task.weight;
+            totalMonthlyWeightedProgress += progressPercentage * task.weight;
             totalMonthlyWeight += task.weight;
         });
     });
@@ -573,7 +573,7 @@ async function calculateMonthlyProgress(
                     const completions = logs.length;
                     weekCompletionPercentage = target > 0 ? (completions / target) : 0;
                 }
-                totalWeeklyProgress += Math.min(weekCompletionPercentage, 1);
+                totalWeeklyProgress += weekCompletionPercentage;
                 weekStart = addDays(weekStart, 7);
             }
             if(weeksInPeriod > 0) periodProgress = totalWeeklyProgress / weeksInPeriod;
@@ -589,7 +589,7 @@ async function calculateMonthlyProgress(
             }
         }
         
-        totalMonthlyWeightedProgress += Math.min(periodProgress, 1) * task.weight;
+        totalMonthlyWeightedProgress += periodProgress * task.weight;
         totalMonthlyWeight += task.weight;
     });
 
@@ -720,7 +720,7 @@ export async function getCalendarData(monthDate: Date) {
         dailyProgress,
         habitTasks: habitTasksByDay,
         weeklyProgress,
-        monthlyProgress: monthlyProgress > 100 ? 100 : monthlyProgress,
+        monthlyProgress: monthlyProgress,
         areaPrks,
         commitments,
     };
@@ -829,7 +829,7 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
                         } else {
                             weekProgress = target > 0 ? weekLogs.length / target : 0;
                         }
-                        totalWeeklyProgress += Math.min(weekProgress, 1);
+                        totalWeeklyProgress += weekProgress;
                     }
                 }
                 if (opportunityCount > 0) {
@@ -852,7 +852,7 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
                         } else {
                             monthProgress = target > 0 ? monthLogs.length / target : 0;
                         }
-                         periodProgress += Math.min(monthProgress, 1);
+                         periodProgress += monthProgress;
                     }
                  }
                  if(opportunityCount > 0) periodProgress = periodProgress / opportunityCount;
@@ -869,7 +869,7 @@ function calculatePeriodProgress(tasks: Pulse[], logs: ProgressLog[], startDate:
     if (totalPossibleWeight === 0) return 0;
 
     const progress = (totalWeightedProgress / totalPossibleWeight) * 100;
-    return progress > 100 ? 100 : progress;
+    return progress;
 }
 
 export async function getAnalyticsData(filters: {
@@ -916,7 +916,7 @@ export async function getAnalyticsData(filters: {
     if (filters.level === 'orbits') {
         chartData = orbitsWithProgress.map(o => {
             const progress = Math.round(o.progress);
-            return { name: o.title, progress: progress, remaining: 100 - progress };
+            return { name: o.title, progress: progress, remaining: Math.max(0, 100 - progress) };
         });
         stats.avgProgress = overallProgress;
         stats.stat1_value = allOrbits.length;
@@ -935,7 +935,7 @@ export async function getAnalyticsData(filters: {
 
         chartData = phasesWithProgress.map(p => {
             const progress = Math.round(p.progress);
-            return { name: p.title, progress: progress, remaining: 100 - progress };
+            return { name: p.title, progress: progress, remaining: Math.max(0, 100 - progress) };
         });
 
         const totalProgress = phasesWithProgress.reduce((sum, p) => sum + p.progress, 0);
@@ -955,7 +955,7 @@ export async function getAnalyticsData(filters: {
 
         chartData = pulsesWithProgress.map(p => {
             const progress = Math.round(p.progress ?? 0);
-            return { name: p.title, progress: progress, remaining: 100 - progress };
+            return { name: p.title, progress: progress, remaining: Math.max(0, 100 - progress) };
         });
         
         const totalProgress = pulsesWithProgress.reduce((sum, p) => sum + (p.progress ?? 0), 0);

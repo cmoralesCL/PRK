@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus, Target } from 'lucide-react';
@@ -27,13 +28,13 @@ interface HabitTaskListItemProps {
 
 function ImpactRating({ rating }: { rating: number }) {
     return (
-      <div className="flex items-center gap-0.5 text-yellow-500">
+      <div className="flex items-center gap-0.5">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
             className={cn(
               "h-4 w-4",
-              i < rating ? "fill-yellow-400 text-yellow-500" : "fill-muted stroke-muted-foreground"
+              i < rating ? "fill-yellow-400 text-yellow-500" : "fill-muted text-muted-foreground/50 stroke-none"
             )}
           />
         ))}
@@ -87,11 +88,10 @@ export function HabitTaskListItem({
     }
   };
 
-  const handleUndoQuantitative = (valueToUndo: number) => {
+  const handleResetQuantitative = () => {
     if (onUndo) {
-      if (!isNaN(valueToUndo) && valueToUndo > 0) {
-        onUndo(item.id, selectedDate, -Math.abs(valueToUndo));
-      }
+        // A specific value is not needed, the server action will handle the reset
+        onUndo(item.id, selectedDate);
     }
   };
 
@@ -235,7 +235,7 @@ export function HabitTaskListItem({
                             Agregar
                             </Button>
                              {onUndo && (
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0 || currentTotal === 0}>
+                                <Button size="sm" variant="outline" className="h-8" onClick={handleResetQuantitative} disabled={currentTotal === 0}>
                                 Deshacer
                                 </Button>
                             )}
