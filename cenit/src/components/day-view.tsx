@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -150,15 +151,21 @@ export function DayView({
     });
   };
 
-  const handleUndoPulse = (id: string, date: Date) => {
-     const allPulses = [...pulses, ...commitments];
+  const handleUndoPulse = (id: string, date: Date, progressValue?: number) => {
+    const allPulses = [...pulses, ...commitments];
     const pulse = allPulses.find(ht => ht.id === id);
     if (!pulse) return;
 
     const completionDate = date.toISOString().split('T')[0];
     startTransition(async () => {
         try {
-            await removePulseCompletion(id, pulse.type, completionDate);
+            if (pulse.measurement_type === 'quantitative' && progressValue) {
+                // For quantitative, log a negative progress value to subtract
+                await logPulseCompletion(id, pulse.type, completionDate, progressValue);
+            } else {
+                // For binary, simply remove the log for that day
+                await removePulseCompletion(id, pulse.type, completionDate);
+            }
             toast({ title: "Registro deshecho" });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });

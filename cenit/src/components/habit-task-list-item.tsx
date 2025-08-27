@@ -2,7 +2,7 @@
 
 'use client';
 
-import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus } from 'lucide-react';
+import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus, Target } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ interface HabitTaskListItemProps {
   phases?: Phase[];
   orbits?: Orbit[];
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
-  onUndo?: (id: string, date: Date) => void;
+  onUndo?: (id: string, date: Date, progressValue?: number) => void;
   onArchive?: (id: string) => void;
   onEdit?: (habitTask: Pulse) => void;
   selectedDate: Date;
@@ -85,6 +85,14 @@ export function HabitTaskListItem({
     if (onToggle) {
       if (!isNaN(valueToAdd)) {
         onToggle(item.id, true, selectedDate, valueToAdd);
+      }
+    }
+  };
+
+  const handleUndoQuantitative = (valueToUndo: number) => {
+    if (onUndo) {
+      if (!isNaN(valueToUndo) && valueToUndo > 0) {
+        onUndo(item.id, selectedDate, -Math.abs(valueToUndo));
       }
     }
   };
@@ -169,6 +177,8 @@ export function HabitTaskListItem({
   // --- Type B: Quantitative / Frequency Habit ---
   if (item.measurement_type === 'quantitative') {
       const target = item.measurement_goal?.target_count ?? 1;
+      const progressPercent = target > 0 ? (currentTotal / target) * 100 : 0;
+      const isQuantitativeCompleted = progressPercent >= 100;
 
       return (
         <div className="flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors duration-200 group">
@@ -178,15 +188,11 @@ export function HabitTaskListItem({
             <div className="flex flex-col gap-3 flex-grow">
                 <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                        <Checkbox
-                            id={`check-${item.id}`}
-                            checked={isCompleted}
-                            onCheckedChange={handleToggle}
-                            disabled={!onToggle}
-                            className="h-5 w-5 mt-0.5"
-                        />
+                        <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                            <Target className={cn("h-5 w-5 text-muted-foreground", isQuantitativeCompleted && "text-primary")} />
+                        </div>
                         <div>
-                        <Label htmlFor={`check-${item.id}`} className={cn('text-sm font-medium leading-none flex-grow cursor-pointer', isCompleted && "line-through text-muted-foreground")}>
+                        <Label className={cn('text-sm font-medium leading-none flex-grow', isQuantitativeCompleted && "line-through text-muted-foreground")}>
                             {item.title}
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -230,7 +236,7 @@ export function HabitTaskListItem({
                             Agregar
                             </Button>
                              {onUndo && (
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleSaveQuantitative(-Math.abs(Number(progressValue)))} disabled={!progressValue || Number(progressValue) === 0}>
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0}>
                                 Deshacer
                                 </Button>
                             )}
