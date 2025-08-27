@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus, Target } from 'lucide-react';
@@ -83,17 +81,18 @@ export function HabitTaskListItem({
   
   const handleSaveQuantitative = (valueToAdd: number) => {
     if (onToggle) {
-      if (!isNaN(valueToAdd)) {
+      if (!isNaN(valueToAdd) && valueToAdd !== 0) {
         onToggle(item.id, true, selectedDate, valueToAdd);
       }
     }
   };
 
-  const handleUndoQuantitative = (valueToUndo: number) => {
-    if (onUndo) {
-      if (!isNaN(valueToUndo) && valueToUndo > 0) {
-        onUndo(item.id, selectedDate, -Math.abs(valueToUndo));
-      }
+  const handleUndoQuantitative = () => {
+    if (!onUndo) return;
+    const valueToUndo = Number(progressValue);
+    // If input has a valid number, undo that amount. Otherwise, do nothing (or we could reset, but this is safer).
+    if (!isNaN(valueToUndo) && valueToUndo > 0) {
+       onUndo(item.id, selectedDate, -Math.abs(valueToUndo));
     }
   };
 
@@ -237,7 +236,7 @@ export function HabitTaskListItem({
                             Agregar
                             </Button>
                              {onUndo && (
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0}>
+                                <Button size="sm" variant="outline" className="h-8" onClick={handleUndoQuantitative} disabled={currentTotal === 0}>
                                 Deshacer
                                 </Button>
                             )}
