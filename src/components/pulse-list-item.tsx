@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { CheckCircle, Circle, Zap } from 'lucide-react';
@@ -14,7 +15,7 @@ import {
 import { MoreVertical, Pencil, Archive } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
-import { Progress } from './ui/progress';
+import { ProgressCircle } from './ui/progress-circle';
 
 interface PulseListItemProps {
   pulse: Pulse;
@@ -43,16 +44,13 @@ export function PulseListItem({
         <div className="flex-grow">
             <p className="font-medium text-foreground">{pulse.title}</p>
             <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className="capitalize">{pulse.type}</Badge>
+                <Badge variant="secondary" className="capitalize">{pulse.type === 'habit' ? 'Hábito' : 'Tarea'}</Badge>
                 <Badge variant="outline">Impacto: {pulse.weight}/5</Badge>
             </div>
         </div>
         <div className="flex items-center gap-2">
             {pulse.progress !== undefined && (
-                <div className="flex items-center gap-2 w-24 flex-shrink-0">
-                    <span className="text-sm font-bold text-foreground w-12 text-right">{Math.round(pulse.progress)}%</span>
-                    <Progress value={pulse.progress} className="h-2 w-full" colorTheme={colorTheme} />
-                </div>
+                <ProgressCircle progress={progress} className="h-10 w-10" />
             )}
             {pulse.is_critical && <Zap className="h-4 w-4 text-yellow-500" />}
             <DropdownMenu>
