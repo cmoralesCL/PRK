@@ -5,7 +5,7 @@ import { getDashboardData } from '@/app/server/queries';
 import { parseISO, format } from 'date-fns';
 import { DayView } from '@/components/day-view';
 import type { DailyProgressSnapshot } from '@/lib/types';
-import { getQuoteOfTheDay } from '@/ai/flows/get-quote-of-the-day';
+// import { getQuoteOfTheDay } from '@/ai/flows/get-quote-of-the-day';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
   const selectedDateString = searchParams.date || format(new Date(), 'yyyy-MM-dd');
   
   const { orbits, phases, pulses, commitments, weeklyProgress, monthlyProgress } = await getDashboardData(selectedDateString);
-  const quoteData = await getQuoteOfTheDay();
+  // const quoteData = await getQuoteOfTheDay();
 
   const totalWeight = pulses.reduce((sum, task) => {
     if (task.measurement_type === 'quantitative' && task.measurement_goal?.target_count) {
@@ -51,7 +51,7 @@ export default async function DayPage({ searchParams }: { searchParams: { date?:
         dailyProgressDataForWeek={dailyProgressDataForWeek}
         weeklyProgress={weeklyProgress}
         monthlyProgress={monthlyProgress}
-        quote={quoteData}
+        // quote={quoteData}
     />
   );
 }

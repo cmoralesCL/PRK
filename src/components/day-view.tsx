@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -18,26 +20,26 @@ import { parseISO, format } from 'date-fns';
 import { CommitmentsCard } from './commitments-card';
 import { WeekNav } from './week-nav';
 import { HabitTaskListItem } from './habit-task-list-item';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import Link from 'next/link';
-import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
+// import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
 import { ProgressCircle } from './ui/progress-circle';
 
-interface QuoteCardProps {
-    quote: QuoteOfTheDayOutput;
-}
+// interface QuoteCardProps {
+//     quote: QuoteOfTheDayOutput;
+// }
 
-function QuoteCard({ quote }: QuoteCardProps) {
-    return (
-        <div className="p-4 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-primary-foreground shadow-lg">
-            <p className="text-sm font-medium">Frase del Día</p>
-            <blockquote className="mt-1 text-lg font-semibold italic">
-                "{quote.quote}"
-            </blockquote>
-             <p className="text-right text-sm opacity-80 mt-2">- {quote.author}</p>
-        </div>
-    )
-}
+// function QuoteCard({ quote }: QuoteCardProps) {
+//     return (
+//         <div className="p-4 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-primary-foreground shadow-lg">
+//             <p className="text-sm font-medium">Frase del Día</p>
+//             <blockquote className="mt-1 text-lg font-semibold italic">
+//                 "{quote.quote}"
+//             </blockquote>
+//              <p className="text-right text-sm opacity-80 mt-2">- {quote.author}</p>
+//         </div>
+//     )
+// }
 
 
 interface DayViewProps {
@@ -49,7 +51,7 @@ interface DayViewProps {
   dailyProgressDataForWeek: DailyProgressSnapshot[];
   weeklyProgress: number;
   monthlyProgress: number;
-  quote: QuoteOfTheDayOutput;
+  // quote: QuoteOfTheDayOutput;
 }
 
 export function DayView({
@@ -61,7 +63,7 @@ export function DayView({
   dailyProgressDataForWeek,
   weeklyProgress,
   monthlyProgress,
-  quote,
+  // quote,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -150,15 +152,25 @@ export function DayView({
     });
   };
 
-  const handleUndoPulse = (id: string, date: Date) => {
-     const allPulses = [...pulses, ...commitments];
+  const handleUndoPulse = (id: string, date: Date, progressValue?: number) => {
+    const allPulses = [...pulses, ...commitments];
     const pulse = allPulses.find(ht => ht.id === id);
     if (!pulse) return;
 
     const completionDate = date.toISOString().split('T')[0];
     startTransition(async () => {
         try {
-            await removePulseCompletion(id, pulse.type, completionDate);
+            if (pulse.measurement_type === 'quantitative' && progressValue) {
+                // For quantitative, log a negative progress value to subtract
+                await logPulseCompletion(id, pulse.type, completionDate, progressValue);
+            } else if (pulse.measurement_type === 'binary' && pulse.frequency?.includes('ACUMULATIVO') && progressValue) {
+                // For binary accumulative, we also log a negative value (-1) to undo one instance
+                await logPulseCompletion(id, pulse.type, completionDate, progressValue);
+            }
+             else {
+                // For binary, simply remove the log for that day
+                await removePulseCompletion(id, pulse.type, completionDate);
+            }
             toast({ title: "Registro deshecho" });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo deshacer la acción.' });
@@ -256,13 +268,7 @@ export function DayView({
         
         <div>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="font-headline">Progreso</CardTitle>
-                    <Button variant="link" asChild>
-                        <Link href="/analytics">Ver progreso</Link>
-                    </Button>
-                </CardHeader>
-                <CardContent className="flex justify-around items-center py-4">
+                <CardContent className="flex justify-around items-center p-4">
                     <div className="flex flex-col items-center gap-2">
                         <ProgressCircle progress={dailyProgress} className="h-20 w-20" />
                         <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
@@ -339,7 +345,7 @@ export function DayView({
             </div>
         </div>
         
-        <QuoteCard quote={quote} />
+        {/* <QuoteCard quote={quote} /> */}
 
       </div>
 
