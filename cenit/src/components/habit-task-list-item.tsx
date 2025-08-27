@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus } from 'lucide-react';
@@ -82,7 +83,7 @@ export function HabitTaskListItem({
   
   const handleSaveQuantitative = (valueToAdd: number) => {
     if (onToggle) {
-      if (!isNaN(valueToAdd) && valueToAdd !== 0) {
+      if (!isNaN(valueToAdd)) {
         onToggle(item.id, true, selectedDate, valueToAdd);
       }
     }
@@ -228,6 +229,11 @@ export function HabitTaskListItem({
                             <Button size="sm" className="h-8" onClick={() => handleSaveQuantitative(Number(progressValue))}>
                             Agregar
                             </Button>
+                             {onUndo && (
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleSaveQuantitative(-Math.abs(Number(progressValue)))} disabled={!progressValue || Number(progressValue) === 0}>
+                                Deshacer
+                                </Button>
+                            )}
                         </div>
                     )}
                     </div>
