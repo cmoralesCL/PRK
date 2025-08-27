@@ -256,13 +256,7 @@ export function DayView({
         
         <div>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="font-headline">Progreso</CardTitle>
-                    <Button variant="link" asChild>
-                        <Link href="/analytics">Ver progreso</Link>
-                    </Button>
-                </CardHeader>
-                <CardContent className="flex justify-around items-center py-4">
+                <CardContent className="flex justify-around items-center p-4">
                     <div className="flex flex-col items-center gap-2">
                         <ProgressCircle progress={dailyProgress} className="h-20 w-20" />
                         <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
