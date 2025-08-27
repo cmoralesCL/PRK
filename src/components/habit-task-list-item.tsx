@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus, Target } from 'lucide-react';
@@ -237,7 +235,7 @@ export function HabitTaskListItem({
                             Agregar
                             </Button>
                              {onUndo && (
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0}>
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0 || currentTotal === 0}>
                                 Deshacer
                                 </Button>
                             )}

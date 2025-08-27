@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -22,25 +20,7 @@ import { WeekNav } from './week-nav';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Card, CardContent } from './ui/card';
 import Link from 'next/link';
-// import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
 import { ProgressCircle } from './ui/progress-circle';
-
-// interface QuoteCardProps {
-//     quote: QuoteOfTheDayOutput;
-// }
-
-// function QuoteCard({ quote }: QuoteCardProps) {
-//     return (
-//         <div className="p-4 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-primary-foreground shadow-lg">
-//             <p className="text-sm font-medium">Frase del Día</p>
-//             <blockquote className="mt-1 text-lg font-semibold italic">
-//                 "{quote.quote}"
-//             </blockquote>
-//              <p className="text-right text-sm opacity-80 mt-2">- {quote.author}</p>
-//         </div>
-//     )
-// }
-
 
 interface DayViewProps {
   orbits: Orbit[];
@@ -51,7 +31,6 @@ interface DayViewProps {
   dailyProgressDataForWeek: DailyProgressSnapshot[];
   weeklyProgress: number;
   monthlyProgress: number;
-  // quote: QuoteOfTheDayOutput;
 }
 
 export function DayView({
@@ -63,7 +42,6 @@ export function DayView({
   dailyProgressDataForWeek,
   weeklyProgress,
   monthlyProgress,
-  // quote,
 }: DayViewProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -345,7 +323,6 @@ export function DayView({
             </div>
         </div>
         
-        {/* <QuoteCard quote={quote} /> */}
 
       </div>
 
