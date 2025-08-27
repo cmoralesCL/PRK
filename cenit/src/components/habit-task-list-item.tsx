@@ -26,6 +26,22 @@ interface HabitTaskListItemProps {
   isDraggable?: boolean;
 }
 
+function ImpactRating({ rating }: { rating: number }) {
+    return (
+      <div className="flex items-center gap-0.5 text-yellow-500">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className={cn(
+              "h-4 w-4",
+              i < rating ? "fill-yellow-400 text-yellow-500" : "fill-muted stroke-muted-foreground"
+            )}
+          />
+        ))}
+      </div>
+    );
+}
+
 export function HabitTaskListItem({ 
     item,
     phases = [],
@@ -109,6 +125,7 @@ export function HabitTaskListItem({
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                    <ImpactRating rating={item.weight} />
                     {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                     {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                 </div>
@@ -194,6 +211,7 @@ export function HabitTaskListItem({
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                        <ImpactRating rating={item.weight} />
                         {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                         {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                     </div>
@@ -247,6 +265,7 @@ export function HabitTaskListItem({
             </Label>
              <div className="flex flex-wrap items-center gap-2 mt-2">
                 <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                <ImpactRating rating={item.weight} />
                 {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                 {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
             </div>
