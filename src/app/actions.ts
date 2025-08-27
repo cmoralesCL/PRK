@@ -294,64 +294,75 @@ export async function updatePulseOrder(orderedIds: string[]): Promise<void> {
 export async function logPulseCompletion(pulseId: string, type: 'habit' | 'task', completionDate: string, progressValue?: number) {
     const supabase = createClient();
     const userId = await getCurrentUserId();
+
     try {
-        if (type === 'task' && !progressValue) {
-            // Only mark one-off tasks as completed if no progress value is given
-            const { data: taskDetails, error: taskError } = await supabase.from('habit_tasks').select('frequency').eq('id', pulseId).eq('user_id', userId).single();
-            if (taskError) throw taskError;
-            if (!taskDetails.frequency) {
-                 const { error: updateError } = await supabase
-                    .from('habit_tasks')
-                    .update({ completion_date: completionDate })
-                    .eq('id', pulseId)
-                    .eq('user_id', userId);
-                if (updateError) throw updateError;
-            }
+        // --- Get Task Details ---
+        const { data: task, error: taskError } = await supabase
+            .from('habit_tasks')
+            .select('frequency, measurement_type, measurement_goal')
+            .eq('id', pulseId)
+            .eq('user_id', userId)
+            .single();
+
+        if (taskError || !task) {
+            throw new Error(`Could not find task with id ${pulseId}.`);
         }
 
-        let completionPercentage = 1.0; 
-
-        if (progressValue !== undefined) {
-            const { data: task, error: taskError } = await supabase
+        // --- Handle one-off tasks completion status ---
+        if (type === 'task' && !task.frequency && progressValue === undefined) {
+            const { error: updateError } = await supabase
                 .from('habit_tasks')
-                .select('measurement_goal, measurement_type, frequency')
+                .update({ completion_date: completionDate })
                 .eq('id', pulseId)
-                .eq('user_id', userId)
-                .single();
+                .eq('user_id', userId);
+            if (updateError) throw updateError;
+        }
 
-            if (taskError || !task) {
-                await logError(taskError, { at: 'logPulseCompletion - get task for percentage' });
-                throw new Error(`Could not find task with id ${pulseId} to calculate progress percentage.`);
-            }
+        // --- Logic for different measurement types ---
+        // For binary accumulative, we insert a new log for each instance
+        if (task.measurement_type === 'binary' && task.frequency?.includes('ACUMULATIVO')) {
+             const { error: logErrorObj } = await supabase.from('progress_logs').insert({
+                habit_task_id: pulseId,
+                completion_date: completionDate,
+                progress_value: progressValue, // will be 1 or -1
+                completion_percentage: 1.0,
+                user_id: userId,
+            });
+            if (logErrorObj) throw logErrorObj;
+        } else { // For binary daily and ALL quantitative, we upsert to accumulate
+            // 1. Get existing log for the day
+            const { data: existingLog } = await supabase
+                .from('progress_logs')
+                .select('progress_value')
+                .eq('habit_task_id', pulseId)
+                .eq('completion_date', completionDate)
+                .single();
             
+            // 2. Calculate new total progress value
+            const currentValue = existingLog?.progress_value ?? 0;
+            const newValue = currentValue + (progressValue ?? 1);
+
+            // 3. Calculate completion percentage
+            let completionPercentage = 1.0;
             if (task.measurement_type === 'quantitative') {
                 const target = task.measurement_goal?.target_count;
                 if (typeof target === 'number' && target > 0) {
-                    completionPercentage = progressValue / target;
+                    completionPercentage = newValue / target;
                 } else {
-                     completionPercentage = progressValue > 0 ? 1 : 0;
+                    completionPercentage = newValue > 0 ? 1 : 0;
                 }
-            } else if (task.measurement_type === 'binary') {
-                // For accumulative binary, each log is 100% of that instance
-                completionPercentage = 1.0;
             }
+            
+            // 4. Upsert the accumulated value
+            const { error: logErrorObj } = await supabase.from('progress_logs').upsert({
+                habit_task_id: pulseId,
+                completion_date: completionDate,
+                progress_value: newValue,
+                completion_percentage: completionPercentage,
+                user_id: userId,
+            }, { onConflict: 'habit_task_id, completion_date' });
+            if (logErrorObj) throw logErrorObj;
         }
-
-        const upsertData: Omit<ProgressLog, 'id' | 'created_at'> = {
-            habit_task_id: pulseId,
-            completion_date: completionDate,
-            // For binary accumulative habits, the progress value is always 1 for each log entry
-            progress_value: progressValue ?? 1,
-            completion_percentage: completionPercentage,
-            user_id: userId,
-        };
-        
-        const { error: logErrorObj } = await supabase.from('progress_logs').upsert(
-            upsertData, 
-            { onConflict: 'habit_task_id, completion_date' }
-        );
-
-        if (logErrorObj) throw logErrorObj;
 
         revalidatePath('/panel');
         revalidatePath('/calendar');
@@ -664,5 +675,3 @@ export async function assignSimpleTask(taskId: string, assignedToUserId: string 
     }
     revalidatePath('/tasks');
 }
-
-    

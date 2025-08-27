@@ -19,7 +19,7 @@ interface HabitTaskListItemProps {
   phases?: Phase[];
   orbits?: Orbit[];
   onToggle?: (id: string, completed: boolean, date: Date, progressValue?: number) => void;
-  onUndo?: (id: string, date: Date) => void;
+  onUndo?: (id: string, date: Date, progressValue?: number) => void;
   onArchive?: (id: string) => void;
   onEdit?: (habitTask: Pulse) => void;
   selectedDate: Date;
@@ -83,8 +83,16 @@ export function HabitTaskListItem({
   
   const handleSaveQuantitative = (valueToAdd: number) => {
     if (onToggle) {
-      if (!isNaN(valueToAdd)) {
+      if (!isNaN(valueToAdd) && valueToAdd !== 0) {
         onToggle(item.id, true, selectedDate, valueToAdd);
+      }
+    }
+  };
+
+  const handleUndoQuantitative = (valueToUndo: number) => {
+    if (onUndo) {
+      if (!isNaN(valueToUndo) && valueToUndo > 0) {
+        onUndo(item.id, selectedDate, -Math.abs(valueToUndo));
       }
     }
   };
@@ -109,7 +117,8 @@ export function HabitTaskListItem({
 
   const handleRemoveInstance = () => {
     if (onUndo) {
-      onUndo(item.id, selectedDate);
+      // For binary accumulative, we "undo" by logging a -1 value.
+      onUndo(item.id, selectedDate, -1);
     }
   };
 
@@ -228,7 +237,7 @@ export function HabitTaskListItem({
                             Agregar
                             </Button>
                              {onUndo && (
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleSaveQuantitative(-Math.abs(Number(progressValue)))} disabled={!progressValue || Number(progressValue) === 0}>
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleUndoQuantitative(Number(progressValue))} disabled={!progressValue || Number(progressValue) === 0}>
                                 Deshacer
                                 </Button>
                             )}
