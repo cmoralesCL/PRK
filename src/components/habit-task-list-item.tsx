@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { CheckSquare, Repeat, Archive, Pencil, MoreVertical, Plus, Undo2, GripVertical, Star, Minus } from 'lucide-react';
@@ -24,6 +25,22 @@ interface HabitTaskListItemProps {
   selectedDate: Date;
   variant?: 'dashboard' | 'calendar' | 'dialog' | 'read-only';
   isDraggable?: boolean;
+}
+
+function ImpactRating({ rating }: { rating: number }) {
+    return (
+      <div className="flex items-center gap-0.5 text-yellow-500">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className={cn(
+              "h-4 w-4",
+              i < rating ? "fill-yellow-400 text-yellow-500" : "fill-muted stroke-muted-foreground"
+            )}
+          />
+        ))}
+      </div>
+    );
 }
 
 export function HabitTaskListItem({ 
@@ -66,7 +83,7 @@ export function HabitTaskListItem({
   
   const handleSaveQuantitative = (valueToAdd: number) => {
     if (onToggle) {
-      if (!isNaN(valueToAdd) && valueToAdd !== 0) {
+      if (!isNaN(valueToAdd)) {
         onToggle(item.id, true, selectedDate, valueToAdd);
       }
     }
@@ -109,6 +126,7 @@ export function HabitTaskListItem({
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                    <ImpactRating rating={item.weight} />
                     {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                     {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                 </div>
@@ -194,6 +212,7 @@ export function HabitTaskListItem({
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                        <ImpactRating rating={item.weight} />
                         {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                         {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
                     </div>
@@ -210,6 +229,11 @@ export function HabitTaskListItem({
                             <Button size="sm" className="h-8" onClick={() => handleSaveQuantitative(Number(progressValue))}>
                             Agregar
                             </Button>
+                             {onUndo && (
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleSaveQuantitative(-Math.abs(Number(progressValue)))} disabled={!progressValue || Number(progressValue) === 0}>
+                                Deshacer
+                                </Button>
+                            )}
                         </div>
                     )}
                     </div>
@@ -247,6 +271,7 @@ export function HabitTaskListItem({
             </Label>
              <div className="flex flex-wrap items-center gap-2 mt-2">
                 <Badge variant="outline" className="capitalize">{item.type === 'task' ? 'Tarea' : 'Hábito'}</Badge>
+                <ImpactRating rating={item.weight} />
                 {phases.map(phase => <Badge key={phase.id} variant="secondary">Fase: {phase.title}</Badge>)}
                 {orbits.map(orbit => <Badge key={orbit.id} variant="outline">Órbita: {orbit.title}</Badge>)}
             </div>
