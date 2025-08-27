@@ -17,13 +17,11 @@ import { Button } from './ui/button';
 import { parseISO, format } from 'date-fns';
 import { CommitmentsCard } from './commitments-card';
 import { WeekNav } from './week-nav';
-import { GripVertical } from 'lucide-react';
 import { HabitTaskListItem } from './habit-task-list-item';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Progress } from './ui/progress';
 import Link from 'next/link';
 import type { QuoteOfTheDayOutput } from '@/ai/flows/get-quote-of-the-day';
-import { AppHeader } from './app-header';
+import { ProgressCircle } from './ui/progress-circle';
 
 interface QuoteCardProps {
     quote: QuoteOfTheDayOutput;
@@ -43,7 +41,6 @@ function QuoteCard({ quote }: QuoteCardProps) {
 
 
 interface DayViewProps {
-  userEmail?: string | null;
   orbits: Orbit[];
   phases: Phase[];
   pulses: Pulse[];
@@ -56,7 +53,6 @@ interface DayViewProps {
 }
 
 export function DayView({
-  userEmail,
   orbits,
   phases,
   pulses: initialPulses,
@@ -254,7 +250,6 @@ export function DayView({
 
   return (
     <>
-      <AppHeader userEmail={userEmail} />
       <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 space-y-6">
         
         <WeekNav selectedDate={selectedDate} onDateChange={handleDateChange} dailyProgressData={dailyProgressDataForWeek} />
@@ -267,27 +262,18 @@ export function DayView({
                         <Link href="/analytics">Ver progreso</Link>
                     </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
-                            <span className="text-sm font-bold text-foreground">{Math.round(dailyProgress)}%</span>
-                        </div>
-                        <Progress value={dailyProgress} />
+                <CardContent className="flex justify-around items-center py-4">
+                    <div className="flex flex-col items-center gap-2">
+                        <ProgressCircle progress={dailyProgress} className="h-20 w-20" />
+                        <span className="text-sm font-medium text-muted-foreground">Progreso del Día</span>
                     </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-muted-foreground">Progreso Semanal</span>
-                            <span className="text-sm font-bold text-foreground">{Math.round(weeklyProgress)}%</span>
-                        </div>
-                        <Progress value={weeklyProgress} />
+                    <div className="flex flex-col items-center gap-2">
+                        <ProgressCircle progress={weeklyProgress} className="h-24 w-24" />
+                        <span className="text-sm font-medium text-muted-foreground">Progreso Semanal</span>
                     </div>
-                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-muted-foreground">Progreso Mensual</span>
-                            <span className="text-sm font-bold text-foreground">{Math.round(monthlyProgress)}%</span>
-                        </div>
-                        <Progress value={monthlyProgress} />
+                    <div className="flex flex-col items-center gap-2">
+                        <ProgressCircle progress={monthlyProgress} className="h-20 w-20" />
+                        <span className="text-sm font-medium text-muted-foreground">Progreso Mensual</span>
                     </div>
                 </CardContent>
             </Card>
