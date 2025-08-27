@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -72,7 +71,7 @@ export function LifePrkSection({
                             {orbit.title}
                         </h2>
                         {orbit.description && (
-                            <p className="text-sm text-muted-foreground font-normal max-w-md">{orbit.description}</p>
+                            <p className="text-sm text-muted-foreground font-normal">{orbit.description}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="secondary">{phases.length} Fases</Badge>
