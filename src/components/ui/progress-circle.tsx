@@ -8,6 +8,26 @@ interface ProgressCircleProps extends React.SVGProps<SVGSVGElement> {
   progress: number
 }
 
+// Function to get color based on progress percentage
+const getProgressColor = (progress: number): string => {
+  const p = Math.max(0, Math.min(100, progress)); // Cap progress between 0 and 100 for color calculation
+  // Hue starts at red (0), goes to orange/yellow (around 40-60), and ends at cyan (183)
+  // We'll make it simple: 0 -> 0 (red), 50 -> 40 (orange), 100 -> 183 (cyan)
+  let hue;
+  if (p < 50) {
+    // Interpolate between red (0) and orange (40)
+    hue = (p / 50) * 40;
+  } else {
+    // Interpolate between orange (40) and cyan (183)
+    hue = 40 + ((p - 50) / 50) * (183 - 40);
+  }
+  // Keep saturation and lightness constant for a vibrant look
+  const saturation = 90;
+  const lightness = 55;
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
+
 export const ProgressCircle = React.forwardRef<
   SVGSVGElement,
   ProgressCircleProps
@@ -17,6 +37,7 @@ export const ProgressCircle = React.forwardRef<
   // We allow progress to go over 100% for the visual effect, but cap it at a high number to avoid weird rendering
   const effectiveProgress = Math.min(progress, 1000); 
   const offset = circumference - (effectiveProgress / 100) * circumference
+  const color = getProgressColor(progress);
 
   return (
     <svg
@@ -35,14 +56,14 @@ export const ProgressCircle = React.forwardRef<
         cy="20"
       />
       <circle
-        className="text-primary transition-all duration-500 ease-in-out"
+        className="transition-all duration-500 ease-in-out"
         style={{
             strokeDashoffset: offset,
             strokeDasharray: circumference,
+            stroke: color,
         }}
         strokeWidth="4"
         strokeLinecap="round"
-        stroke="currentColor"
         fill="transparent"
         r={radius}
         cx="20"
