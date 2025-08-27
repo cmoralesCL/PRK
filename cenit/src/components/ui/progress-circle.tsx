@@ -54,7 +54,7 @@ export const ProgressCircle = React.forwardRef<
         y="50%"
         textAnchor="middle"
         dy=".3em"
-        className="text-base font-bold fill-current text-foreground"
+        className="text-[0.6rem] font-bold fill-current text-foreground"
       >
         {`${Math.round(progress)}%`}
       </text>
